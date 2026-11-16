@@ -5,8 +5,8 @@ Postgres 17, Redis and Horizon; Sail locally. `README.md` has the overview;
 this file is what an agent needs before making changes.
 
 ## Where things live
-- `ROADMAP.md` — the pending work, quickest high-value items first. Update it
-  in the same PR that closes or changes an item.
+- `ROADMAP.md` — the pending work, grouped in phases, quickest high-value
+  first. Update it in the same PR that closes or changes a phase.
 - `CHANGELOG.md` — add an `[Unreleased]` entry in the same PR as any
   user-visible or operational change; a release PR only moves the heading.
 - `design.md` — the locked design system. Read it before touching any color,
