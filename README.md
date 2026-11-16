@@ -93,7 +93,7 @@ TDD-first (red → green → refactor) on every change in this repo.
 
 ## Where to look next
 
-- [`ROADMAP.md`](ROADMAP.md) — what is left to do, quickest valuable work first.
+- [`ROADMAP.md`](ROADMAP.md) — what is left to do, in phases, quickest valuable work first.
 - [`CHANGELOG.md`](CHANGELOG.md) — what shipped in each release.
 - [`design.md`](design.md) — the design system: tokens, rules, what is locked.
 - [`deploy/README.md`](deploy/README.md) — how releases deploy to production
