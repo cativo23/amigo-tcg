@@ -15,6 +15,7 @@
 .sts-head { padding: clamp(28px, 6vw, 72px) var(--gutter) clamp(28px, 4vw, 52px); }
 .sts-title { margin: 0; font: 820 var(--sts-who)/.8 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em; }
 .sts-summary { margin: var(--space-md) 0 0; font-size: var(--text-lg); color: var(--color-ink-2); }
+.sts-note { margin: var(--space-2xs) 0 0; max-width: 60ch; font-size: var(--text-sm); color: var(--color-muted); }
 .sts-summary .sts-mono { font-size: var(--text-md); font-weight: 600; color: var(--color-ink); }
 .sts-sep { color: var(--color-muted); margin: 0 .35em; }
 

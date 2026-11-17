@@ -452,7 +452,7 @@ test('cards past the stat band\'s card cap are priced through the deciding query
         ->and($reads->decidingIds($last))->toBe($pastCap);
 });
 
-test('the summary dates the latest marketplace sync and the note names its origins, never a manual entry', function () {
+test('the summary dates the latest marketplace sync, never a manual entry, and the note says prices are approximate without naming a feed', function () {
     ['darkrai' => $darkrai] = seedCollection();
     CardPriceSnapshot::query()->delete(); // start from this test's own prices only
     CardPriceSnapshot::create(['card_id' => $darkrai->id, 'source' => 'cardmarket', 'variant' => 'default', 'captured_on' => today()->subDays(2), 'currency' => 'EUR', 'market_minor' => 100]);
@@ -462,7 +462,8 @@ test('the summary dates the latest marketplace sync and the note names its origi
 
     expect(RevampHtml::summary($html))->toEndWith('on '.today()->subDays(2)->format('j M'))
         ->and(RevampHtml::summary($html))->not->toContain(today()->format('j M'))
-        ->and(RevampHtml::note($html))->toBe('Prices via tcgdex.') // run once, then pinned
+        ->and(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices.')
+        ->and($html)->not->toContain('Prices via')
         ->and(RevampHtml::note($html))->not->toContain('hand');
 });
 
@@ -618,7 +619,7 @@ test('other currencies are never added in: they move to a note beside the price 
 
     $html = $this->get('/carlos')->getContent();
 
-    expect(RevampHtml::note($html))->toBe('Prices via tcgdex. Also €333.30 priced in EUR, not added to the total.')
+    expect(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices. Also €333.30 priced in EUR, not added to the total.')
         ->and($html)->not->toContain('722.66');
 });
 
@@ -841,4 +842,21 @@ test('a set id with a quote reaches Livewire as an encoded JS literal, never a r
         ->and($html)->not->toContain('selectSet(&#039;x')
         ->and($html)->not->toContain("selectSet('x'")
         ->and($html)->not->toContain('x&#039;y&#039;)');
+});
+
+test('a collection with no price says nothing about approximate prices', function () {
+    seedCollection();
+    CardPriceSnapshot::query()->delete();
+
+    expect($this->get('/carlos')->assertOk()->getContent())->not->toContain('Approx.');
+});
+
+test('the footer names TCGplayer as the price source and says prices are approximate', function () {
+    seedCollection();
+
+    $html = $this->get('/carlos')->assertOk()->getContent();
+
+    expect(preg_replace('/\s+/', ' ', strip_tags((string) substr($html, (int) strpos($html, '<footer')))))
+        ->toContain('Card data and artwork from tcgdex.dev. Prices are approximate TCGplayer market values, updated daily from tcgdex.dev and tcgcsv.com. They are not appraisals.')
+        ->and($html)->not->toContain('Prices are market references');
 });

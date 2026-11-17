@@ -736,7 +736,7 @@ test('the head is the word Activity and one summary line; other currencies go to
 
     expect($html)->toContain('<h1 id="act-h" class="act-who">Activity</h1>')
         ->and(RevampHtml::text('act-summary', $html))->toBe('$20.50 on '.DayLabel::of(today()))
-        ->and(RevampHtml::text('act-note', $html))->toBe('Also €3.30 priced in EUR, not added to the total.')
+        ->and(RevampHtml::text('act-note', $html))->toBe('Approx. TCGplayer market prices. Also €3.30 priced in EUR, not added to the total.')
         ->and($html)->not->toContain('collection history');
 });
 

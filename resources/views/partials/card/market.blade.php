@@ -18,9 +18,10 @@
 <section class="crd-market" aria-labelledby="crd-mv-h">
     <div class="crd-sec-head">
         <h2 id="crd-mv-h" class="crd-sec-t">Market value{!! $mvSuffix !!}</h2>
-        @if ($newestMarketDay && $marketOrigins->isNotEmpty())
+        {{-- Only over marketplace reads: a variant priced by hand alone says so on its own tag. --}}
+        @if ($newestMarketDay && $marketReads->contains(fn ($read) => $read->source !== 'manual'))
             {{-- Martian Mono is for numerals only (design.md): the date, not the words. --}}
-            <span class="crd-sec-r"><span class="crd-mono">{{ CarbonImmutable::parse($newestMarketDay)->format('j M Y') }}</span> · via {{ $marketOrigins->implode(' · ') }}</span>
+            <span class="crd-sec-r">Approx. market prices · <span class="crd-mono">{{ CarbonImmutable::parse($newestMarketDay)->format('j M Y') }}</span></span>
         @endif
     </div>
 

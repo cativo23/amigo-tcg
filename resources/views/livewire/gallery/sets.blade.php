@@ -7,6 +7,9 @@
         <h1 id="sts-title" class="sts-title">Sets</h1>
         @if ($sets->isNotEmpty())
             <p class="sts-summary"><span class="sts-mono">{{ $sets->count() }}</span> {{ Str::plural('set', $sets->count()) }} <span class="sts-sep" aria-hidden="true">·</span> newest first</p>
+            @if (collect($setValues)->contains(fn (array $totals) => array_filter($totals) !== []))
+                <p class="sts-note">Approx. TCGplayer market prices.</p>
+            @endif
         @endif
     </section>
 
