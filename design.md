@@ -109,6 +109,7 @@ cool grey (oklch 42% L light / 76% dark, chroma .01, hue 260).
 
 ### Money
 Totals render a currency → amount map (`<x-value-totals>`): first entry big, the rest as `<small>` after "·". **Never sum EUR and USD into one number.**
+- **Every price is an approximate TCGplayer market price, and a page says so once, never per figure.** Figures stay clean (`$400`): no mark on hang tags, feed rows, pills or slips. A muted note beside the page's first figure reads `Approx. TCGplayer market prices.` (collection, set, Sets and Activity, in their `*-note` line, before any other-currency note); the card page's "Market value" head reads `Approx. market prices · 17 Nov 2026`, since its tags name their own source. A page with no price shows no note. Pipeline names (tcgdex, tcgcsv) never label a price on a page; the footer credits them as the data source.
 
 ### Motion
 - Anything that moves uses `transform`/`opacity`. Controls and the theme switch may also transition `background-color`, `color`, `border-color` and `box-shadow`; never layout properties.

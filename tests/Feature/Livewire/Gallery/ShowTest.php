@@ -477,7 +477,7 @@ test('the head is the set\'s name and logo over one summary line that starts wit
         ->and($html)->toContain('<img class="set-logo" src="https://assets.tcgdex.net/en/sv/sv03.5/logo.png" alt="" decoding="async" data-optional>')
         ->and($html)->toContain('<p class="col-summary"><span class="set-code">MEW</span>')
         ->and(RevampHtml::summary($html))->toBe('MEW · 3 of 5 cards · $26.49 · released Sep 2023')
-        ->and(RevampHtml::note($html))->toBe('')
+        ->and(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices.')
         ->and($html)->not->toContain('Most valuable owned')
         ->and($html)->not->toContain('nw-stats');
 });
@@ -510,7 +510,7 @@ test('another currency is never added in: it moves to a note under the summary',
     $html = $this->get('/demo/sv03.5')->getContent();
 
     expect(RevampHtml::summary($html))->toBe('MEW · 3 of 5 cards · $26.49 · released Sep 2023')
-        ->and(RevampHtml::note($html))->toBe('Also €10.00 priced in EUR, not added to the total.');
+        ->and(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices. Also €10.00 priced in EUR, not added to the total.');
 });
 
 test('the completion bar is a printed strip: one slot per card in number order, the missing ones hollow', function () {
@@ -692,4 +692,11 @@ test('the binder is the revamp\'s own: no old classes, no client-side navigation
         ->and($html)->not->toContain('wire:navigate')
         ->and($html)->toContain('<span class="set-holes" aria-hidden="true"><i></i><i></i><i></i></span>')
         ->and($html)->toContain($manifest['resources/js/collection.js']['file']);
+});
+
+test('a set with no price owned shows no note', function () {
+    seedSetPage();
+    CardPriceSnapshot::query()->delete();
+
+    expect(RevampHtml::note($this->get('/demo/sv03.5')->getContent()))->toBe('');
 });

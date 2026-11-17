@@ -86,8 +86,8 @@
         <footer class="foot">
             <div>
                 <span class="fbrand">tcg-vault</span>
-                Card data, artwork and prices via <a href="https://tcgdex.dev" rel="noopener">tcgdex.dev</a>, refreshed daily.
-                Prices are market references, not appraisals.
+                Card data and artwork from <a href="https://tcgdex.dev" rel="noopener">tcgdex.dev</a>.
+                Prices are approximate TCGplayer market values, updated daily from <a href="https://tcgdex.dev" rel="noopener">tcgdex.dev</a> and <a href="https://tcgcsv.com" rel="noopener">tcgcsv.com</a>. They are not appraisals.
             </div>
             <div class="foot-r">
                 A personal collection archive. Not affiliated with Nintendo, Creatures, GAME FREAK or The Pokémon Company.

@@ -28,8 +28,8 @@ use Illuminate\Support\Facades\DB;
  *   previousComparable() looks, for a pick, for the newest earlier priced row
  *   of the same source, variant and currency.
  * - The newest priced marketplace row of every (card, source, variant,
- *   origin), so the set of origins a gallery header lists ("via tcgcsv ·
- *   tcgdex") is the same as over the whole window.
+ *   origin), so each origin's newest read is there, as over the whole
+ *   window: a card page tag names its read's provenance on hover.
  *
  * The relation then answers current-price questions only, exactly as the
  * whole window would: resolve(), resolveForVariant(), resolveCardWide(),

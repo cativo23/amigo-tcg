@@ -169,7 +169,7 @@ test('a headline price that is all there is but frozen says how old it is instea
     $response->assertSeeInOrder(['$9.00', 'as of '.DayLabel::of(today()->subDays(12)), 'Price history']);
 });
 
-test('the market header names the origins of the prices shown, and dates the latest sync, not a manual entry', function () {
+test('the market header says the prices are approximate and dates the latest sync, not a manual entry, without naming a feed', function () {
     ['collection' => $collection, 'card' => $card] = seedCardPage();
     CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'condition' => 'NM', 'quantity' => 1, 'variant' => 'holofoil']);
     CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'tcgplayer', 'variant' => 'holofoil', 'captured_on' => today()->subDay(), 'currency' => 'USD', 'market_minor' => 16027]);
@@ -179,11 +179,10 @@ test('the market header names the origins of the prices shown, and dates the lat
     $response = $this->get('/carlos/me05/116');
 
     $response->assertOk();
-    $response->assertSee(today()->subDay()->format('j M Y'));
-    $response->assertSee('· via tcgcsv · tcgdex');
     // Only the date is set in the numeral face; the words stay in the body face.
-    $response->assertSee('<span class="crd-mono">'.today()->subDay()->format('j M Y').'</span> · via', false);
-    $response->assertDontSee(today()->format('j M Y').' · via');
+    $response->assertSee('<span class="crd-sec-r">Approx. market prices · <span class="crd-mono">'.today()->subDay()->format('j M Y').'</span></span>', false);
+    $response->assertDontSee('· via');
+    $response->assertDontSee('Approx. market prices · <span class="crd-mono">'.today()->format('j M Y'), false);
 });
 
 test('a manual price says when it was entered, and every tile says where its price came from', function () {
@@ -208,7 +207,7 @@ test('a card priced only by hand shows no marketplace attribution', function () 
     $response = $this->get('/carlos/me05/116');
 
     $response->assertOk();
-    $response->assertDontSee('· via');
+    $response->assertDontSee('Approx. market prices');
 });
 
 test('the market header shows no date and no origin when the selected variant has only a manual price', function () {
@@ -220,8 +219,7 @@ test('the market header shows no date and no origin when the selected variant ha
 
     $response->assertOk()
         ->assertSee('entered '.DayLabel::of(today()->subDays(2)))
-        ->assertDontSee('<span class="crd-sec-r"><span class="crd-mono">', false)
-        ->assertDontSee('· via');
+        ->assertDontSee('Approx. market prices');
 });
 
 test('a manual price copied from a feed says so, is never shown as a move, and dates older entries with the year', function () {

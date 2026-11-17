@@ -22,8 +22,8 @@
         </div>
         @unless ($collectionIsEmpty)
             <p class="col-summary"><span class="col-mono">{{ $collectionTotal }}</span> {{ Str::plural('card', $collectionTotal) }} <span class="col-sep" aria-hidden="true">·</span> <span class="col-mono">{{ $sets->count() }}</span> {{ Str::plural('set', $sets->count()) }}@if ($headCurrency) <span class="col-sep" aria-hidden="true">·</span> <span class="col-chunk"><span class="col-mono">{{ Money::format($totals[$headCurrency], $headCurrency) }}</span>@if ($updatedAt) on <span class="col-mono">{{ $updatedAt->format('j M') }}</span>@endif</span>@endif</p>
-            @if ($priceOrigins->isNotEmpty() || $otherTotals->isNotEmpty())
-                <p class="col-note">@if ($priceOrigins->isNotEmpty())Prices via {{ $priceOrigins->implode(' · ') }}.@endif @foreach ($otherTotals as $currency => $minor)Also {{ Money::format($minor, $currency) }} priced in {{ $currency }}, not added to the total. @endforeach</p>
+            @if ($headCurrency || $otherTotals->isNotEmpty())
+                <p class="col-note">@if ($headCurrency)Approx. TCGplayer market prices.@endif @foreach ($otherTotals as $currency => $minor)Also {{ Money::format($minor, $currency) }} priced in {{ $currency }}, not added to the total. @endforeach</p>
             @endif
         @endunless
     </section>

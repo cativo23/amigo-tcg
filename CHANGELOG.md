@@ -6,6 +6,20 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Collection and set grids are uniform: in Value order the two priciest
+  cards no longer take a double-size pocket.
+- CI's npm audit runs through `scripts/npm-audit.mjs`: still fails on high
+  and critical advisories, with named exceptions that hold only while
+  upstream has no patched version. The first one covers the picomatch ReDoS
+  (GHSA-fc5q-39xc-vjpf), a build-time dependency with no fix released.
+- Prices say once per page that they are approximate TCGplayer market
+  values (`Approx. TCGplayer market prices.` beside the first figure;
+  `Approx. market prices · <date>` on the card page), replacing "Prices via
+  tcgcsv · tcgdex" and "via tcgdex". The footer names TCGplayer as the price
+  source and credits tcgdex.dev and tcgcsv.com. Figures stay unmarked.
+
 ### Fixed
 
 - A stamped print (Prize Pack and the like) carries its stamp as a band on
@@ -18,15 +32,6 @@ All notable changes to this project are documented here. Format follows
 - Activity: a card added to the collection shows its price without a
   relative time ("1w ago"); the day it sits under already dates it, and the
   pair read like the price paid.
-
-### Changed
-
-- Collection and set grids are uniform: in Value order the two priciest
-  cards no longer take a double-size pocket.
-- CI's npm audit runs through `scripts/npm-audit.mjs`: still fails on high
-  and critical advisories, with named exceptions that hold only while
-  upstream has no patched version. The first one covers the picomatch ReDoS
-  (GHSA-fc5q-39xc-vjpf), a build-time dependency with no fix released.
 
 ## [1.7.0] - 2026-11-05
 

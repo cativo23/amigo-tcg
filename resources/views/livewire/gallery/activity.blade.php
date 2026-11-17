@@ -19,8 +19,8 @@
         @if ($headCurrency)
             <p class="act-summary"><span class="act-mono">{{ Money::format($totals[$headCurrency], $headCurrency) }}</span>@if ($updatedAt) on <span class="act-mono">{{ DayLabel::of($updatedAt) }}</span>@endif</p>
         @endif
-        @if ($otherTotals->isNotEmpty())
-            <p class="act-note">@foreach ($otherTotals as $currency => $minor)Also {{ Money::format($minor, $currency) }} priced in {{ $currency }}, not added to the total. @endforeach</p>
+        @if ($headCurrency || $otherTotals->isNotEmpty())
+            <p class="act-note">@if ($headCurrency)Approx. TCGplayer market prices.@endif @foreach ($otherTotals as $currency => $minor)Also {{ Money::format($minor, $currency) }} priced in {{ $currency }}, not added to the total. @endforeach</p>
         @endif
     </section>
 
