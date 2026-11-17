@@ -6,6 +6,12 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- On a phone the collection summary no longer strands its date on a line of
+  its own, and the rarity filter on the collection and set pages gets its own
+  row instead of being cut to "All rar".
+
 ### Changed
 
 - Collection and set grids are uniform: in Value order the two priciest

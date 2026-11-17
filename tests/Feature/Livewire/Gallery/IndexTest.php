@@ -68,6 +68,16 @@ test('the search box shows a loading indicator while a debounced search is in fl
     $response->assertSee('wire:target="search"', escape: false);
 });
 
+test('the value and its date stay on one line of the summary, so a phone never strands the date', function () {
+    seedCollection();
+
+    $html = $this->get('/carlos')->assertOk()->getContent();
+    $markup = preg_replace('/<!--\[if (?:BLOCK|ENDBLOCK)\]><!\[endif\]-->/', '', $html);
+
+    expect($markup)->toContain('<span class="col-chunk"><span class="col-mono">$389.36</span> on <span class="col-mono">'.today()->format('j M').'</span></span>')
+        ->and(RevampHtml::summary($html))->toBe('2 cards · 2 sets · $389.36 on '.today()->format('j M'));
+});
+
 test('the collection value never adds two currencies together', function () {
     seedCollection();
 
@@ -454,6 +464,18 @@ test('the summary dates the latest marketplace sync and the note names its origi
         ->and(RevampHtml::summary($html))->not->toContain(today()->format('j M'))
         ->and(RevampHtml::note($html))->toBe('Prices via tcgdex.') // run once, then pinned
         ->and(RevampHtml::note($html))->not->toContain('hand');
+});
+
+test('with only a manual price the summary keeps the value in its chunk and adds no date', function () {
+    ['darkrai' => $darkrai] = seedCollection();
+    CardPriceSnapshot::query()->delete();
+    CardPriceSnapshot::create(['card_id' => $darkrai->id, 'source' => 'manual', 'origin' => 'hand', 'variant' => 'holofoil', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 500]);
+
+    $html = $this->get('/carlos')->assertOk()->getContent();
+    $markup = preg_replace('/<!--\[if (?:BLOCK|ENDBLOCK)\]><!\[endif\]-->/', '', $html);
+
+    expect(RevampHtml::summary($html))->not->toContain(' on ')
+        ->and($markup)->toMatch('#<span class="col-chunk"><span class="col-mono">\$[0-9.,]+</span></span></p>#');
 });
 
 test('a set tab falls back to the local card count when tcgdex reports zero', function () {
