@@ -31,8 +31,8 @@
 
         {{-- The collection's summary line, led by the set's code (abbreviation, else the tcgdex id) in small mono. --}}
         <p class="col-summary"><span class="set-code">{{ $setCode }}</span> <span class="col-sep" aria-hidden="true">·</span> <span class="set-chunk"><span class="col-mono">{{ $ownedCount }}</span> of <span class="col-mono">{{ $totalCount }}</span> {{ Str::plural('card', $totalCount) }}</span>@if ($headCurrency) <span class="col-sep" aria-hidden="true">·</span> <span class="set-chunk"><span class="col-mono">{{ Money::format($ownedTotals[$headCurrency], $headCurrency) }}</span></span>@endif @if ($set->released_on) <span class="col-sep" aria-hidden="true">·</span> <span class="set-chunk">released <span class="col-mono">{{ $set->released_on->format('M Y') }}</span></span>@endif</p>
-        @if ($otherTotals->isNotEmpty())
-            <p class="col-note">@foreach ($otherTotals as $currency => $minor)Also {{ Money::format($minor, $currency) }} priced in {{ $currency }}, not added to the total. @endforeach</p>
+        @if ($headCurrency || $otherTotals->isNotEmpty())
+            <p class="col-note">@if ($headCurrency)Approx. TCGplayer market prices.@endif @foreach ($otherTotals as $currency => $minor)Also {{ Money::format($minor, $currency) }} priced in {{ $currency }}, not added to the total. @endforeach</p>
         @endif
 
         {{-- The set as a printed strip: owned filled, imported-but-missing hollow and numbered, not-yet-imported grey and unnumbered. --}}

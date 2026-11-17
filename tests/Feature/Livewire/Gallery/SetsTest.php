@@ -399,3 +399,13 @@ test('a collection with no public sets keeps the empty state wording, with no su
         ->and(stsTexts($html, 'sts-summary'))->toBe([])
         ->and($html)->not->toContain('class="sts-shelf"');
 });
+
+test('the Sets head says once that the owned values are approximate, and only when one is priced', function () {
+    seedSetsShelf();
+
+    expect(stsTexts($this->get('/demo/sets')->assertOk()->getContent(), 'sts-note'))->toBe(['Approx. TCGplayer market prices.']);
+
+    CardPriceSnapshot::query()->delete();
+
+    expect(stsTexts($this->get('/demo/sets')->assertOk()->getContent(), 'sts-note'))->toBe([]);
+});

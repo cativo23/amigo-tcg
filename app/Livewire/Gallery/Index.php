@@ -127,10 +127,8 @@ final class Index extends Component
         $sets = $public->setsQuery()->orderByDesc('released_on')->get()->sortByDesc('owned_card_count')->values();
 
         $totals = $valuation->totalsByCurrency($allCards);
-        // The latest marketplace sync, and where its prices came from.
-        $synced = MarketplaceSync::rows($allCards);
-        $updatedAt = MarketplaceSync::latestDay($synced);
-        $priceOrigins = $synced->pluck('origin')->unique()->sort()->values();
+        // The latest marketplace sync dates the summary.
+        $updatedAt = MarketplaceSync::latestDay(MarketplaceSync::rows($allCards));
         $topEntry = $allCards
             ->map(fn (Card $card) => ['card' => $card, 'valueMinor' => $headlines->get($card->id)?->market_minor])
             ->sortByDesc(fn ($e) => $e['valueMinor'] ?? -1)
@@ -224,7 +222,6 @@ final class Index extends Component
             'sets' => $sets,
             'totals' => $totals,
             'updatedAt' => $updatedAt,
-            'priceOrigins' => $priceOrigins,
             'topEntry' => $topEntry,
             'rarities' => $rarities,
             'isFiltered' => $this->search !== '' || $this->setFilter !== '' || $this->rarityFilter !== '',

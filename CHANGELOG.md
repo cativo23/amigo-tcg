@@ -6,15 +6,6 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-### Fixed
-
-- On a phone the collection summary no longer strands its date on a line of
-  its own, and the rarity filter on the collection and set pages gets its own
-  row instead of being cut to "All rar".
-- Activity: a card added to the collection shows its price without a
-  relative time ("1w ago"); the day it sits under already dates it, and the
-  pair read like the price paid.
-
 ### Changed
 
 - Collection and set grids are uniform: in Value order the two priciest
@@ -23,6 +14,20 @@ All notable changes to this project are documented here. Format follows
   and critical advisories, with named exceptions that hold only while
   upstream has no patched version. The first one covers the picomatch ReDoS
   (GHSA-fc5q-39xc-vjpf), a build-time dependency with no fix released.
+- Prices say once per page that they are approximate TCGplayer market
+  values (`Approx. TCGplayer market prices.` beside the first figure;
+  `Approx. market prices · <date>` on the card page), replacing "Prices via
+  tcgcsv · tcgdex" and "via tcgdex". The footer names TCGplayer as the price
+  source and credits tcgdex.dev and tcgcsv.com. Figures stay unmarked.
+
+### Fixed
+
+- On a phone the collection summary no longer strands its date on a line of
+  its own, and the rarity filter on the collection and set pages gets its own
+  row instead of being cut to "All rar".
+- Activity: a card added to the collection shows its price without a
+  relative time ("1w ago"); the day it sits under already dates it, and the
+  pair read like the price paid.
 
 ## [1.7.0] - 2026-11-05
 

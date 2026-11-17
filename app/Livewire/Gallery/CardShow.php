@@ -238,14 +238,6 @@ final class CardShow extends Component
             'images' => $images,
             'related' => $related,
             'facts' => $this->facts($raw),
-            // Where the marketplace prices on show came from (tcgdex,
-            // tcgcsv), for the header; a manual tile says so itself.
-            'marketOrigins' => $marketReads
-                ->reject(fn (CardPriceSnapshot $s) => $s->source === 'manual')
-                ->pluck('origin')
-                ->unique()
-                ->sort()
-                ->values(),
             // The day a marketplace last priced this card. A read behind it is
             // from a source that stopped updating; manual prices don't
             // count, since they are entered once and stand.
