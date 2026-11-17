@@ -40,8 +40,12 @@ jobs:
       - name: Audit Composer dependencies
         run: composer audit --locked --abandoned=report --ignore-severity=low --ignore-severity=medium
 
+      # scripts/npm-audit.mjs: npm audit failing on high and critical, with
+      # named exceptions that lapse on their own once upstream ships a fix.
       - name: Audit npm dependencies
-        run: npm audit --audit-level=high
+        run: node scripts/npm-audit.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
 
   test:
     runs-on: ubuntu-latest
