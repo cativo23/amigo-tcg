@@ -3,6 +3,26 @@
 const BLOCKING = new Set(['high', 'critical']);
 
 /**
+ * The parsed `npm audit --json` output, or an error when it is not a report
+ * (npm's error JSON, an empty or garbled reply, a report with no package map),
+ * so a broken audit can never read as a clean one.
+ */
+export function auditReport(stdout) {
+    let audit;
+    try {
+        audit = JSON.parse(stdout);
+    } catch {
+        throw new Error(`npm audit printed no JSON: ${String(stdout).slice(0, 200)}`);
+    }
+    const vulnerabilities = audit?.vulnerabilities;
+    if (audit?.error || vulnerabilities === null || typeof vulnerabilities !== 'object' || Array.isArray(vulnerabilities)) {
+        throw new Error(`npm audit returned no report: ${JSON.stringify(audit?.error ?? audit).slice(0, 500)}`);
+    }
+
+    return audit;
+}
+
+/**
  * The advisories in an `npm audit --json` report that fail the build: high or
  * critical, and not in `excepted` (GHSA ids). A package that only inherits an
  * advisory from a dependency lists that dependency's name in `via`, not the

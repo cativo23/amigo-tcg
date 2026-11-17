@@ -1,13 +1,14 @@
 // CI's npm audit: fails on any high or critical advisory, except the ones
 // listed below, and each of those only while GitHub reports no patched
 // version for it. Once a fix ships the exception lapses on its own and the
-// build fails until the dependency is upgraded. Any error (npm, network, the
-// GitHub lookup) fails the build: nothing here can widen the gate.
+// build fails until the dependency is upgraded. An npm error fails the build;
+// a failed GitHub lookup drops the exception, so its advisory blocks again.
+// Nothing here can widen the gate.
 //
 // Run with GH_TOKEN set (CI passes the job's GITHUB_TOKEN).
 
 import { execFileSync } from 'node:child_process';
-import { blockingAdvisories, exceptionStillApplies } from './npm-audit-helpers.mjs';
+import { auditReport, blockingAdvisories, exceptionStillApplies } from './npm-audit-helpers.mjs';
 
 const EXCEPTIONS = {
     // picomatch <= 4.0.7 ReDoS on repeated extglobs. Only build tooling uses
@@ -50,10 +51,7 @@ function activeExceptions() {
 }
 
 try {
-    const audit = JSON.parse(run('npm', ['audit', '--json']));
-    if (audit.error || typeof audit.vulnerabilities !== 'object') {
-        throw new Error(`npm audit returned no report: ${JSON.stringify(audit.error ?? audit).slice(0, 500)}`);
-    }
+    const audit = auditReport(run('npm', ['audit', '--json']));
 
     const blocking = blockingAdvisories(audit, activeExceptions());
     for (const a of blocking) {

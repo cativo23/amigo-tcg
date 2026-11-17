@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blockingAdvisories, exceptionStillApplies } from './npm-audit-helpers.mjs';
+import { auditReport, blockingAdvisories, exceptionStillApplies } from './npm-audit-helpers.mjs';
 
 const advisory = (id, severity, name = 'pkg') => ({
     source: 1, name, dependency: name, title: `${name} advisory`, severity,
@@ -64,5 +64,25 @@ test('an exception lapses once any affected line has a patched version', () => {
 test('an advisory the lookup could not read keeps no exception', () => {
     for (const bad of [null, undefined, {}, { vulnerabilities: [] }, { message: 'Not Found' }]) {
         assert.equal(exceptionStillApplies(bad), false);
+    }
+});
+
+test('an advisory with no url still blocks, under an empty id no exception can match', () => {
+    const audit = report({ name: 'a', severity: 'high', via: [{ name: 'a', severity: 'high', title: 'no url' }] });
+
+    assert.deepEqual(blockingAdvisories(audit, new Set(['GHSA-fc5q-39xc-vjpf'])).map((a) => a.id), ['']);
+});
+
+test('a readable npm audit report is returned as is', () => {
+    const audit = report({ name: 'a', severity: 'high', via: [advisory('GHSA-aaaa-aaaa-aaaa', 'high', 'a')] });
+
+    assert.deepEqual(auditReport(JSON.stringify(audit)), audit);
+    assert.deepEqual(auditReport('{"auditReportVersion":2,"vulnerabilities":{}}').vulnerabilities, {});
+});
+
+test('anything that is not an npm audit report is an error, never an empty report', () => {
+    for (const stdout of ['', '<html>502</html>', '{"error":{"code":"ENOAUDIT"}}', '{"message":"500","statusCode":500}',
+        '{"vulnerabilities":null}', '{"vulnerabilities":[]}', '{"advisories":{}}', 'null']) {
+        assert.throws(() => auditReport(stdout), /npm audit/, stdout);
     }
 });
