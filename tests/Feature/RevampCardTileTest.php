@@ -103,9 +103,17 @@ test('a graded copy shows its slab in the meta line instead of the rarity, with 
         ->and($html)->toContain('graded PSA 10');
 });
 
-test('a prize-pack stamp is named as text under the set line, capped at two with the rest counted', function () {
+test('a stamped print carries its stamp as a band on the card, capped at two with the rest counted, and not as a line under the set', function () {
     $one = renderTile(['items' => [CollectionItem::make(['quantity' => 1, 'variant' => 'normal+player-rewards-program'])]]);
-    expect($one)->toContain('<span class="col-sub col-sub--stamp" title="Player Rewards Program">Player Rewards Program</span>');
+    expect($one)->toContain('<span class="col-seal" aria-hidden="true" title="Player Rewards Program">Player Rewards Program</span>')
+        ->and($one)->not->toContain('col-sub--stamp')
+        // The band sits on the card frame, after the picture, so it is part of what lifts on hover.
+        ->and(strpos($one, 'class="col-seal"'))->toBeGreaterThan(strpos($one, 'class="col-pic'))
+        ->and(strpos($one, 'class="col-seal"'))->toBeLessThan(strpos($one, 'class="col-tag"'))
+        ->and($one)->toContain('Player Rewards Program, ');  // the link's label still names it
+
+    $plain = renderTile();
+    expect($plain)->not->toContain('col-seal');
 
     $three = renderTile(['items' => [
         CollectionItem::make(['quantity' => 1, 'variant' => 'normal+aaa-stamp']),
