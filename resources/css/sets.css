@@ -5,7 +5,7 @@
 .sts-page {
   /* the page heading matches the collector's name on the collection page (--col-who in collection.css) */
   --sts-who: clamp(4.2rem, 1.6rem + 11vw, 11rem);
-  --sts-tray-h: 216px;
+  --sts-logo-h: 168px;
   --sts-radius-card: 4.762% / 3.409%;
 }
 
@@ -42,20 +42,17 @@
 /* two stacked shadows: hover fades the lifted one in, so motion stays opacity/transform */
 .sts-face::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: var(--shadow-lift); opacity: 0; transition: opacity var(--dur-base) var(--ease-out); }
 
-/* the tray: the set logo on binder-page stock */
-.sts-tray {
-  position: relative; display: grid; place-items: center; height: var(--sts-tray-h); padding: 28px 36px; overflow: hidden;
-  border-radius: 2px; background: var(--color-binder-page); box-shadow: inset 0 1px 3px var(--shadow-ambient), inset 0 0 0 1px var(--color-rule);
-}
-.sts-tray img { width: auto; height: auto; max-width: 78%; max-height: 120px; object-fit: contain; filter: drop-shadow(0 2px 3px var(--shadow-ambient)); transition: transform var(--dur-base) var(--ease-out); }
+/* the set logo, straight on the sheet: no fill or frame of its own (design.md, Sets list) */
+.sts-logo { position: relative; display: grid; place-items: center; height: var(--sts-logo-h); padding: 20px 28px 8px; overflow: hidden; }
+.sts-logo img { width: auto; height: auto; max-width: 78%; max-height: 120px; object-fit: contain; filter: drop-shadow(0 2px 3px var(--shadow-ambient)); transition: transform var(--dur-base) var(--ease-out); }
 /* image optional, data mandatory: the code shows when there is no logo, or once app.js has removed a logo that failed */
-.sts-tray img + .sts-code { display: none; }
+.sts-logo img + .sts-code { display: none; }
 .sts-code { font: 820 var(--text-h2)/1 var(--font-display); font-variation-settings: "wdth" 62; color: var(--color-muted); text-transform: uppercase; text-align: center; overflow-wrap: anywhere; }
 
 @media (hover: hover) {
   .sts-card:hover { transform: translateY(-4px); }
   .sts-card:hover .sts-face::after { opacity: 1; }
-  .sts-card:hover .sts-tray img { transform: scale(1.05); }
+  .sts-card:hover .sts-logo img { transform: scale(1.05); }
 }
 .sts-card:focus-visible .sts-face::after { opacity: 1; }
 
@@ -98,7 +95,7 @@
 .still .sts-title, .still .sts-set { animation: none; }
 
 @media (max-width: 679px) {
-  .sts-page { --sts-tray-h: 196px; }
+  .sts-page { --sts-logo-h: 148px; }
   .sts-summary { font-size: var(--text-md); }
   .sts-empty { margin: 0 0 var(--space-xl); border-radius: 0; }
 }
@@ -106,5 +103,5 @@
 @media (prefers-reduced-motion: reduce) {
   .sts-page *, .sts-page *::before, .sts-page *::after { transition-duration: 0ms !important; animation: none !important; }
   .sts-card:hover, .sts-card:focus-visible { transform: none; }
-  .sts-card:hover .sts-tray img { transform: none; }
+  .sts-card:hover .sts-logo img { transform: none; }
 }

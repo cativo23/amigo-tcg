@@ -19,6 +19,8 @@ All notable changes to this project are documented here. Format follows
   `Approx. market prices · <date>` on the card page), replacing "Prices via
   tcgcsv · tcgdex" and "via tcgdex". The footer names TCGplayer as the price
   source and credits tcgdex.dev and tcgcsv.com. Figures stay unmarked.
+- Sets: each set's logo sits straight on its sheet instead of in a framed
+  tray inside it, and the logo area is shorter (168px, 148px on a phone).
 
 ### Fixed
 
