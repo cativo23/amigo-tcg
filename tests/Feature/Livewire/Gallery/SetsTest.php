@@ -346,6 +346,26 @@ test('hover and focus motion on the sets page stays at the base duration or fast
         ->and(implode("\n", $transitions[0]))->not->toContain('--dur-slow');
 });
 
+test('each set logo sits straight on its sheet, not in a tray of its own', function () {
+    seedSetsShelf();
+
+    $html = $this->get('/demo/sets')->assertOk()->getContent();
+
+    expect(substr_count($html, '<span class="sts-logo">'))->toBe(2)
+        ->and($html)->not->toContain('sts-tray');
+});
+
+test('the set logo block has no fill or frame of its own', function () {
+    // design.md, Sets list: the logo sits on the set's sheet; a framed tray inside the sheet was a box inside a box.
+    $css = (string) file_get_contents(resource_path('css/sets.css'));
+
+    expect(preg_match('/^\.sts-logo \{([^}]*)\}/m', $css, $rule))->toBe(1)
+        ->and($rule[1])->not->toContain('background')
+        ->and($rule[1])->not->toContain('box-shadow')
+        ->and($rule[1])->not->toContain('border')
+        ->and($css)->not->toContain('sts-tray');
+});
+
 test('a set with no release date or series shows its code alone on the tab and the catalogue name in the series line', function () {
     seedSetsShelf();
     Set::where('tcgdex_id', 'sv08.5')->update(['released_on' => null, 'series' => null]);
@@ -356,7 +376,7 @@ test('a set with no release date or series shows its code alone on the tab and t
         ->and(stsTexts($html, 'sts-series'))->toContain('Pokémon TCG · SV08.5');
 });
 
-test('the tray shows the tcgdex logo with the code as its fallback, and only the code when there is no usable logo', function () {
+test('the logo block shows the tcgdex logo with the code as its fallback, and only the code when there is no usable logo', function () {
     seedSetsShelf();
     Set::where('tcgdex_id', 'sv08.5')->update(['logo_url' => 'https://example.com/logo.png']);
 

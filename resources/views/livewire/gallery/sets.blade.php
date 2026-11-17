@@ -45,7 +45,7 @@
                     <a class="sts-card" href="{{ route('gallery.show', ['username' => $targetUser->username, 'setTcgdexId' => $set->tcgdex_id]) }}" aria-label="{{ $label }}">
                         <span class="sts-tab" aria-hidden="true"><span class="sts-tab-code">{{ $code }}</span>@if ($year) <span class="sts-mono">{{ $year }}</span>@endif</span>
                         <span class="sts-face">
-                            <span class="sts-tray">
+                            <span class="sts-logo">
                                 @if ($set->safe_logo_url)
                                     <img src="{{ $set->safe_logo_url }}" alt="" loading="lazy" decoding="async" data-optional>
                                 @endif
