@@ -11,6 +11,9 @@ All notable changes to this project are documented here. Format follows
 - On a phone the collection summary no longer strands its date on a line of
   its own, and the rarity filter on the collection and set pages gets its own
   row instead of being cut to "All rar".
+- Activity: a card added to the collection shows its price without a
+  relative time ("1w ago"); the day it sits under already dates it, and the
+  pair read like the price paid.
 
 ### Changed
 

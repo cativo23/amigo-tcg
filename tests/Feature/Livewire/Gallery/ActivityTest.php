@@ -141,6 +141,22 @@ test('shows recently added items in the activity feed', function () {
     $response->assertSee('Mega Darkrai ex');
 });
 
+test('an added row is dated by its day tab only, never by a relative time beside its price', function () {
+    $user = User::factory()->create(['username' => 'carlos']);
+    $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
+    $card = Card::create(['tcgdex_id' => 'me05-116', 'set_id' => $set->id, 'local_id' => '116', 'name' => 'Mega Darkrai ex']);
+    $item = CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'condition' => 'NM', 'quantity' => 1]);
+    $item->forceFill(['created_at' => now()->subDays(8), 'updated_at' => now()->subDays(8)])->save();
+
+    $html = $this->get('/carlos/activity')->assertOk()->getContent();
+
+    expect($html)->toContain('Mega Darkrai ex')
+        ->and($html)->not->toMatch('/\b\d+(?:s|m|h|d|w|mo|y)\s+ago\b/')
+        ->and($html)->not->toContain(' ago<')
+        ->and(preg_replace('/<!--\[if (?:BLOCK|ENDBLOCK)\]><!\[endif\]-->/', '', $html))->not->toContain('<p class="act-amt"></p>'); // unpriced: no empty amount
+});
+
 test('a private (non-public) collection contributes nothing', function () {
     $user = User::factory()->create(['username' => 'carlos']);
     $collection = Collection::factory()->for($user)->create(['is_public' => false, 'slug' => 'private']);
@@ -770,8 +786,8 @@ test('every row carries its card thumbnail, only additions the plus, a rise carr
         ->and(activityAmounts($html))->toBe([
             ['act-amt act-amt--up', '+$2.00 now $12.00'],
             ['act-amt act-amt--down', '−$1.50 now $8.50'],
-            ['act-amt', '$12.00 '.now()->subDays(3)->diffForHumans(short: true)],
-            ['act-amt', '$8.50 '.now()->subDays(3)->subMinute()->diffForHumans(short: true)],
+            ['act-amt', '$12.00'],
+            ['act-amt', '$8.50'],
         ])
         ->and($html)->toContain('went up')
         ->and($html)->toContain('went down')
