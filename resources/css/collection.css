@@ -28,7 +28,7 @@
 .col-grid {
   list-style: none; margin: 0; padding: 0;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--col-w), 100%), 1fr));
-  grid-auto-flow: row dense; column-gap: var(--col-gap-x); row-gap: var(--col-gap-y); align-items: start;
+  column-gap: var(--col-gap-x); row-gap: var(--col-gap-y); align-items: start;
 }
 /* .col-slot owns the entrance; .col-card owns hover. Never both on one element (design.md cascade split). */
 .col-slot { min-width: 0; }
@@ -76,8 +76,6 @@
 .col-delta { display: block; font: 400 var(--text-2xs)/1.3 var(--font-mono); font-variation-settings: "wdth" 87.5; font-variant-numeric: tabular-nums; color: var(--color-flat); white-space: nowrap; }
 .col-delta--up { color: var(--color-accent-deep); }
 .col-delta--up::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: var(--color-accent); vertical-align: 1px; }
-.col-string { position: absolute; left: 9px; bottom: 50%; width: 30px; height: 40px; overflow: visible; pointer-events: none; display: none; }
-.col-string path { fill: none; stroke: var(--color-string); stroke-width: 1.2; stroke-linecap: round; }
 
 .col-meta { display: block; padding: 8px 2px 0; }
 .col-nm { display: block; font-weight: 600; font-size: var(--text-sm); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -91,31 +89,8 @@
 .col-rar--silver { color: var(--col-chip-ink); box-shadow: none; background: linear-gradient(180deg, var(--col-silver-hi), var(--col-silver)); }
 .col-rar--chase { color: var(--col-chip-ink); box-shadow: none; background: linear-gradient(120deg, var(--col-foil-1), var(--col-foil-2) 40%, var(--col-foil-3) 70%, var(--col-foil-4)); }
 
-/* the two priciest cards (Value order, no search) take a double pocket */
-.col-slot.col-lead { grid-column: span 2; grid-row: span 2; }
-.col-lead .col-tag { margin: -22px 0 0 14px; }
-.col-lead .col-tag-face { padding: 8px 14px 9px 26px; clip-path: polygon(14px 0, 100% 0, 100% 100%, 14px 100%, 0 50%); }
-.col-lead .col-tag-hole { left: 9px; width: 7px; height: 7px; margin-top: -3.5px; }
-.col-lead .col-price { font-size: 1.25rem; }
-.col-lead .col-delta { font-size: var(--text-2xs); }
-.col-lead .col-string { display: block; }
-.col-lead .col-nm { font: 760 clamp(1.25rem, 1rem + .8vw, 1.7rem)/1.05 var(--font-display); font-variation-settings: "wdth" 72; letter-spacing: -.005em; }
-.col-lead .col-meta { padding-top: 10px; }
-.col-lead .col-sub { font-size: var(--text-sm); margin-top: 6px; }
-
 @media (max-width: 679px) {
   .col-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  /* only the first lead stays double on a phone; the second falls back to a normal pocket */
-  .col-slot.col-lead + .col-slot.col-lead { grid-column: auto; grid-row: auto; }
-  .col-slot.col-lead + .col-slot.col-lead .col-tag { margin: -15px 0 0 8px; }
-  .col-slot.col-lead + .col-slot.col-lead .col-tag-face { padding: 5px 10px 6px 21px; clip-path: polygon(11px 0, 100% 0, 100% 100%, 11px 100%, 0 50%); }
-  .col-slot.col-lead + .col-slot.col-lead .col-tag-hole { left: 7px; width: 6px; height: 6px; margin-top: -3px; }
-  .col-slot.col-lead + .col-slot.col-lead .col-price { font-size: var(--text-sm); }
-  .col-slot.col-lead + .col-slot.col-lead .col-delta { font-size: var(--text-2xs); }
-  .col-slot.col-lead + .col-slot.col-lead .col-string { display: none; }
-  .col-slot.col-lead + .col-slot.col-lead .col-nm { font: 600 var(--text-sm)/1.3 var(--font-body); }
-  .col-slot.col-lead + .col-slot.col-lead .col-sub { font-size: var(--text-xs); margin-top: 3px; }
-  .col-slot.col-lead + .col-slot.col-lead .col-meta { padding-top: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

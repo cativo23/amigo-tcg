@@ -13,7 +13,6 @@
     'index' => 0,        // position inside the batch that just loaded (entrance stagger)
     'eager' => false,
     'priority' => false, // fetchpriority=high: the first tile only
-    'lead' => false,     // double-size pocket: high-resolution art, a string on the tag
     'inSet' => false,    // on its own set's page: numbered within the set (#116); the set is the page
 ])
 
@@ -26,7 +25,7 @@
     $graded = $items->first(fn ($i) => $i->grade_company !== null && $i->grade_value !== null);
     $photo = $items->first(fn ($i) => $i->photo_path !== null);
     // The collector's own photo is always the primary image when it exists.
-    $imageUrl = $photo ? Storage::disk('collection-photos')->url($photo->photo_path) : CardImage::sized($card->official_image_url, $lead);
+    $imageUrl = $photo ? Storage::disk('collection-photos')->url($photo->photo_path) : CardImage::tile($card->official_image_url);
     // A graded slab replaces the rarity chip entirely, so a slab gets no tier accent.
     $tier = $graded ? 'standard' : Rarity::tier($card->rarity);
     $abbreviation = Rarity::abbreviate($card->rarity);
@@ -61,7 +60,7 @@
     $loading = $eager ? ($priority ? 'fetchpriority="high"' : '') : 'loading="lazy"';
 @endphp
 
-<li wire:key="tile-{{ $card->id }}" class="col-slot{{ $lead ? ' col-lead' : '' }} col-enter" style="--i: {{ $index }}">
+<li wire:key="tile-{{ $card->id }}" class="col-slot col-enter" style="--i: {{ $index }}">
     <a href="{{ $href }}" class="col-card col-tier-{{ $tier }}" aria-label="{{ $label }}">
         <span class="col-frame">
             @if ($tier === 'chase')
@@ -76,9 +75,6 @@
             </span>
         </span>
         <span class="col-tag" aria-hidden="true">
-            @if ($lead)
-                <svg class="col-string" viewBox="0 0 30 40"><path d="M3 38 C 1 26, 9 14, 20 2"/></svg>
-            @endif
             <span class="col-tag-face">
                 @if ($priced)
                     <span class="col-price">{{ Money::format($snapshot->market_minor, $currency) }}</span>

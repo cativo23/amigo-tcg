@@ -534,7 +534,7 @@ test('the 7-day move costs no extra queries however many cards the page prices',
         ->and($many)->toBe($few);
 });
 
-function seedLeadCollection(int $cards): void
+function seedPricedCollection(int $cards): void
 {
     $user = User::factory()->create(['username' => 'carlos', 'name' => 'Carlos']);
     $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
@@ -678,36 +678,21 @@ test('the biggest sets lead the tabs', function () {
     expect(strpos($html, 'id="col-tab-bbb1"'))->toBeLessThan(strpos($html, 'id="col-tab-aaa1"'));
 });
 
-test('in value order with no search, the two priciest cards take a double pocket and the high-resolution art', function () {
-    seedLeadCollection(4);
-
-    $html = $this->get('/carlos')->assertOk()->getContent();
-
-    expect(substr_count($html, 'col-slot col-lead col-enter'))->toBe(2)
-        ->and($html)->toContain('src="https://assets.tcgdex.net/en/me/me05/4/high.webp"')
-        ->and($html)->toContain('src="https://assets.tcgdex.net/en/me/me05/3/high.webp"')
-        ->and($html)->toContain('src="https://assets.tcgdex.net/en/me/me05/2/low.webp"')
-        ->and($html)->toContain('src="https://assets.tcgdex.net/en/me/me05/1/low.webp"');
-});
-
-test('there are no double pockets outside value order, while searching, or with two cards or fewer', function (string $query, int $cards) {
-    seedLeadCollection($cards);
+test('every card takes a single pocket with the low-resolution art, the priciest included', function (string $query) {
+    seedPricedCollection(4);
 
     $html = $this->get('/carlos'.$query)->assertOk()->getContent();
 
-    expect(substr_count($html, 'col-lead'))->toBe(0);
+    expect($html)->not->toContain('col-lead')
+        ->and($html)->not->toContain('col-string')
+        ->and(substr_count($html, 'class="col-slot col-enter"'))->toBe(4)
+        ->and($html)->toContain('src="https://assets.tcgdex.net/en/me/me05/4/low.webp"')
+        ->and($html)->not->toContain('src="https://assets.tcgdex.net/en/me/me05/4/high.webp"');
 })->with([
-    'name order' => ['?sort=name', 4],
-    'newest order' => ['?sort=newest', 4],
-    'a search' => ['?search=Card', 4],
-    'two cards' => ['', 2],
+    'value order' => [''],
+    'a set filter' => ['?set=me05'],
+    'name order' => ['?sort=name'],
 ]);
-
-test('a set or rarity filter keeps the double pockets', function () {
-    seedLeadCollection(4);
-
-    expect(substr_count($this->get('/carlos?set=me05')->getContent(), 'col-slot col-lead col-enter'))->toBe(2);
-});
 
 test('the rarity filter lists rarities from common up to secret, unknown wording last, and never "None"', function () {
     $user = User::factory()->create(['username' => 'carlos']);

@@ -136,15 +136,13 @@ test('the collector\'s own photo is the primary image', function () {
         ->and($html)->not->toContain('assets.tcgdex.net');
 });
 
-test('official art is the low-resolution file in a normal tile and the high one in a lead', function () {
-    $normal = renderTile();
-    expect($normal)->toContain('src="https://assets.tcgdex.net/en/me/me05/116/low.webp"')
-        ->and($normal)->not->toContain('col-lead');
+test('official art is the low-resolution file, and no tile takes a double pocket or a tag string', function () {
+    $html = renderTile();
 
-    $lead = renderTile([], ':lead="true"');
-    expect($lead)->toContain('src="https://assets.tcgdex.net/en/me/me05/116/high.webp"')
-        ->and($lead)->toContain('col-slot col-lead col-enter')
-        ->and($lead)->toContain('<svg class="col-string"');
+    expect($html)->toContain('src="https://assets.tcgdex.net/en/me/me05/116/low.webp"')
+        ->and($html)->toContain('class="col-slot col-enter"')
+        ->and($html)->not->toContain('col-lead')
+        ->and($html)->not->toContain('col-string');
 });
 
 test('a card with no image still shows its name on the hatched face', function () {

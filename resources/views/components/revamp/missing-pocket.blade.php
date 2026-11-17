@@ -9,7 +9,7 @@
 ])
 
 @php
-    $imageUrl = CardImage::sized($card->official_image_url, false);
+    $imageUrl = CardImage::tile($card->official_image_url);
     $price = $snapshot !== null && $snapshot->market_minor !== null ? Money::format($snapshot->market_minor, $snapshot->currency) : null;
     $label = implode(', ', array_filter([$card->name, '#'.$card->local_id, 'missing', $price]));
 @endphp
