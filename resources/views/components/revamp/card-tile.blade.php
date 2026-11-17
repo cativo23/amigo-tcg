@@ -73,6 +73,10 @@
                     <b>{{ $card->name }}</b><span>No image</span>
                 @endif
             </span>
+            @if ($stamps->isNotEmpty())
+                {{-- A stamped print looks like the plain one in its catalogue art, so the stamp is set on the card; the link's label already names it. --}}
+                <span class="col-seal" aria-hidden="true">{{ $stampText }}</span>
+            @endif
         </span>
         <span class="col-tag" aria-hidden="true">
             <span class="col-tag-face">
@@ -100,9 +104,6 @@
                     <span class="col-qty" title="{{ $quantity }} copies">×{{ $quantity }}</span>
                 @endif
             </span>
-            @if ($stamps->isNotEmpty())
-                <span class="col-sub col-sub--stamp" title="{{ $stamps->implode(', ') }}">{{ $stampText }}</span>
-            @endif
         </span>
     </a>
 </li>

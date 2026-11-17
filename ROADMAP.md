@@ -231,5 +231,9 @@ Each waits on a trigger; none is a phase until it fires.
 - **An admin link editor in the UI** — only if Phase 3's command proves too
   slow.
 - **A purchase price per copy** — parked by the owner.
+- **The real stamp as an image on a stamped print's tile** — the band carries
+  the stamp's name today. An image would need a hand-cut asset per stamp (no
+  feed publishes them), would cover only the most common few of 120+, and
+  uses official logos; revisit if collectors ask for it.
 - **Why tcgdex sends no TCGplayer price for about half its cards each night**
   — unanswered upstream.

@@ -22,6 +22,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- A stamped print (Prize Pack and the like) carries its stamp as a band on
+  the card in collection and set grids and the card page strip, instead of an
+  11px line under the number; stamp names keep their accents (Pokémon Center,
+  Poké Ball).
 - On a phone the collection summary no longer strands its date on a line of
   its own, and the rarity filter on the collection and set pages gets its own
   row instead of being cut to "All rar".

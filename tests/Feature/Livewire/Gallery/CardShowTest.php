@@ -1141,7 +1141,7 @@ test('a strip card keeps its copies, its slab and its stamps, as its collection 
 
     expect($html)->toContain('<span class="col-qty" title="3 copies">×3</span>')
         ->and($html)->toContain('<span class="col-slab">PSA 10</span>')
-        ->and($html)->toContain('title="Player Rewards Program">Player Rewards Program</span>')
+        ->and($html)->toContain('<span class="col-seal" aria-hidden="true">Player Rewards Program</span>')
         ->and($html)->toContain('aria-label="Petilil, Pitch Black 004, 3 copies, graded PSA 10, Player Rewards Program, no price"');
 });
 
