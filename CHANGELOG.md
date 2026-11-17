@@ -6,6 +6,12 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Activity: a card added to the collection shows its price without a
+  relative time ("1w ago"); the day it sits under already dates it, and the
+  pair read like the price paid.
+
 ### Changed
 
 - Collection and set grids are uniform: in Value order the two priciest

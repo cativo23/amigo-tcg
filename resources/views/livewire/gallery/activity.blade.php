@@ -120,7 +120,7 @@
                                     <p class="act-rt"><span class="act-verb">Added</span> @if ($href)<a href="{{ $href }}">{{ $card->name }}</a>@else{{ $card?->name ?? 'a card' }}@endif @if ($item->quantity > 1)<span class="act-mono">×{{ $item->quantity }}</span>@endif</p>
                                     <p class="act-rs">{{ $card?->set?->name }} · {{ $item->grade_company ? $item->grade_company.' '.$item->grade_value : $item->condition }}@if ($item->variant) · {{ CardVariants::label($item->variant) }}@endif</p>
                                 </div>
-                                <p class="act-amt">@if ($snapshot && $snapshot->market_minor !== null){{ Money::format($snapshot->market_minor, $snapshot->currency) }} @endif<small title="{{ $entry['at']->toDayDateTimeString() }}">{{ $entry['at']->diffForHumans(short: true) }}</small></p>
+                                <p class="act-amt">@if ($snapshot && $snapshot->market_minor !== null){{ Money::format($snapshot->market_minor, $snapshot->currency) }}@endif</p>
                             @endif
                         </li>
                     @endforeach
