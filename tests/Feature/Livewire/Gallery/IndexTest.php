@@ -466,6 +466,18 @@ test('the summary dates the latest marketplace sync and the note names its origi
         ->and(RevampHtml::note($html))->not->toContain('hand');
 });
 
+test('with only a manual price the summary keeps the value in its chunk and adds no date', function () {
+    ['darkrai' => $darkrai] = seedCollection();
+    CardPriceSnapshot::query()->delete();
+    CardPriceSnapshot::create(['card_id' => $darkrai->id, 'source' => 'manual', 'origin' => 'hand', 'variant' => 'holofoil', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 500]);
+
+    $html = $this->get('/carlos')->assertOk()->getContent();
+    $markup = preg_replace('/<!--\[if (?:BLOCK|ENDBLOCK)\]><!\[endif\]-->/', '', $html);
+
+    expect(RevampHtml::summary($html))->not->toContain(' on ')
+        ->and($markup)->toMatch('#<span class="col-chunk"><span class="col-mono">\$[0-9.,]+</span></span></p>#');
+});
+
 test('a set tab falls back to the local card count when tcgdex reports zero', function () {
     $user = User::factory()->create(['username' => 'carlos']);
     $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
