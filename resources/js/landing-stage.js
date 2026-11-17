@@ -7,6 +7,7 @@
  * Debug: ?progress=0..1 drives the stage to that point of the story with no window scroll (headless captures).
  */
 import D from './landing-demo.json';
+import { dayLabel, figureSource } from './landing-helpers.js';
 if (document.getElementById('stage')) {
   var html = document.documentElement;
   var MOVING = html.classList.contains('moving');
@@ -43,7 +44,9 @@ if (document.getElementById('stage')) {
   var lastDelta = hv[hv.length - 1].v - hv[hv.length - 2].v;
   var hMax = Math.max.apply(null, hv.map(function (p) { return p.v; }));
   var hMin = Math.min.apply(null, hv.map(function (p) { return p.v; }));
-  var dLabel = function (iso) { var d = new Date(iso + 'T12:00:00Z'); return d.getUTCDate() + ' ' + d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' }); };
+  /* Days are UTC site-wide; the figures are a fixed snapshot (D.captured_on), so they carry their day, never "today". */
+  var TODAY = new Date().toISOString().slice(0, 10);
+  var dLabel = function (iso) { return dayLabel(iso, TODAY); };
 
   function delta(c) {
     if (c.price_7d == null) return null;
@@ -57,7 +60,7 @@ if (document.getElementById('stage')) {
     var svg = '<svg class="string" width="' + sw + '" height="' + sh + '" viewBox="0 0 ' + sw + ' ' + sh + '" aria-hidden="true"><path d="' + path + '"/></svg>';
     var dl = delta(c);
     t.innerHTML = svg + '<span class="htag-face">' +
-      (withSrc ? '<span class="htag-src">tcgplayer</span>' : '') +
+      (withSrc ? '<span class="htag-src">TCGplayer</span>' : '') +
       '<span class="htag-price"></span>' +
       (dl ? '<span class="htag-delta' + (dl.up ? ' up' : '') + '"></span>' : '') +
       '</span><span class="htag-hole"></span>';
@@ -127,7 +130,7 @@ if (document.getElementById('stage')) {
     this.sheetOv = el('div', 'ov fill');
     this.sheet = el('div', 'sheet');
     this.head = el('div', 'sheet-head');
-    this.head.appendChild(el('span', 'addr', 'tcgvault.cativo.dev/demo'));
+    this.head.appendChild(el('span', 'addr', 'tcgvault.cativo.dev/yourname'));
     this.cnt = el('span', 'cnt', D.count + ' cards');
     this.head.appendChild(this.cnt);
     this.sheetOv.appendChild(this.sheet); this.sheetOv.appendChild(this.head);
@@ -160,7 +163,7 @@ if (document.getElementById('stage')) {
     this.today.appendChild(document.createTextNode(dLabel(H[H.length - 1].d) + ' · '));
     this.today.appendChild(el('span', lastDelta > 0 ? 'up' : '', (lastDelta > 0 ? '+' : '−') + money(Math.abs(lastDelta))));
     this.priceOv.appendChild(this.today);
-    this.src = el('div', 'src', 'tcgplayer · USD · today and 7 days');
+    this.src = el('div', 'src', figureSource(D.captured_on, TODAY));
     this.priceOv.appendChild(this.src);
     this.rowEls = ROWS.map(function (c, i) {
       var r = el('div', 'prow');

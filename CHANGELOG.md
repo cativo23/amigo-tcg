@@ -32,6 +32,10 @@ All notable changes to this project are documented here. Format follows
 - Activity: a card added to the collection shows its price without a
   relative time ("1w ago"); the day it sits under already dates it, and the
   pair read like the price paid.
+- Landing: the example figures read as an illustration instead of live
+  data. Their label names their day (`TCGplayer · approx. · 4 Nov`, with the
+  year once it is not the current one) and the browser frame shows
+  `tcgvault.cativo.dev/yourname` instead of the demo's address.
 
 ## [1.7.0] - 2026-11-05
 
