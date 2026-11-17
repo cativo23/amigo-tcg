@@ -98,7 +98,7 @@
                         @php
                             $card = $entry['card'];
                             $href = $card && $card->set ? route('gallery.card', ['username' => $targetUser->username, 'setTcgdexId' => $card->set->tcgdex_id, 'localId' => $card->local_id]) : null;
-                            $thumb = CardImage::sized($card?->official_image_url, false);
+                            $thumb = CardImage::tile($card?->official_image_url);
                             // The key and wire:ignore keep a morph from rewriting a retried picture's src or putting back one the script removed.
                             $rowKey = $entry['kind'] === 'move' ? 'move-'.$card->id : 'added-'.$entry['item']->id;
                         @endphp

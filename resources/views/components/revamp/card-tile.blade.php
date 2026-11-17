@@ -25,7 +25,7 @@
     $graded = $items->first(fn ($i) => $i->grade_company !== null && $i->grade_value !== null);
     $photo = $items->first(fn ($i) => $i->photo_path !== null);
     // The collector's own photo is always the primary image when it exists.
-    $imageUrl = $photo ? Storage::disk('collection-photos')->url($photo->photo_path) : CardImage::sized($card->official_image_url, false);
+    $imageUrl = $photo ? Storage::disk('collection-photos')->url($photo->photo_path) : CardImage::tile($card->official_image_url);
     // A graded slab replaces the rarity chip entirely, so a slab gets no tier accent.
     $tier = $graded ? 'standard' : Rarity::tier($card->rarity);
     $abbreviation = Rarity::abbreviate($card->rarity);

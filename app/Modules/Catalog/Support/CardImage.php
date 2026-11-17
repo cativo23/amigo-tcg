@@ -13,13 +13,13 @@ final class CardImage
 {
     private const TCGDEX_ASSETS = 'https://assets.tcgdex.net/';
 
-    public static function sized(?string $url, bool $large): ?string
+    public static function tile(?string $url): ?string
     {
         if ($url === null || $url === '') {
             return null;
         }
 
-        if ($large || ! str_starts_with($url, self::TCGDEX_ASSETS) || ! str_ends_with($url, '/high.webp')) {
+        if (! str_starts_with($url, self::TCGDEX_ASSETS) || ! str_ends_with($url, '/high.webp')) {
             return $url;
         }
 
