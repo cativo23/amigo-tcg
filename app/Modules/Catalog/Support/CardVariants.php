@@ -250,7 +250,7 @@ final class CardVariants
     /** @return array<string, string> stamp => label */
     public static function stampOptions(): array
     {
-        return collect(self::STAMPS)->mapWithKeys(fn (string $s) => [$s => Str::headline($s)])->sort()->all();
+        return collect(self::STAMPS)->mapWithKeys(fn (string $s) => [$s => self::stampLabel($s)])->sort()->all();
     }
 
     /** This app's base key for a tcgdex print type (`holo` → `holofoil`), or null for one it doesn't offer. */
@@ -404,6 +404,12 @@ final class CardVariants
     {
         $stamps = array_filter(array_slice(explode('+', (string) $key), 1), fn (string $stamp): bool => $stamp !== '');
 
-        return array_values(array_map(fn (string $stamp): string => Str::headline($stamp), $stamps));
+        return array_values(array_map(self::stampLabel(...), $stamps));
+    }
+
+    /** A stamp's name as collectors write it: a ball like the ball, Poké and Pokémon with their accent. */
+    private static function stampLabel(string $stamp): string
+    {
+        return self::FOIL_LABELS[$stamp] ?? (string) preg_replace('/\bPoke(mon|ween)?\b/', 'Poké$1', Str::headline($stamp));
     }
 }

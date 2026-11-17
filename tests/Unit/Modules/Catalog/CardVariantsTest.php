@@ -256,6 +256,9 @@ test('stampLabels names only the stamps of a variant key', function (?string $ke
 })->with([
     ['holofoil:cosmos+player-rewards-program', ['Player Rewards Program']],
     ['normal+staff+pre-release', ['Staff', 'Pre Release']],
+    'Pokémon spelt with its accent' => ['holofoil+pokemon-center', ['Pokémon Center']],
+    'a ball stamp spelt like the ball' => ['normal+pokeball', ['Poké Ball']],
+    'Poké in a longer name' => ['normal+poke-ball-league', ['Poké Ball League']],
     ['normal', []],
     ['reverse-holofoil:pokeball', []],
     ['', []],
@@ -263,6 +266,7 @@ test('stampLabels names only the stamps of a variant key', function (?string $ke
 ]);
 
 test('the Pokéween promo stamp can be picked for a hand-entered print', function () {
-    expect(CardVariants::stampOptions())->toHaveKey('pokeween-2026', 'Pokeween 2026')
-        ->and(CardVariants::label('reverse-holofoil+pokeween-2026'))->toBe('Reverse Holofoil · Pokeween 2026');
+    expect(CardVariants::stampOptions())->toHaveKey('pokeween-2026', 'Pokéween 2026')
+        ->and(CardVariants::stampOptions())->toHaveKey('pokemon-center', 'Pokémon Center')
+        ->and(CardVariants::label('reverse-holofoil+pokeween-2026'))->toBe('Reverse Holofoil · Pokéween 2026');
 });
