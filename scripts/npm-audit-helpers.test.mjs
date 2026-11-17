@@ -81,7 +81,7 @@ test('a readable npm audit report is returned as is', () => {
 });
 
 test('anything that is not an npm audit report is an error, never an empty report', () => {
-    for (const stdout of ['', '<html>502</html>', '{"error":{"code":"ENOAUDIT"}}', '{"message":"500","statusCode":500}',
+    for (const stdout of ['', '<html>502</html>', '{"error":{"code":"ENOAUDIT"}}', '{"error":{},"vulnerabilities":{}}', '{"message":"500","statusCode":500}',
         '{"vulnerabilities":null}', '{"vulnerabilities":[]}', '{"advisories":{}}', 'null']) {
         assert.throws(() => auditReport(stdout), /npm audit/, stdout);
     }
