@@ -68,6 +68,16 @@ test('the search box shows a loading indicator while a debounced search is in fl
     $response->assertSee('wire:target="search"', escape: false);
 });
 
+test('the value and its date stay on one line of the summary, so a phone never strands the date', function () {
+    seedCollection();
+
+    $html = $this->get('/carlos')->assertOk()->getContent();
+    $markup = preg_replace('/<!--\[if (?:BLOCK|ENDBLOCK)\]><!\[endif\]-->/', '', $html);
+
+    expect($markup)->toContain('<span class="col-chunk"><span class="col-mono">$389.36</span> on <span class="col-mono">'.today()->format('j M').'</span></span>')
+        ->and(RevampHtml::summary($html))->toBe('2 cards · 2 sets · $389.36 on '.today()->format('j M'));
+});
+
 test('the collection value never adds two currencies together', function () {
     seedCollection();
 
