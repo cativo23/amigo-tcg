@@ -28,7 +28,7 @@
 .col-grid {
   list-style: none; margin: 0; padding: 0;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--col-w), 100%), 1fr));
-  grid-auto-flow: row dense; column-gap: var(--col-gap-x); row-gap: var(--col-gap-y); align-items: start;
+  column-gap: var(--col-gap-x); row-gap: var(--col-gap-y); align-items: start;
 }
 /* .col-slot owns the entrance; .col-card owns hover. Never both on one element (design.md cascade split). */
 .col-slot { min-width: 0; }
