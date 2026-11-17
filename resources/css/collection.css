@@ -128,6 +128,8 @@
 .col-summary { margin: var(--space-md) 0 0; font-size: var(--text-lg); color: var(--color-ink-2); }
 .col-summary .col-mono { font-size: .86em; font-weight: 600; color: var(--color-ink); }
 .col-sep { color: var(--color-muted); margin: 0 .1em; }
+/* the value and its date wrap together, never apart */
+.col-chunk { white-space: nowrap; }
 .col-note { margin: var(--space-2xs) 0 0; max-width: 60ch; font-size: var(--text-sm); color: var(--color-muted); }
 
 /* ---------- divider tabs + the sheet ---------- */
@@ -228,7 +230,8 @@
   .col-sheet { border-radius: 0; }
   .col-search { flex: 1 1 100%; }
   .col-search input { width: 100%; }
-  .col-select { flex: 1 1 0; min-width: 0; }
+  /* its own row: beside the sort pills it was squeezed to "All rar" */
+  .col-select { flex: 1 1 100%; min-width: 0; }
   .col-select select { width: 100%; max-width: none; }
   .col-seg-lbl { display: none; }
   .col-seg button { padding: 0 9px; }
