@@ -125,7 +125,6 @@
                                 :index="min($loop->index, 24)"
                                 :eager="$loop->index < 8"
                                 :priority="$loop->index === 0"
-                                :lead="$loop->index < $leadCount"
                                 :in-set="true"
                                 :href="$href"
                             />

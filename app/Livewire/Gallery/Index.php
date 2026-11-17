@@ -168,9 +168,6 @@ final class Index extends Component
         }
 
         $totalEntries = (clone $gridQuery)->count();
-        // The two priciest cards take a double pocket, but only in the order that puts them first and not in a search.
-        $leadCount = $this->sort === 'value' && trim($this->search) === '' && $totalEntries > 2 ? 2 : 0;
-
         match ($this->sort) {
             'newest' => $gridQuery
                 ->withMax(['collectionItems as added_at' => fn ($q) => $public->scopeItems($q)], 'created_at')
@@ -222,7 +219,6 @@ final class Index extends Component
             'entries' => $entries,
             'totalEntries' => $totalEntries,
             'collectionTotal' => $collectionTotal,
-            'leadCount' => $leadCount,
             'perPage' => self::PER_PAGE,
             'hasMore' => $entries->count() < $totalEntries,
             'sets' => $sets,

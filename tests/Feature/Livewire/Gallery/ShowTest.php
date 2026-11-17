@@ -369,24 +369,6 @@ test('each owned card carries its 7-day move; a missing card carries none', func
         ->and($entries['001']['weekDelta'])->toBeNull();
 });
 
-test('the two priciest owned cards take double pockets only in Value order, without a search, with more than two owned cards showing, whatever the missing toggle says', function (array $query, int $leads, ?Closure $prepare) {
-    $seed = seedSetPage();
-    if ($prepare !== null) {
-        $prepare($seed);
-    }
-
-    expect(Livewire::withQueryParams($query)->test(Show::class, ['username' => 'demo', 'setTcgdexId' => 'sv03.5'])->viewData('leadCount'))->toBe($leads);
-})->with([
-    'value' => [['sort' => 'value'], 2, null],
-    'value, missing shown, three owned' => [['sort' => 'value', 'missing' => true], 2, null],
-    'value, searched' => [['sort' => 'value', 'search' => 'a'], 0, null],
-    'number' => [[], 0, null],
-    'value, one card left' => [['sort' => 'value', 'rarity' => 'Common'], 0, null],
-    // Pockets do not count: two owned tiles stay single-size when the toggle adds three pockets (5 entries > 2 would have made them double).
-    'value, two owned, missing shown' => [['sort' => 'value', 'missing' => true], 0, fn (array $seed) => CollectionItem::where('card_id', $seed['cards']['005']->id)->delete()],
-    'value, one owned, missing shown' => [['sort' => 'value', 'missing' => true], 0, fn (array $seed) => CollectionItem::whereIn('card_id', [$seed['cards']['003']->id, $seed['cards']['005']->id])->delete()],
-]);
-
 test('Clear drops the search and the rarity, and keeps the order and the missing toggle', function () {
     seedSetPage();
 
@@ -657,26 +639,26 @@ test('owned cards are the collection\'s tiles, numbered within the set, with the
         ->and($html)->toContain('<a href="'.route('gallery.card', ['username' => 'demo', 'setTcgdexId' => 'sv03.5', 'localId' => '003']).'" class="col-card col-tier-silver"');
 });
 
-test('in Value order the two priciest owned cards take double pockets, and in Number order none does', function () {
+test('every owned card takes a single pocket in any order, the priciest included', function (array $query) {
+    seedSetPage();
+
+    $html = Livewire::withQueryParams($query)->test(Show::class, ['username' => 'demo', 'setTcgdexId' => 'sv03.5'])->html();
+
+    expect($html)->not->toContain('col-lead')
+        ->and($html)->not->toContain('col-string')
+        ->and($html)->toContain('src="https://assets.tcgdex.net/en/sv/sv03.5/003/low.webp"');
+})->with([
+    'value order' => [['sort' => 'value']],
+    'value order, missing shown' => [['sort' => 'value', 'missing' => true]],
+    'number order' => [[]],
+]);
+
+test('Value order still puts the priciest owned card first', function () {
     seedSetPage();
 
     $value = Livewire::withQueryParams(['sort' => 'value'])->test(Show::class, ['username' => 'demo', 'setTcgdexId' => 'sv03.5'])->html();
-    // A plain request: query params set on Livewire::withQueryParams would carry over to a second Livewire::test().
-    $number = $this->get('/demo/sv03.5')->getContent();
 
-    expect(substr_count($value, 'class="col-slot col-lead col-enter"'))->toBe(2)
-        ->and(strpos($value, 'Venusaur ex'))->toBeLessThan(strpos($value, 'Charmeleon'))
-        ->and($number)->not->toContain('col-lead');
-});
-
-test('switching the missing toggle on never makes owned tiles double-size', function () {
-    $seed = seedSetPage();
-    CollectionItem::where('card_id', $seed['cards']['005']->id)->delete(); // two owned left, three pockets to show
-
-    $html = Livewire::withQueryParams(['sort' => 'value', 'missing' => true])->test(Show::class, ['username' => 'demo', 'setTcgdexId' => 'sv03.5'])->html();
-
-    expect($html)->not->toContain('col-lead')
-        ->and(substr_count($html, 'class="col-slot set-miss col-enter"'))->toBe(3);
+    expect(strpos($value, 'Venusaur ex'))->toBeLessThan(strpos($value, 'Charmeleon'));
 });
 
 test('Clear shows only while a search or rarity narrows the grid', function () {

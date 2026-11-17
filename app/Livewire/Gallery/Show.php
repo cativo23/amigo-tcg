@@ -167,10 +167,6 @@ final class Show extends Component
             ->sort(fn (string $a, string $b) => Rarity::rank($a) <=> Rarity::rank($b) ?: strcmp($a, $b))
             ->values();
 
-        // The two priciest cards take a double pocket, but only in the order that puts them first and not in a search.
-        // Only owned tiles count: a pocket never takes a lead, so the missing toggle cannot change an owned tile's size.
-        $leadCount = $this->sort === 'value' && trim($this->search) === '' && $sorted->where('owned', true)->count() > 2 ? 2 : 0;
-
         $name = $this->collectorName();
 
         return view('livewire.gallery.show', [
@@ -186,7 +182,6 @@ final class Show extends Component
             'percent' => $percent,
             'strip' => $strip,
             'ticks' => StripScale::ticks(count($strip)),
-            'leadCount' => $leadCount,
             'setCode' => $this->set->display_code,
             'isFiltered' => $this->search !== '' || $this->rarityFilter !== '',
             'canEditSet' => $this->isOwnerViewing() && auth()->user()?->can('use-collection') === true,

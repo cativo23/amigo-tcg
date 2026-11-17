@@ -6,6 +6,11 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Collection and set grids are uniform: in Value order the two priciest
+  cards no longer take a double-size pocket.
+
 ## [1.7.0] - 2026-11-05
 
 ### Added

@@ -118,7 +118,6 @@
                                 :index="$loop->index % $perPage"
                                 :eager="$loop->index < 8"
                                 :priority="$loop->index === 0"
-                                :lead="$loop->index < $leadCount"
                                 :href="route('gallery.card', ['username' => $targetUser->username, 'setTcgdexId' => $entry['card']->set->tcgdex_id, 'localId' => $entry['card']->local_id])"
                             />
                         @endforeach
