@@ -153,7 +153,8 @@ test('an added row is dated by its day tab only, never by a relative time beside
 
     expect($html)->toContain('Mega Darkrai ex')
         ->and($html)->not->toMatch('/\b\d+(?:s|m|h|d|w|mo|y)\s+ago\b/')
-        ->and($html)->not->toContain(' ago<');
+        ->and($html)->not->toContain(' ago<')
+        ->and(preg_replace('/<!--\[if (?:BLOCK|ENDBLOCK)\]><!\[endif\]-->/', '', $html))->not->toContain('<p class="act-amt"></p>'); // unpriced: no empty amount
 });
 
 test('a private (non-public) collection contributes nothing', function () {
