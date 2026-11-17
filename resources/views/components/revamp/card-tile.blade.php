@@ -75,7 +75,7 @@
             </span>
             @if ($stamps->isNotEmpty())
                 {{-- A stamped print looks like the plain one in its catalogue art, so the stamp is set on the card; the link's label already names it. --}}
-                <span class="col-seal" aria-hidden="true" title="{{ $stamps->implode(', ') }}">{{ $stampText }}</span>
+                <span class="col-seal" aria-hidden="true">{{ $stampText }}</span>
             @endif
         </span>
         <span class="col-tag" aria-hidden="true">
