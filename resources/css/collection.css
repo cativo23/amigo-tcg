@@ -230,7 +230,8 @@
   .col-sheet { border-radius: 0; }
   .col-search { flex: 1 1 100%; }
   .col-search input { width: 100%; }
-  .col-select { flex: 1 1 0; min-width: 0; }
+  /* its own row: beside the sort pills it was squeezed to "All rar" */
+  .col-select { flex: 1 1 100%; min-width: 0; }
   .col-select select { width: 100%; max-width: none; }
   .col-seg-lbl { display: none; }
   .col-seg button { padding: 0 9px; }
