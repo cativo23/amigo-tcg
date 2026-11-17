@@ -26,6 +26,11 @@ this file is what an agent needs before making changes.
   Composer and npm audit (fail on high/critical), Pint, Larastan level 8,
   `npm run build`, the JS tests, Pest against a Postgres service, and a
   production image build.
+- **npm audit exceptions** live in `scripts/npm-audit.mjs`, one GHSA id each
+  with its reason. An exception holds only while GitHub lists no patched
+  version for that advisory; once one exists the audit fails again until the
+  dependency is upgraded and the entry removed. Never widen it to a package
+  or a severity.
 - **Release** (`auto-release.yml`): merging a `release/vX.Y.Z` branch into
   `master` creates the GitHub Release from the matching `CHANGELOG.md`
   section.

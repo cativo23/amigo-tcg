@@ -10,6 +10,10 @@ All notable changes to this project are documented here. Format follows
 
 - Collection and set grids are uniform: in Value order the two priciest
   cards no longer take a double-size pocket.
+- CI's npm audit runs through `scripts/npm-audit.mjs`: still fails on high
+  and critical advisories, with named exceptions that hold only while
+  upstream has no patched version. The first one covers the picomatch ReDoS
+  (GHSA-fc5q-39xc-vjpf), a build-time dependency with no fix released.
 
 ## [1.7.0] - 2026-11-05
 
