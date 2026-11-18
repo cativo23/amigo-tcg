@@ -55,10 +55,8 @@ fails its deploy on purpose until the migration is run by hand
 
 ## Phase A — Fix the owner's price read, then check production
 
-`M · high` · specs: `phase-01-collection-price-read.md`,
-`phase-02-production-check-pass.md`
-
-🚀 **Patch** for parts 1–3, before part 4.
+`S · high` · spec: `phase-02-production-check-pass.md`. Parts 1–3 shipped
+in v1.9.1.
 
 4. **Production check pass.** `S` — read-only, after a nightly run, with the
    spec's runbook: tcgdex `mep`/`30th`/`30th-c`, `sv10.5w`, the held-back
