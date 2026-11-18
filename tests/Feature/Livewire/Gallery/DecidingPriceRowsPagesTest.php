@@ -20,6 +20,7 @@ use App\Modules\Catalog\Support\ChartRange;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
 use App\Modules\Collection\Scopes\TenantScope;
+use App\Modules\Collection\Services\CollectionCsvExporter;
 use App\Modules\Collection\Services\CollectionValueSeries;
 use App\Modules\Collection\Services\PublicCollection;
 use App\Modules\Collection\Services\Valuation;
@@ -222,6 +223,33 @@ test('an admin page shows the same values from the deciding rows as from the who
         ->and($cached['data'])->toBe($full['data'])
         ->and($cached['html'])->toBe($full['html']);
 })->with('admin pages');
+
+test('the CSV export writes the same rows from the deciding rows as from the whole recent window', function () {
+    $this->freezeTime();
+    seedPagesCollection();
+    $this->actingAs(User::where('username', 'carlos')->sole());
+    $export = function (DecidingPriceRows $loader): string {
+        app()->instance(DecidingPriceRows::class, $loader);
+        $out = fopen('php://memory', 'w+');
+        try {
+            (new CollectionCsvExporter)->write($out);
+        } finally {
+            app()->forgetInstance(DecidingPriceRows::class);
+        }
+        rewind($out);
+
+        return (string) stream_get_contents($out);
+    };
+
+    Cache::flush();
+    $full = $export(new FullRecentPriceRows);
+    $deciding = $export(new DecidingPriceRows);
+    $cached = $export(new DecidingPriceRows);
+
+    expect(substr_count($full, "\r\n"))->toBeGreaterThan(20)
+        ->and($deciding)->toBe($full)
+        ->and($cached)->toBe($full);
+});
 
 /*
  * The guard on PublicCollection::cardsQuery()'s contract: its cards come

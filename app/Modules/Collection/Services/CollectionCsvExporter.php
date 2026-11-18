@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Collection\Services;
 
+use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Services\CardPriceResolver;
+use App\Modules\Catalog\Services\DecidingPriceRows;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
 
@@ -34,11 +36,27 @@ final class CollectionCsvExporter
         fwrite($out, "\xEF\xBB\xBF");
         fputcsv($out, self::HEADER, escape: '', eol: "\r\n");
 
+        // Every card the user holds, priced once from the rows that decide
+        // a current price (see DecidingPriceRows): the same card set, and
+        // so the same cache entry, as the collection page. The items then
+        // stream in batches and take their card from it; a copy of a card
+        // added after that read loads its card on its own.
+        $loader = app(DecidingPriceRows::class);
+        $cards = $loader->loadOnto(Card::query()
+            ->with('set')
+            ->whereIn('id', CollectionItem::query()->whereIn('collection_id', Collection::query()->select('id'))->select('card_id'))
+            ->get())->keyBy('id');
+
         CollectionItem::query()
             ->whereIn('collection_id', Collection::query()->select('id'))
-            ->with(['card.set', 'card.priceSnapshots' => fn ($q) => $q->recent()])
             ->lazyById(200)
-            ->each(fn (CollectionItem $item) => fputcsv($out, $this->row($item), escape: '', eol: "\r\n"));
+            ->each(function (CollectionItem $item) use ($out, $loader, &$cards): void {
+                if (! $cards->has($item->card_id)) {
+                    $cards = $cards->union($loader->loadOnto(Card::query()->with('set')->whereKey($item->card_id)->get())->keyBy('id'));
+                }
+                $item->setRelation('card', $cards->get($item->card_id));
+                fputcsv($out, $this->row($item), escape: '', eol: "\r\n");
+            });
     }
 
     /**
