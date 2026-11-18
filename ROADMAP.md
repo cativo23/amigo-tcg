@@ -53,18 +53,12 @@ fails its deploy on purpose until the migration is run by hand
 
 ---
 
-## Phase B — Backups off the host, and host tuning
+## Phase B — Host tuning
 
-`M–L · high` · spec: `phase-11-host-redis-postgres-backups.md`. One part per
+`M · med` · spec: `phase-11-host-redis-postgres-backups.md`. One part per
 release, never two on the same day; each starts with a dated copy of the
 compose file on the host.
 
-1. **Backups off the host.** `M · high` — losing polaris2 loses the backups
-   too. A second backup service ships the dumps and photos to Cloudflare R2
-   (EU bucket, restic, client-side encryption), with a restore test and a
-   freshness alert; the privacy policy changes in the same release. ✋ The
-   owner enables Cloudflare billing and creates the bucket and token first;
-   until then go on with the parts below. 🚀 **Minor** (privacy policy).
 2. **`work_mem` from real numbers.** `S` — v1.9.2 turned on
    `pg_stat_statements` and temp-file logging on 2026-11-18. From
    2026-11-25, read the top statements and the temp-file lines
@@ -284,6 +278,14 @@ about to open; the terms review has the longest wait, so it starts first.
 
 Each waits on a trigger; none is a part until it fires.
 
+- **Backups off the host** (`M · high`, spec
+  `phase-11-host-redis-postgres-backups.md`, item A) — postponed by the
+  owner until the project earns money. Until then losing polaris2 loses the
+  backups too. The design stays: a second backup service ships the dumps
+  and photos to Cloudflare R2 (EU bucket, restic, client-side encryption),
+  with a restore test and a freshness alert, and the privacy policy changes
+  in the same release (🚀 **Minor**). ✋ The owner enables Cloudflare
+  billing and creates the bucket and token first.
 - **The Activity chart in the nightly window** — build the precomputed
   per-print table (design in `.superpowers/roadmap/refs/perf-audit/`) only
   if one fires: more than 3 page-view builds a week for two weeks, one over
