@@ -11,6 +11,9 @@ All notable changes to this project are documented here. Format follows
 - A selected divider tab runs straight into its sheet: the sheet no longer
   draws a light line along its top edge (visible in dark mode) that cut the
   tab off from it on the collection, card, activity and sets pages.
+- The collection's set tab row no longer moves up when a wheel or trackball
+  scrolls over it. It fades out at whichever edge it runs past, left or
+  right, over the page's own grain instead of a flat painted box.
 
 ## [1.8.0] - 2026-11-17
 

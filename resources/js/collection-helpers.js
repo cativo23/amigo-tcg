@@ -22,6 +22,11 @@ export function overflowsRight(scrollLeft, viewWidth, scrollWidth) {
     return scrollLeft + viewWidth < scrollWidth - 2;
 }
 
+/** Whether the strip has scrolled past its left edge (same 2px of slop). */
+export function overflowsLeft(scrollLeft) {
+    return scrollLeft > 2;
+}
+
 /** The high-resolution twin of a failed tcgdex low.webp, or null when there is nothing to retry. */
 export function fallbackSrc(src) {
     const prefix = 'https://assets.tcgdex.net/';
