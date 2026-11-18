@@ -443,7 +443,7 @@ disk has less than 5 GB free.
 
 **These copies live on the same server.** They cover a bad migration, a
 wrong delete or a corrupt volume, not losing polaris2. Copying them off the
-host is still open in `ROADMAP.md` (Phase B).
+host is parked in `ROADMAP.md` until the project earns money.
 
 Every block below starts from:
 ```bash
