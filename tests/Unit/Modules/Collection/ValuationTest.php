@@ -264,7 +264,7 @@ test('totals over a run of days match totalsByCurrencyAsOf day by day, on any pr
     expect($valuation->totalsByCurrencyOver($cards, $days))->toBe($expected);
 });
 
-test('missingTotals sums one copy of each card at its card-level price, currencies apart, and counts the priced cards', function () {
+test('missingTotals sums one copy of each card at its card-level price, and counts the priced cards, each currency apart', function () {
     $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
     $card = fn (string $n, string $name) => Card::create(['tcgdex_id' => "me05-$n", 'set_id' => $set->id, 'local_id' => $n, 'name' => $name]);
     $eur = $card('003', 'Fomantis');
@@ -282,6 +282,6 @@ test('missingTotals sums one copy of each card at its card-level price, currenci
 
     $cards = (new DecidingPriceRows)->loadOnto(Card::with('collectionItems')->orderBy('local_id')->get());
 
-    expect((new Valuation)->missingTotals($cards))->toBe(['totals' => ['USD' => 5188, 'EUR' => 900], 'priced' => 4])
-        ->and((new Valuation)->missingTotals([]))->toBe(['totals' => [], 'priced' => 0]);
+    expect((new Valuation)->missingTotals($cards))->toBe(['totals' => ['USD' => 5188, 'EUR' => 900], 'priced' => ['USD' => 3, 'EUR' => 1]])
+        ->and((new Valuation)->missingTotals([]))->toBe(['totals' => [], 'priced' => []]);
 });

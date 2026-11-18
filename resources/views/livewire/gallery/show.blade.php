@@ -8,6 +8,8 @@
     // The missing cards' total follows the same rule: its first currency on the line, the others in the note.
     $missingHead = array_key_first(array_filter($missingTotals['totals']));
     $missingOther = collect(array_filter($missingTotals['totals']))->except($missingHead);
+    // The line's count is the cards its figure covers: one priced only in another currency is in the note, not here.
+    $missingPriced = $missingHead !== null ? $missingTotals['priced'][$missingHead] : 0;
     $hasPrice = $headCurrency !== null || $missingHead !== null;
 @endphp
 
@@ -37,7 +39,7 @@
         <p class="col-summary"><span class="set-code">{{ $setCode }}</span> <span class="col-sep" aria-hidden="true">·</span> <span class="set-chunk"><span class="col-mono">{{ $ownedCount }}</span> of <span class="col-mono">{{ $totalCount }}</span> {{ Str::plural('card', $totalCount) }}</span>@if ($headCurrency) <span class="col-sep" aria-hidden="true">·</span> <span class="set-chunk"><span class="col-mono">{{ Money::format($ownedTotals[$headCurrency], $headCurrency) }}</span></span>@endif @if ($set->released_on) <span class="col-sep" aria-hidden="true">·</span> <span class="set-chunk">released <span class="col-mono">{{ $set->released_on->format('M Y') }}</span></span>@endif</p>
         {{-- What the rest of the set costs: one of each card not owned, never the filtered grid; a fact, not a quote. --}}
         @if ($missingHead)
-            <p class="col-summary set-rest"><span class="set-rest-lbl">The rest of the set:</span> <span class="col-mono">{{ Money::format($missingTotals['totals'][$missingHead], $missingHead) }}</span> @if ($missingTotals['priced'] < $missingSlots)for one of each missing card. <span class="col-mono">{{ $missingTotals['priced'] }}</span> of <span class="col-mono">{{ $missingSlots }}</span> missing cards priced.@elseif ($missingSlots === 1)for the <span class="col-mono">1</span> missing card.@else for the <span class="col-mono">{{ $missingSlots }}</span> missing cards, one of each.@endif</p>
+            <p class="col-summary set-rest"><span class="set-rest-lbl">The rest of the set:</span> <span class="col-mono">{{ Money::format($missingTotals['totals'][$missingHead], $missingHead) }}</span> @if ($missingPriced < $missingSlots)for one of each missing card. <span class="col-mono">{{ $missingPriced }}</span> of <span class="col-mono">{{ $missingSlots }}</span> missing cards priced.@elseif ($missingSlots === 1)for the <span class="col-mono">1</span> missing card.@else for the <span class="col-mono">{{ $missingSlots }}</span> missing cards, one of each.@endif</p>
         @endif
         @if ($hasPrice || $otherTotals->isNotEmpty() || $missingOther->isNotEmpty())
             <p class="col-note">@if ($hasPrice)Approx. TCGplayer market prices.@endif @foreach ($otherTotals as $currency => $minor)Also {{ Money::format($minor, $currency) }} priced in {{ $currency }}, not added to the total. @endforeach @foreach ($missingOther as $currency => $minor)Also {{ Money::format($minor, $currency) }} for missing cards priced in {{ $currency }}, not added to the total. @endforeach</p>

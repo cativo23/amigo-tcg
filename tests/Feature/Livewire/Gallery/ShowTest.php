@@ -738,7 +738,7 @@ test('the missing cards\' total is the sum of their pockets\' prices, the same w
     $pockets = $shown->viewData('entries')->reject(fn (array $e) => $e['owned'])->sum(fn (array $e) => $e['snapshot']->market_minor);
 
     expect($pockets)->toBe(375)
-        ->and($shown->viewData('missingTotals'))->toBe(['totals' => ['USD' => 375], 'priced' => 2])
+        ->and($shown->viewData('missingTotals'))->toBe(['totals' => ['USD' => 375], 'priced' => ['USD' => 2]])
         ->and($shown->viewData('missingSlots'))->toBe(2)
         ->and($page([])->viewData('missingTotals'))->toBe($shown->viewData('missingTotals'))
         ->and($page(['search' => 'Bulba', 'missing' => true])->viewData('missingTotals'))->toBe($shown->viewData('missingTotals'))
@@ -783,7 +783,7 @@ test('on a set the catalogue holds only in part, the cards not imported count as
     $page = Livewire::test(Show::class, ['username' => 'demo', 'setTcgdexId' => 'sv03.5']);
 
     expect($page->viewData('missingSlots'))->toBe(5)
-        ->and($page->viewData('missingTotals'))->toBe(['totals' => ['USD' => 375], 'priced' => 2])
+        ->and($page->viewData('missingTotals'))->toBe(['totals' => ['USD' => 375], 'priced' => ['USD' => 2]])
         ->and(restOfSet($this->get('/demo/sv03.5')->getContent()))->toBe('The rest of the set: $3.75 for one of each missing card. 2 of 5 missing cards priced.');
 });
 
@@ -798,13 +798,14 @@ test('with nothing owned priced, the missing cards\' total still carries the pag
         ->and(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices.');
 });
 
-test('a missing card priced in another currency is a separate footnote, never added to the total', function () {
+test('a missing card priced in another currency is a separate footnote, never added to the total or counted in its cards', function () {
     $seed = seedSetPage();
     CardPriceSnapshot::create(['card_id' => $seed['cards']['004']->id, 'source' => 'cardmarket', 'variant' => 'default', 'captured_on' => today(), 'currency' => 'EUR', 'market_minor' => 1000]);
     CardPriceSnapshot::create(['card_id' => $seed['cards']['001']->id, 'source' => 'cardmarket', 'variant' => 'default', 'captured_on' => today(), 'currency' => 'EUR', 'market_minor' => 400]);
 
     $html = $this->get('/demo/sv03.5')->getContent();
 
-    expect(restOfSet($html))->toBe('The rest of the set: $0.75 for the 2 missing cards, one of each.')
+    // The dollar figure is #002 alone: #004 is priced only in EUR, so it is not one of the cards the figure covers.
+    expect(restOfSet($html))->toBe('The rest of the set: $0.75 for one of each missing card. 1 of 2 missing cards priced.')
         ->and(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices. Also €4.00 priced in EUR, not added to the total. Also €10.00 for missing cards priced in EUR, not added to the total.');
 });
