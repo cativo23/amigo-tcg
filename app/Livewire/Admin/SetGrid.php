@@ -8,6 +8,7 @@ use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Models\CardPriceSnapshot;
 use App\Modules\Catalog\Models\Set;
 use App\Modules\Catalog\Services\CardPriceResolver;
+use App\Modules\Catalog\Services\DecidingPriceRows;
 use App\Modules\Catalog\Support\CardVariants;
 use App\Modules\Catalog\Support\Rarity;
 use App\Modules\Collection\Models\Collection;
@@ -358,21 +359,31 @@ final class SetGrid extends Component
         $collectionIds = Collection::query()->pluck('id');
         $valuation = new Valuation(new CardPriceResolver);
 
-        $cardsQuery = $this->set->cards()->with([
-            'priceSnapshots' => fn ($q) => $q->recent(),
+        // Every card of the set, loaded once with the price rows that decide
+        // its current price (see DecidingPriceRows), as the public set page
+        // loads them: the cache entry is keyed on the whole set's cards, so
+        // a search or a rarity only chooses which of them the grid shows and
+        // never writes an entry of its own.
+        $cards = app(DecidingPriceRows::class)->loadOnto($this->set->cards()->with([
             'collectionItems' => fn ($q) => $q->whereIn('collection_id', $collectionIds)->orderBy('created_at'),
-        ]);
+        ])->get());
 
-        if ($this->search !== '') {
-            // Postgres' LIKE is case-sensitive; ILIKE is the case-insensitive form.
-            $cardsQuery->where('name', 'ilike', '%'.trim($this->search).'%');
+        $matching = null;
+        if ($this->search !== '' || $this->rarityFilter !== '') {
+            $query = $this->set->cards();
+            if ($this->search !== '') {
+                // Postgres' LIKE is case-sensitive; ILIKE is the case-insensitive form.
+                $query->where('name', 'ilike', '%'.trim($this->search).'%');
+            }
+            if ($this->rarityFilter !== '') {
+                $query->where('rarity', $this->rarityFilter);
+            }
+            $matching = $query->pluck('id')->flip();
         }
 
-        if ($this->rarityFilter !== '') {
-            $cardsQuery->where('rarity', $this->rarityFilter);
-        }
-
-        $entries = $cardsQuery->get()->toBase()->map(fn (Card $card): array => $this->entryFor($card, $valuation));
+        $entries = $cards->toBase()
+            ->filter(fn (Card $card): bool => $matching === null || $matching->has($card->id))
+            ->map(fn (Card $card): array => $this->entryFor($card, $valuation));
 
         if ($this->hideMissing) {
             /** @var SupportCollection<int, Entry> $entries */

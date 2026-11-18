@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Livewire\Admin\CollectionItems;
+use App\Livewire\Admin\SetGrid;
 use App\Livewire\Gallery\Activity;
 use App\Livewire\Gallery\CardShow;
 use App\Livewire\Gallery\Index;
@@ -22,6 +23,7 @@ use App\Modules\Collection\Scopes\TenantScope;
 use App\Modules\Collection\Services\CollectionValueSeries;
 use App\Modules\Collection\Services\PublicCollection;
 use App\Modules\Collection\Services\Valuation;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -182,11 +184,15 @@ dataset('admin pages', [
     'collector list by newest' => [CollectionItems::class, [], ['sort' => 'newest'], ['cardGroups']],
     'collector list, filtered' => [CollectionItems::class, [], ['condition' => 'NM', 'variant' => 'holofoil'], ['cardGroups', 'totalCards']],
     'collector list, searched' => [CollectionItems::class, [], ['search' => 'Card 1'], ['cardGroups', 'totalCards']],
+    'set grid' => [SetGrid::class, ['setTcgdexId' => 'me05'], [], ['entries', 'ownedCount']],
+    'set grid by value' => [SetGrid::class, ['setTcgdexId' => 'sv08'], ['sort' => 'value'], ['entries']],
+    'set grid, searched' => [SetGrid::class, ['setTcgdexId' => 'sv08'], ['search' => 'Card 1', 'sort' => 'value'], ['entries']],
 ]);
 
 test('an admin page shows the same values from the deciding rows as from the whole recent window', function (string $component, array $params, array $query, array $keys) {
     $this->freezeTime();
     seedPagesCollection();
+    $this->seed(PermissionSeeder::class);
     $this->actingAs(User::where('username', 'carlos')->sole());
     // The collector list's groups come in a paginator, which the fingerprint
     // would reduce to its class name: compare the groups themselves.

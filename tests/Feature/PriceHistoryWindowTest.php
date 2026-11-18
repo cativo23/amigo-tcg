@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Livewire\Admin\CollectionItems;
+use App\Livewire\Admin\SetGrid;
 use App\Livewire\Gallery\Activity;
 use App\Livewire\Gallery\CardShow;
 use App\Livewire\Gallery\Index;
@@ -15,6 +16,7 @@ use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
 use App\Modules\Collection\Services\CollectionCsvExporter;
 use App\Modules\Collection\Services\PublicCollection;
+use Database\Seeders\PermissionSeeder;
 use Livewire\Livewire;
 
 // Every listing screen walks a card's price history in PHP, and the sync
@@ -91,6 +93,14 @@ test('the activity feed loads only the deciding rows of the recent window for ad
 
 test('the collector admin list loads only the deciding rows of the recent window, without their raw payload', function () {
     $card = Livewire::actingAs($this->user)->test(CollectionItems::class)->viewData('cardGroups')->first()->card;
+
+    expect(loadedDays($card))->toBe(expectedDecidingDays())
+        ->and($card->priceSnapshots->contains(fn (CardPriceSnapshot $s) => array_key_exists('raw', $s->getAttributes())))->toBeFalse();
+});
+
+test('the admin set grid loads only the deciding rows of the recent window, without their raw payload', function () {
+    $this->seed(PermissionSeeder::class);
+    $card = Livewire::actingAs($this->user)->test(SetGrid::class, ['setTcgdexId' => 'me05'])->viewData('entries')->first()['card'];
 
     expect(loadedDays($card))->toBe(expectedDecidingDays())
         ->and($card->priceSnapshots->contains(fn (CardPriceSnapshot $s) => array_key_exists('raw', $s->getAttributes())))->toBeFalse();
