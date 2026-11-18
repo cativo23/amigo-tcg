@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Livewire\Admin\CollectionItems;
 use App\Livewire\Gallery\Activity;
 use App\Livewire\Gallery\CardShow;
 use App\Livewire\Gallery\Index;
@@ -174,6 +175,47 @@ test('a gallery page shows the same values from the deciding rows as from the wh
         ->and($cached['data'])->toBe($full['data'])
         ->and($cached['html'])->toBe($full['html']);
 })->with('gallery pages');
+
+dataset('admin pages', [
+    'collector list' => [CollectionItems::class, [], [], ['cardGroups', 'totalCards', 'totalCopies']],
+    'collector list by name' => [CollectionItems::class, [], ['sort' => 'name'], ['cardGroups']],
+    'collector list by newest' => [CollectionItems::class, [], ['sort' => 'newest'], ['cardGroups']],
+    'collector list, filtered' => [CollectionItems::class, [], ['condition' => 'NM', 'variant' => 'holofoil'], ['cardGroups', 'totalCards']],
+    'collector list, searched' => [CollectionItems::class, [], ['search' => 'Card 1'], ['cardGroups', 'totalCards']],
+]);
+
+test('an admin page shows the same values from the deciding rows as from the whole recent window', function (string $component, array $params, array $query, array $keys) {
+    $this->freezeTime();
+    seedPagesCollection();
+    $this->actingAs(User::where('username', 'carlos')->sole());
+    // The collector list's groups come in a paginator, which the fingerprint
+    // would reduce to its class name: compare the groups themselves.
+    $render = function (DecidingPriceRows $loader, bool $flush = true) use ($component, $params, $query, $keys): array {
+        $page = renderPageWith($loader, $component, $params, $query, array_values(array_diff($keys, ['cardGroups'])), $flush);
+        if (in_array('cardGroups', $keys, true)) {
+            app()->instance(DecidingPriceRows::class, $loader);
+            $groups = Livewire::withQueryParams($query)->test($component, $params)->viewData('cardGroups')->items();
+            app()->forgetInstance(DecidingPriceRows::class);
+            // A copy is a model to the fingerprint, so its price is added beside it.
+            $page['data']['cardGroups'] = ViewDataFingerprint::of(array_map(fn (object $group) => [
+                ...(array) $group,
+                'itemValues' => $group->items->map(fn (CollectionItem $item) => [$item->id, $item->getAttribute('_valueMinor'), $item->getAttribute('_currency')])->all(),
+            ], $groups));
+        }
+
+        return $page;
+    };
+
+    $full = $render(new FullRecentPriceRows);
+    $deciding = $render(new DecidingPriceRows);
+    $cached = $render(new DecidingPriceRows, flush: false);
+
+    expect($full['data'])->not->toBeEmpty()
+        ->and($deciding['data'])->toBe($full['data'])
+        ->and($deciding['html'])->toBe($full['html'])
+        ->and($cached['data'])->toBe($full['data'])
+        ->and($cached['html'])->toBe($full['html']);
+})->with('admin pages');
 
 /*
  * The guard on PublicCollection::cardsQuery()'s contract: its cards come

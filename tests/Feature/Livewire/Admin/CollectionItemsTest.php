@@ -8,12 +8,17 @@ use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Models\CardPriceSnapshot;
 use App\Modules\Catalog\Models\Set;
 use App\Modules\Catalog\Services\CardPriceResolver;
+use App\Modules\Catalog\Services\DecidingPriceRows;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
+use Illuminate\Cache\Events\KeyWritten;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Tests\Support\PriceRowReads;
 
 test('the collection index lists the authenticated users items', function () {
     $user = User::factory()->create();
@@ -706,3 +711,130 @@ test('the list refreshes its counts when the editor reports a changed card', fun
 
     $component->dispatch('card-copies-changed', cardId: $card->id)->assertSee('×4', false);
 });
+
+/**
+ * A signed-in collector owning three cards, each priced daily for 40 days by
+ * two sources, so the recent window holds far more rows than decide a price.
+ *
+ * @return array{user: User, collection: Collection, cards: list<Card>}
+ */
+function historyCollector(): array
+{
+    $user = User::factory()->create();
+    test()->actingAs($user);
+    $collection = Collection::factory()->for($user)->create(['name' => 'Main', 'slug' => 'main']);
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
+    $now = now();
+    $cards = [];
+    $rows = [];
+
+    foreach (['Mega Darkrai ex', 'Toucannon', 'Fomantis'] as $n => $name) {
+        $card = Card::create(['tcgdex_id' => "me05-{$n}", 'set_id' => $set->id, 'local_id' => (string) $n, 'name' => $name]);
+        CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => $card->tcgdex_id, 'variant' => 'normal', 'condition' => $n === 0 ? 'LP' : 'NM', 'quantity' => 1]);
+        $cards[] = $card;
+
+        foreach (['tcgplayer' => 'USD', 'cardmarket' => 'EUR'] as $source => $currency) {
+            foreach (range(0, 39) as $day) {
+                $rows[] = [
+                    'card_id' => $card->id, 'source' => $source, 'origin' => 'tcgdex', 'variant' => 'normal',
+                    'captured_on' => today()->subDays($day)->toDateString(), 'currency' => $currency,
+                    'market_minor' => 1000 * ($n + 1) + $day, 'raw' => json_encode(['day' => $day]),
+                    'created_at' => $now, 'updated_at' => $now,
+                ];
+            }
+        }
+    }
+    CardPriceSnapshot::insert($rows);
+
+    return ['user' => $user, 'collection' => $collection, 'cards' => $cards];
+}
+
+test('the collector list reads price rows only through the deciding query, and not at all when they are cached', function () {
+    historyCollector();
+
+    $miss = PriceRowReads::during(fn () => Livewire::test(CollectionItems::class));
+    $hit = PriceRowReads::during(fn () => Livewire::test(CollectionItems::class));
+
+    expect($miss->stray)->toBe([])
+        ->and($miss->deciding)->toHaveCount(1)
+        ->and($hit->stray)->toBe([])
+        ->and($hit->deciding)->toBe([]);
+});
+
+test('a search or filter narrows the list from the cached rows of every owned card, writing no entry of its own', function () {
+    ['cards' => $cards] = historyCollector();
+    $ownedIds = array_map(fn (Card $card) => $card->id, $cards);
+    $written = [];
+    Event::listen(KeyWritten::class, function (KeyWritten $event) use (&$written) {
+        if (str_starts_with($event->key, 'deciding-price-rows:')) {
+            $written[] = $event->key;
+        }
+    });
+
+    $component = Livewire::test(CollectionItems::class);
+    $narrowed = PriceRowReads::during(fn () => $component
+        ->set('search', 'darkrai')
+        ->set('search', '')
+        ->set('conditionFilter', 'LP')
+        ->set('conditionFilter', '')
+        ->set('variantFilter', 'normal'));
+
+    expect($written)->toBe([DecidingPriceRows::cacheKey($ownedIds)])
+        ->and(Cache::has(DecidingPriceRows::cacheKey([$cards[0]->id])))->toBeFalse()
+        ->and($narrowed->stray)->toBe([])
+        ->and($narrowed->deciding)->toBe([])
+        ->and($component->viewData('cardGroups')->total())->toBe(3);
+});
+
+test('a searched card past the owner\'s first thousand cards is still priced', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    $collection = Collection::factory()->for($user)->create(['name' => 'Main', 'slug' => 'main']);
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
+    $now = now();
+    $cardRows = [];
+    for ($i = 1; $i <= 1001; $i++) {
+        $cardRows[] = ['tcgdex_id' => "me05-{$i}", 'set_id' => $set->id, 'local_id' => (string) $i, 'name' => $i === 1001 ? 'Mega Darkrai ex' : "Card {$i}", 'created_at' => $now, 'updated_at' => $now];
+    }
+    Card::insert($cardRows);
+    $itemRows = [];
+    foreach (Card::where('set_id', $set->id)->pluck('id', 'tcgdex_id') as $tcgdexId => $cardId) {
+        $itemRows[] = ['collection_id' => $collection->id, 'card_id' => $cardId, 'card_tcgdex_id' => $tcgdexId, 'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1, 'created_at' => $now, 'updated_at' => $now];
+    }
+    CollectionItem::insert($itemRows);
+    $last = Card::where('name', 'Mega Darkrai ex')->sole();
+    CardPriceSnapshot::create(['card_id' => $last->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 4321]);
+
+    $groups = Livewire::test(CollectionItems::class)->set('search', 'darkrai')->viewData('cardGroups');
+
+    expect($groups->total())->toBe(1)
+        ->and($groups->first()->card->id)->toBe($last->id)
+        ->and($groups->first()->totalValueMinor)->toBe(4321);
+});
+
+test('after a price write the list shows the new price, not the cached one', function (Closure $write) {
+    $this->freezeTime();
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    $collection = Collection::factory()->for($user)->create(['name' => 'Main', 'slug' => 'main']);
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
+    $card = Card::create(['tcgdex_id' => 'me05-1', 'set_id' => $set->id, 'local_id' => '1', 'name' => 'Card 1']);
+    CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => $card->tcgdex_id, 'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1]);
+    CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today()->subDay(), 'currency' => 'USD', 'market_minor' => 500]);
+    $render = fn () => Livewire::test(CollectionItems::class)->viewData('cardGroups')->first()->totalValueMinor;
+
+    $before = $render();
+    $cached = PriceRowReads::during($render);
+    $write($card);
+
+    expect($before)->toBe(500)
+        ->and($cached->deciding)->toBe([])
+        ->and($render())->toBe(650);
+})->with([
+    'Eloquent update' => [fn (Card $card) => CardPriceSnapshot::where('card_id', $card->id)->sole()->update(['market_minor' => 650])],
+    'raw SQL update' => [fn (Card $card) => DB::update('UPDATE card_price_snapshots SET market_minor = 650 WHERE card_id = ?', [$card->id])],
+    'raw SQL insert of a row dated today' => [fn (Card $card) => DB::insert(
+        "INSERT INTO card_price_snapshots (card_id, source, origin, variant, captured_on, currency, market_minor, created_at, updated_at) VALUES (?, 'tcgplayer', 'tcgdex', 'normal', ?, 'USD', 650, now(), now())",
+        [$card->id, today()->toDateString()],
+    )],
+]);

@@ -89,10 +89,11 @@ test('the activity feed loads only the deciding rows of the recent window for ad
     expect(loadedDays($added['card']))->toBe(expectedDecidingDays());
 });
 
-test('the collector admin list loads only recent price history', function () {
-    $groups = Livewire::actingAs($this->user)->test(CollectionItems::class)->viewData('cardGroups');
+test('the collector admin list loads only the deciding rows of the recent window, without their raw payload', function () {
+    $card = Livewire::actingAs($this->user)->test(CollectionItems::class)->viewData('cardGroups')->first()->card;
 
-    expect(loadedDays($groups->first()->card))->toBe(expectedRecentDays());
+    expect(loadedDays($card))->toBe(expectedDecidingDays())
+        ->and($card->priceSnapshots->contains(fn (CardPriceSnapshot $s) => array_key_exists('raw', $s->getAttributes())))->toBeFalse();
 });
 
 test('the CSV export prices a copy from recent history only', function () {
