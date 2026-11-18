@@ -6,7 +6,7 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-## [1.9.1] - 2026-11-19
+## [1.9.1] - 2026-11-18
 
 ### Changed
 
