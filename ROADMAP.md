@@ -129,7 +129,7 @@ While part 3 waits on the nightly runs, take Phase D's first part.
 `L · high` · specs: `phase-07-usd-only-stop-cardmarket.md`,
 `phase-08-usd-only-purge.md`, `SPEC-B.md` (the B2 page); plan
 `.superpowers/roadmap/refs/remove-cardmarket/`. Cardmarket's figure is EUR
-and often another print's. Needs Phases A and C done.
+and often another print's. Needs Phase C done.
 
 1. **Read only TCGplayer and hand prices.** `M` — re-count the prints that
    will go blank first. One market-sources filter at every price read site,
