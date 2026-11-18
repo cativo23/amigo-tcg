@@ -53,20 +53,6 @@ fails its deploy on purpose until the migration is run by hand
 
 ---
 
-## Phase A — Fix the owner's price read, then check production
-
-`S · high` · spec: `phase-02-production-check-pass.md`. Parts 1–3 shipped
-in v1.9.1.
-
-4. **Production check pass.** `S` — read-only, after a nightly run, with the
-   spec's runbook: tcgdex `mep`/`30th`/`30th-c`, `sv10.5w`, the held-back
-   list, the 30th cross-variant outliers (they feed Phase C). Also look at
-   the redis DNS errors of 2026-11-18 04:06 UTC (around a redis restart).
-   Then, each ✋: forget the two stale `failed_jobs` rows; import the full
-   catalogue of `swsh7`, `swsh8`, `swsh11` and `base1`
-   (`catalog:import-set`), which today hold only the demo's own cards, so
-   their set pages show no missing-cards total.
-
 ## Phase B — Backups off the host, and host tuning
 
 `M–L · high` · spec: `phase-11-host-redis-postgres-backups.md`. One part per
@@ -91,7 +77,11 @@ compose file on the host.
 5. **Compose tidy-up.** `S` — recreate `backup` on deploy instead of
    restarting it; postgres/redis health checks every 30 s with a
    `start_interval`; re-measure CPU throttling on scheduler, horizon and
-   backup before changing any limit. 🚀 **Patch** (can ride with part 4).
+   backup before changing any limit; pin `postgres` and `redis` by digest
+   so they change only in a planned release (the v1.8.0 deploy's
+   `compose pull` took new `postgres:17-alpine` and `redis:7-alpine` builds
+   and recreated both inside the 04:00 window, with a few seconds of failed
+   redis lookups). 🚀 **Patch** (can ride with part 4).
 
 ## Phase C — TCGplayer links and price-link integrity
 
@@ -104,7 +94,10 @@ compose file on the host.
    `--apply`), plus a product listing by printed number. Covers the
    deck-exclusive prints with no TCGplayer id and every stamped print a
    collector adds. ✋ After release: confirm the 10 `gaps_unverified` prints
-   from Phase A one link at a time.
+   (holo and reverse of `sv03-062`, `-072`, `-085` and `swsh12-131`, plus the
+   stamped `me02.5-155` and `me03-086`) one link at a time; link the 12 `mep`
+   cards with no link (`mep-055`..`mep-063`, `mep-091`, `mep-120`,
+   `mep-Museum`), then `catalog:backfill-images` for their images.
 2. **The CSV says where each price came from.** `S · low` — a
    `price_source` column at the end of the export. The 10 hand-entered rows
    stay. 🚀 **Minor** (parts 1–2).
@@ -118,8 +111,16 @@ compose file on the host.
    `UNIQUE(set_id, local_id)` on `cards` (a number imported twice would
    count twice in the strip and the missing total; count duplicates in
    production first, read-only). ✋ First: a backup and
-   the `30th-c-007` cleanup (irreversible). 🚀 **Patch** (migration). A
-   rollback goes to part 3's tag, never older.
+   the `30th-c-007` cleanup (irreversible). Look at the other links on a
+   variant the card's `variants` marks false (`mep-002`, `mep-004`,
+   `mep-092`, `mep-093`, all `normal`) in the same pass. 🚀 **Patch**
+   (migration). A rollback goes to part 3's tag, never older.
+
+The 86 `30th` cards linked `normal` on a Holofoil-only product are the
+known limit in `deploy/README.md` ("Stamped prints"), not a wrong price:
+tcgdex's row of a day equals tcgcsv's row of the evening before on all 86.
+They are 86 of the 87 nightly `link_conflicts` (the other is `mep-028`).
+Nothing to fix unless a part here changes how a link's variant is keyed.
 
 While part 3 waits on the nightly runs, take Phase D's first part.
 
