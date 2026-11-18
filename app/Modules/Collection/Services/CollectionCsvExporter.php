@@ -37,8 +37,9 @@ final class CollectionCsvExporter
         fputcsv($out, self::HEADER, escape: '', eol: "\r\n");
 
         // Every card the user holds, priced once from the rows that decide
-        // a current price (see DecidingPriceRows): the same card set, and
-        // so the same cache entry, as the collection page. The items then
+        // a current price (see DecidingPriceRows): up to the collection
+        // page's ceiling of distinct cards, the same card set, and so the
+        // same cache entry, as that page. The items then
         // stream in batches and take their card from it; a copy of a card
         // added after that read loads its card on its own.
         $loader = app(DecidingPriceRows::class);
