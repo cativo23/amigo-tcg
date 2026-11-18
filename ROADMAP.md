@@ -265,3 +265,8 @@ Each waits on a trigger; none is a phase until it fires.
   uses official logos; revisit if collectors ask for it.
 - **Why tcgdex sends no TCGplayer price for about half its cards each night**
   — unanswered upstream.
+- **A collector's photo at real size** (`L`) — crop and straighten the photo
+  to the card's edges on upload, so Actual size can apply to it too. Today
+  only the official art has Actual size, and the card page says so under the
+  photo. Revisit if collectors ask for it once the landing sells their own
+  photo (Phase 2c).
