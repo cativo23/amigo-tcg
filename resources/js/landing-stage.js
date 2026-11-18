@@ -1,19 +1,24 @@
-/* tcg-vault landing v5 · one stage, five acts, one set of card pictures.
+/* tcg-vault landing v5 · one stage, six acts, one set of card pictures.
  *
- * The same card objects (one picture each) are laid out once per pose: stack → grid (shared page) → sets (divider tabs) → prices (slip + hang tags) → set (binder page) → close.
+ * The same card objects (one picture each) are laid out once per pose: stack → grid (shared page) → sets (divider tabs) → mat (the
+ * hero's first card at 63 × 88 mm) → prices (slip + hang tags) → set (binder page) → close.
  * Scrolling interpolates every card between two poses with transform + opacity only. A passive scroll listener
  * feeds one requestAnimationFrame; nothing reads layout per frame.
  * Reduced motion (or ?motion=off) builds one static figure per act from the same layouts.
  * Debug: ?progress=0..1 drives the stage to that point of the story with no window scroll (headless captures).
  */
 import D from './landing-demo.json';
-import { dayLabel, figureSource } from './landing-helpers.js';
+import { dayLabel, figureSource, matCard } from './landing-helpers.js';
+import { PX_PER_MM } from './plate-helpers.js';
 if (document.getElementById('stage')) {
   var html = document.documentElement;
   var MOVING = html.classList.contains('moving');
   var DBG = html.classList.contains('dbg');
   var BASE = 300, RATIO = 342 / 245, BAR = 56;
-  var POSES = ['stack', 'grid', 'sets', 'prices', 'set', 'close'];
+  var POSES = ['stack', 'grid', 'sets', 'mat', 'prices', 'set', 'close'];
+  var MAT = POSES.indexOf('mat'), LOUPE_ZOOM = 2.4;
+  /* the calibration a card page stored on this device; the landing only reads it */
+  var storedCal = function () { try { return localStorage.getItem('tcg-vault-cal'); } catch (e) { return null; } };
 
   var clamp = function (v, a, b) { return Math.min(b === undefined ? 1 : b, Math.max(a || 0, v)); };
   var lerp = function (a, b, t) { return a + (b - a) * t; };
@@ -141,7 +146,7 @@ if (document.getElementById('stage')) {
     this.heroTag = hangTag(ORDER[0], true, 48, 34, 'M48 34 C 30 34, 12 26, 1 1');
     this.heroOv.appendChild(this.heroTag);
 
-    /* the total: travels from the page head onto the price slip */
+    /* the total: sits in the page head, fades out while the mat is up and back in on the price slip */
     this.total = el('div', 'ov total');
     var tv = money(D.total).split('.');
     this.total.appendChild(document.createTextNode(tv[0]));
@@ -178,11 +183,20 @@ if (document.getElementById('stage')) {
       return { r: r, t: t };
     });
 
+    /* size act: the mat under the card, its rulers and the photo slot (placed per layout), and the loupe above it */
+    this.matBg = el('div', 'ov fill mat-bg');
+    this.matBig = el('span', 'mat-big', '63×88');
+    this.matBg.appendChild(this.matBig);
+    this.matTop = el('div', 'ov fill');
+    this.loupeOv = el('div', 'ov mat-loupe');
+    this.loupeImg = new Image(); this.loupeImg.alt = ''; this.loupeImg.decoding = 'async';
+    this.loupeOv.appendChild(this.loupeImg);
+
     /* set act: binder spread (built per layout) */
     this.setBg = el('div', 'ov fill');
     this.setTop = el('div', 'ov fill');
 
-    var z = { sheetOv: 3, labs: 4, priceBg: 3, setBg: 3, priceOv: 200, heroOv: 200, total: 210, setTop: 250 };
+    var z = { matBg: 2, sheetOv: 3, labs: 4, matTop: 5, priceBg: 3, setBg: 3, priceOv: 200, heroOv: 200, total: 210, loupeOv: 230, setTop: 250 };
     Object.keys(z).forEach(function (k) { self[k].style.zIndex = z[k]; root.appendChild(self[k]); });
   };
 
@@ -232,6 +246,7 @@ if (document.getElementById('stage')) {
     this.P.stack = this.poseStack(R.stack, false);
     this.P.grid = this.poseGrid(R.main);
     this.P.sets = this.poseSets(R.main);
+    this.P.mat = this.poseMat(R.main);
     this.P.prices = this.posePrices(R.left);
     this.P.set = this.poseSet(R.main);
     this.P.close = this.poseStack(R.close, true);
@@ -319,6 +334,24 @@ if (document.getElementById('stage')) {
       e.style.maxWidth = w + 'px';
       this.labs.appendChild(e);
     }, this);
+    return out;
+  };
+
+  /* the mat: the hero's first card at its printed size (times the stored calibration), rulers in from its top and left,
+   * the photo slot beside it (behind it, peeking out, when the pair does not fit) */
+  Stage.prototype.poseMat = function (R) {
+    var out = {}, m = this.mobile, mc = matCard(storedCal()), mm = PX_PER_MM * mc.cal;
+    var pad = (m ? 9 : 14) * mm, gap = 10 * mm, capH = 26;
+    var pair = pad + mc.w * 2 + gap * 1.6 <= R.w;
+    var groupW = pad + (pair ? mc.w * 2 + gap : mc.w * 1.3);
+    var ox = R.x + Math.max(0, (R.w - groupW) / 2) + pad;
+    /* a narrow stage is shorter than the card plus its copy: the caption goes above the rulers there, so the copy
+     * underneath can only ever cover the card's foot, never the line that says the size is approximate */
+    var oy = m ? R.y + capH + pad : R.y + pad + Math.max(0, (R.h - pad - mc.h - capH) * .45);
+    var c = ORDER[0];
+    out[c.id] = { x: ox, y: oy, w: mc.w, r: 0, o: 1 };
+    out[c.id].enter = { x: ox, y: oy - mc.h * .3, w: mc.w, r: -3 };
+    this.T.mat = { mc: mc, mm: mm, pad: pad, gap: gap, pair: pair, ox: ox, oy: oy, R: R, card: c };
     return out;
   };
 
@@ -451,6 +484,38 @@ if (document.getElementById('stage')) {
       if (r) put(o.r, r.x, r.y, r.w, r.h);
     });
 
+    /* the mat */
+    var M = T.mat, mc = M.mc, mmPx = M.mm;
+    this.matBg.style.setProperty('--mm', mmPx.toFixed(4) + 'px');
+    this.matBg.style.backgroundPosition = M.ox.toFixed(1) + 'px ' + M.oy.toFixed(1) + 'px';
+    this.matBig.style.display = m || this.still ? 'none' : '';
+    this.matTop.textContent = '';
+    this.matTop.style.setProperty('--mm', mmPx.toFixed(4) + 'px');
+    var rulerW = m ? mc.w : Math.min(150 * mmPx, this.W - M.ox - 16), rulerH = m ? mc.h + 2 * mmPx : Math.min(100 * mmPx, this.H - M.oy - 8);
+    var rh = el('div', 'mat-ruler mat-ruler--h'); put(rh, M.ox, M.oy - M.pad * .72, rulerW, M.pad * .5);
+    var rv = el('div', 'mat-ruler mat-ruler--v'); put(rv, M.ox - M.pad * .72, M.oy, M.pad * .5, rulerH);
+    for (var k = 0; k * 10 * mmPx <= rulerW + .5; k++) { var nh = el('span', '', String(k * 10)); nh.style.left = (k * 10 * mmPx).toFixed(1) + 'px'; rh.appendChild(nh); }
+    for (k = 0; k * 10 * mmPx <= rulerH + .5; k++) { var nv = el('span', '', String(k * 10)); nv.style.top = (k * 10 * mmPx).toFixed(1) + 'px'; rv.appendChild(nv); }
+    var hh = el('i', 'mat-hit'); put(hh, M.ox + mc.w - 1, M.oy - M.pad * .86, 2, M.pad * .7);
+    var hv = el('i', 'mat-hit'); put(hv, M.ox - M.pad * .86, M.oy + mc.h - 1, M.pad * .7, 2);
+    var slot = el('div', 'mat-slot');
+    var slotLab = el('span', 'mat-slot-lab', 'Your photo'); slot.appendChild(slotLab);
+    if (M.pair) { put(slot, M.ox + mc.w + M.gap, M.oy + 6 * mmPx, mc.w, mc.h); slot.style.transform = 'rotate(2.5deg)'; }
+    else { put(slot, Math.min(M.ox + mc.w * .3, M.R.x + M.R.w - mc.w), M.oy + 4 * mmPx, mc.w, mc.h); slot.style.transform = 'rotate(3deg)'; slot.classList.add('peek'); }
+    /* on a narrow stage the caption sits above the rulers, from the stage edge, so it stays on one line */
+    var cap = el('p', 'mat-cap', mc.caption); put(cap, m ? M.R.x : M.ox, m ? M.R.y : M.oy + mc.h + 12);
+    /* on a narrow screen the copy sits under the stage, so the mat stops where the stage does */
+    this.matH = m && !this.still ? this.H * .54 : this.H;
+    this.matBg.style.bottom = this.matH < this.H ? (this.H - this.matH).toFixed(1) + 'px' : '';
+    [slot, rh, rv, hh, hv, cap].forEach(function (e) { self.matTop.appendChild(e); });
+    /* the loupe: a circle that shows the high-resolution art at LOUPE_ZOOM, moved with transforms only */
+    var L = m ? 104 : 148;
+    this.loupeOv.style.width = this.loupeOv.style.height = L + 'px';
+    this.loupeImg.style.width = (mc.w * LOUPE_ZOOM).toFixed(1) + 'px';
+    this.loupeImg.style.height = (mc.h * LOUPE_ZOOM).toFixed(1) + 'px';
+    if (!this.loupeImg.getAttribute('src')) this.loupeImg.src = M.card.img + '/high.webp';
+    M.L = L;
+
     /* binder spread */
     var S = T.set;
     this.setBg.textContent = ''; this.setTop.textContent = '';
@@ -503,7 +568,7 @@ if (document.getElementById('stage')) {
   };
 
   /* ---------- render one moment ---------- */
-  Stage.prototype.render = function (a, b, t, chartP, fillP) {
+  Stage.prototype.render = function (a, b, t, chartP, fillP, loupeP) {
     var Pa = this.P[POSES[a]], Pb = this.P[POSES[b]], n = this.cards.length;
     var dealing = a === 0 && b === 1;
     this.cards.forEach(function (o, i) {
@@ -524,6 +589,23 @@ if (document.getElementById('stage')) {
     this.heroOv.style.opacity = wt('stack');
     this.priceBg.style.opacity = this.priceOv.style.opacity = wt('prices');
     this.setBg.style.opacity = this.setTop.style.opacity = wt('set');
+    /* the mat: the shared page's sheet grows to fill the stage on the way in, then the rulers and the slot fade up */
+    var wm = wt('mat'), M = this.T.mat, G = this.T.grid;
+    this.matBg.style.opacity = clamp(wm * 3).toFixed(3);
+    if (a === MAT - 1 && b === MAT && G) {
+      var sx = G.R.x, sy = G.R.y, gw = Math.max(this.gridBox.w, this.setsBox.w), gh = Math.max(this.gridBox.h, this.setsBox.h);
+      var k2 = ease(clamp(t * 1.4));
+      var tx = lerp(sx, 0, k2), ty = lerp(sy, 0, k2), scx = lerp(gw / this.W, 1, k2), scy = lerp(gh / this.matH, 1, k2);
+      this.matBg.style.transform = 'translate3d(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px,0) scale(' + scx.toFixed(4) + ',' + scy.toFixed(4) + ')';
+    } else this.matBg.style.transform = '';
+    this.matTop.style.opacity = clamp((wm - .5) * 2).toFixed(3);
+    /* the loupe passes along the card's top edge once and rests on its top-right corner */
+    var lp = ease(clamp(loupeP)), mc = M.mc, L = M.L;
+    var u = lerp(.12, .86, lp), v = lerp(.1, .13, lp) + Math.sin(lp * Math.PI) * .05;
+    var lx = M.ox + u * mc.w - L / 2, ly = M.oy + v * mc.h - L / 2;
+    this.loupeOv.style.opacity = (clamp((wm - .6) * 2.5) * clamp(loupeP * 4)).toFixed(3);
+    this.loupeOv.style.transform = 'translate3d(' + lx.toFixed(1) + 'px,' + ly.toFixed(1) + 'px,0)';
+    this.loupeImg.style.transform = 'translate3d(' + (L / 2 - u * mc.w * LOUPE_ZOOM).toFixed(1) + 'px,' + (L / 2 - v * mc.h * LOUPE_ZOOM).toFixed(1) + 'px,0)';
     /* total */
     var T = this.T, ta = T[POSES[a]] && T[POSES[a]].total, tb = T[POSES[b]] && T[POSES[b]].total;
     var from = ta || tb, to = tb || ta;
@@ -558,7 +640,7 @@ if (document.getElementById('stage')) {
         if (!s.layout()) return;
         s.placeOverlays();
         var k = POSES.indexOf(s.fixed);
-        s.render(k, k, 1, 1, 1);
+        s.render(k, k, 1, 1, 1, 1);
         /* a static figure only keeps what its pose shows */
         s.cards.forEach(function (o) { o.e.style.display = s.P[s.fixed][o.c.id].o ? '' : 'none'; });
         s.total.style.display = (s.fixed === 'prices' || s.fixed === 'sets') ? '' : 'none';
@@ -580,13 +662,14 @@ if (document.getElementById('stage')) {
     var vh = DBG ? actsEl.clientHeight : window.innerHeight;
     if (!stage.layout()) return;
     stage.placeOverlays();
-    var G = top('gallery'), P = top('prices'), S = top('set'), C = top('close');
+    var G = top('gallery'), Z = top('size'), P = top('prices'), S = top('set'), C = top('close');
     segs = [
       { a: 0, b: 1, s0: .04 * vh, s1: G - .12 * vh },
       { a: 1, b: 2, s0: G + .45 * vh, s1: G + 1.05 * vh },
-      { a: 2, b: 3, s0: P - .55 * vh, s1: P + .05 * vh },
-      { a: 3, b: 4, s0: S - .55 * vh, s1: S + .05 * vh },
-      { a: 4, b: 5, s0: C - .8 * vh, s1: C - .1 * vh }
+      { a: 2, b: 3, s0: Z - .55 * vh, s1: Z + .05 * vh },
+      { a: 3, b: 4, s0: P - .55 * vh, s1: P + .05 * vh },
+      { a: 4, b: 5, s0: S - .55 * vh, s1: S + .05 * vh },
+      { a: 5, b: 6, s0: C - .8 * vh, s1: C - .1 * vh }
     ];
     loadAt = G - .9 * vh;
     stage.chartSpan = [P + .05 * vh, P + .8 * vh];
@@ -595,11 +678,13 @@ if (document.getElementById('stage')) {
     cf = .1 * vh;
     copies = [
       { els: [copyOf('gallery')], inY: segs[0].s1, outY: segs[2].s0 },
-      { els: [copyOf('prices')], inY: segs[2].s1, outY: segs[3].s0 },
-      { els: [copyOf('set')], inY: segs[3].s1, outY: segs[4].s0 },
-      { els: [copyOf('close'), document.querySelector('.closing')], inY: segs[4].s1, outY: Infinity }
+      { els: [copyOf('size')], inY: segs[2].s1, outY: segs[3].s0 },
+      { els: [copyOf('prices')], inY: segs[3].s1, outY: segs[4].s0 },
+      { els: [copyOf('set')], inY: segs[4].s1, outY: segs[5].s0 },
+      { els: [copyOf('close'), document.querySelector('.closing')], inY: segs[5].s1, outY: Infinity }
     ];
     stage.fillSpan = [S + .1 * vh, S + .9 * vh];
+    stage.loupeSpan = [Z + .1 * vh, Z + .75 * vh];
     frame();
   }
 
@@ -615,7 +700,8 @@ if (document.getElementById('stage')) {
     if (!stage.chartSpan) return;
     var cp = (y - stage.chartSpan[0]) / (stage.chartSpan[1] - stage.chartSpan[0]);
     var fp = (y - stage.fillSpan[0]) / (stage.fillSpan[1] - stage.fillSpan[0]);
-    stage.render(a, b, t, cp, fp);
+    var lp = (y - stage.loupeSpan[0]) / (stage.loupeSpan[1] - stage.loupeSpan[0]);
+    stage.render(a, b, t, cp, fp, lp);
     /* everything beyond the first act loads once the gallery is about to enter the viewport (a jump-scroll
      * past it passes the same test); until then only the cards currently shown load */
     stage.loadImages(y >= loadAt);

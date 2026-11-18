@@ -63,15 +63,6 @@ Specs are saved in `.superpowers/sdd/`, one file per phase.
 - The `WarmValueSeriesJob` row in `failed_jobs` (attempt limit, cause never
   looked at; possibly a worker killed by a deploy).
 
-## Phase 2c — Sell your own copy on the landing
-
-`S–M · med` — a landing act for what is built and never advertised: the
-collector's own photo of their copy, whole and under the loupe, behind a link
-anyone opens; and the official art at real size, approximate until
-calibrated. Copy round, then a mockup, then a demo photo seeded by
-`demo:seed-gallery` (a production write, with a yes). Touches the euro line
-Phase 8 owns. Spec: `SPEC-A.md`.
-
 ## Phase 3 — Linking prints to TCGplayer, and the CSV's price source
 
 `M · med-high`
@@ -268,5 +259,11 @@ Each waits on a trigger; none is a phase until it fires.
 - **A collector's photo at real size** (`L`) — crop and straighten the photo
   to the card's edges on upload, so Actual size can apply to it too. Today
   only the official art has Actual size, and the card page says so under the
-  photo. Revisit if collectors ask for it once the landing sells their own
-  photo (Phase 2c).
+  photo. Revisit if collectors ask for it now that the landing shows the
+  photo as the second view.
+- **A photo of a real copy on the demo account** — the landing's size act and
+  the demo's card pages show an empty "Your photo" slot. The demo holds chase
+  cards nobody on the team owns (the Umbreon VMAX alt art is about $3,000),
+  so it waits for a photo someone can give with permission; one taken from
+  the web needs its licence checked first. Seeding it is a production write
+  (`demo:seed-gallery` would need a `--photo` option that strips EXIF).

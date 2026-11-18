@@ -65,10 +65,13 @@ test('the landing shows every approved copy block verbatim', function () {
         'Your page lives at',
         'tcgvault.cativo.dev/yourname',
         'Anyone who opens it sees your cards set by set and what they\'re worth. They don\'t need an account.',
+        'See each card at its printed size.',
+        'Every card has its own page, and the official art can be shown there at 63 × 88 mm. On a new screen the size is approximate until you hold a real card against it and match the two once.',
+        'You can add a photo of your own copy next to the art. Anyone with the link can switch to it, see it whole and look closely at the corners and the centering with a loupe. They don\'t need an account.',
         'Prices update every day.',
         'Each card gets a tcgplayer price in dollars and a Cardmarket price in euros. The total at the top of your page is today\'s number, and a chart shows how it has moved.',
         'Open a set to see what\'s missing.',
-        'The cards you have show in color. The ones you don\'t stay in place, greyed out, with their price, so you can see what you still need and what it costs.',
+        'The cards you have show in color. The ones you don\'t stay in place, greyed out, with their price. A line under the set\'s total adds up what the rest costs, one of each card you\'re missing.',
         'For now, it\'s a place for your collection.',
         'Building decks from your cards or marking some for sale are ideas for later. Today it keeps your list priced and makes it look good when you share it.',
         'Free. Export your whole collection to CSV at any time.',
@@ -125,4 +128,18 @@ test('the landing runs a bounded number of queries without a demo user', functio
 test('the landing mounts the stage and the build ships its script', function () {
     $this->get('/')->assertOk()->assertSee('id="stage"', escape: false);
     expect(file_get_contents(public_path('build/manifest.json')))->toContain('resources/js/landing-stage.js');
+});
+
+test('the size act sits between the gallery and the prices, with a still figure of the mat', function () {
+    $this->get('/')->assertOk()->assertSeeInOrder([
+        'data-act="gallery"',
+        '<section class="act act--size" data-act="size" aria-labelledby="h-size">',
+        '<h2 id="h-size" class="h2">See each card at its printed size.</h2>',
+        '<div class="still-fig" aria-hidden="true" data-pose="mat"></div>',
+        'data-act="prices"',
+    ], escape: false);
+});
+
+test('the set act no longer promises a price per missing card without the total', function () {
+    $this->get('/')->assertOk()->assertDontSee('so you can see what you still need and what it costs.');
 });

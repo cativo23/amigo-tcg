@@ -137,11 +137,18 @@ test('the set code and number lead the meta line and the quantity shows only abo
     expect($noCode)->toContain('<span class="col-mono">116</span>')->not->toContain('null');
 });
 
-test('the collector\'s own photo is the primary image', function () {
+test('the official art is the tile image even when the collector has a photo', function () {
     $html = renderTile(['items' => [CollectionItem::make(['quantity' => 1, 'photo_path' => 'u/7/darkrai.jpg'])]]);
 
+    expect($html)->toContain('src="https://assets.tcgdex.net/en/me/me05/116/low.webp"')
+        ->and($html)->not->toContain('/storage/collection-photos/u/7/darkrai.jpg');
+});
+
+test('a card with no official art shows the collector\'s photo on its tile', function () {
+    $html = renderTile(['card' => tileCard('Common', image: null), 'items' => [CollectionItem::make(['quantity' => 1, 'photo_path' => 'u/7/darkrai.jpg'])]]);
+
     expect($html)->toContain('/storage/collection-photos/u/7/darkrai.jpg')
-        ->and($html)->not->toContain('assets.tcgdex.net');
+        ->and($html)->not->toContain('col-pic--empty');
 });
 
 test('official art is the low-resolution file, and no tile takes a double pocket or a tag string', function () {

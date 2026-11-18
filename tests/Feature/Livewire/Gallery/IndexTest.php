@@ -749,7 +749,7 @@ test('a tile shows its 7-day move and only a rise is green', function () {
         ->and(substr_count($html, 'col-delta--up'))->toBe(1);
 });
 
-test('slab, stamp and the collector\'s photo survive on the new tile (option A)', function () {
+test('slab and stamp survive on the new tile, which shows the official art over the collector\'s photo', function () {
     $user = User::factory()->create(['username' => 'carlos']);
     $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
     $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
@@ -760,7 +760,8 @@ test('slab, stamp and the collector\'s photo survive on the new tile (option A)'
 
     expect($html)->toContain('<span class="col-slab">PSA 10</span>')
         ->and($html)->toContain('Player Rewards Program')
-        ->and($html)->toContain('/storage/collection-photos/u/7/darkrai.jpg')
+        ->and($html)->toContain('src="https://assets.tcgdex.net/en/me/me05/116/low.webp"')
+        ->and($html)->not->toContain('/storage/collection-photos/u/7/darkrai.jpg')
         ->and($html)->not->toContain('nw-type-dot');
 });
 

@@ -31,6 +31,15 @@
             <div class="still-fig" aria-hidden="true" data-pose="sets"></div>
         </section>
 
+        <section class="act act--size" data-act="size" aria-labelledby="h-size">
+            <div class="copy">
+                <h2 id="h-size" class="h2">See each card at its printed size.</h2>
+                <p>Every card has its own page, and the official art can be shown there at 63 × 88 mm. On a new screen the size is approximate until you hold a real card against it and match the two once.</p>
+                <p>You can add a photo of your own copy next to the art. Anyone with the link can switch to it, see it whole and look closely at the corners and the centering with a loupe. They don't need an account.</p>
+            </div>
+            <div class="still-fig" aria-hidden="true" data-pose="mat"></div>
+        </section>
+
         <section class="act act--prices" data-act="prices" aria-labelledby="h-prices">
             <div class="copy">
                 <h2 id="h-prices" class="h2">Prices update every day.</h2>
@@ -42,7 +51,7 @@
         <section class="act act--set" data-act="set" aria-labelledby="h-set">
             <div class="copy">
                 <h2 id="h-set" class="h2">Open a set to see what's missing.</h2>
-                <p>The cards you have show in color. The ones you don't stay in place, greyed out, with their price, so you can see what you still need and what it costs.</p>
+                <p>The cards you have show in color. The ones you don't stay in place, greyed out, with their price. A line under the set's total adds up what the rest costs, one of each card you're missing.</p>
             </div>
             <div class="still-fig" aria-hidden="true" data-pose="set"></div>
         </section>

@@ -61,16 +61,29 @@ test('shows the card with its copies, market reads and catalog facts', function 
     $response->assertSee('<title>Mega Darkrai ex #116 · Pitch Black', false);
 });
 
-test('the collectors own photo leads and the official art stays available as an alternate view', function () {
+test('the official art leads and the collectors own photo is the second view', function () {
     ['collection' => $collection, 'card' => $card] = seedCardPage();
     CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'condition' => 'NM', 'quantity' => 1, 'photo_path' => 'my-photo.jpg']);
 
     $response = $this->get('/carlos/me05/116');
 
     $photoUrl = Storage::disk('collection-photos')->url('my-photo.jpg');
-    $response->assertSeeInOrder([$photoUrl, 'https://official.example/116/high.webp'], false);
-    $response->assertSee('property="og:image" content="'.$photoUrl.'"', false);
+    $response->assertSeeInOrder(['https://official.example/116/high.webp', $photoUrl], false);
+    $response->assertSee('property="og:image" content="https://official.example/116/high.webp"', false);
     $response->assertSee('Official art');
+});
+
+test('a card with no official art leads with the collectors photo', function () {
+    ['collection' => $collection, 'card' => $card] = seedCardPage();
+    $card->update(['official_image_url' => null]);
+    CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'condition' => 'NM', 'quantity' => 1, 'photo_path' => 'my-photo.jpg']);
+    $photoUrl = Storage::disk('collection-photos')->url('my-photo.jpg');
+
+    $html = $this->get('/carlos/me05/116')->assertOk()->getContent();
+
+    expect($html)->toContain('data-view="photo"')
+        ->and($html)->toContain('property="og:image" content="'.$photoUrl.'"')
+        ->and($html)->toContain('<p class="crd-note" data-crd-note>Your photo of this copy. The printed size applies to the official art.</p>');
 });
 
 test('a card in a touched set that is not owned renders as context, not a 404', function () {
@@ -960,19 +973,19 @@ test('a card with no image offers no size or loupe tools', function () {
         ->not->toContain('data-crd-calib');
 });
 
-test('a collector photo leads, with its own alt text, the note that says the printed size is for the official art, and a thumb for each view', function () {
+test('with a collector photo the plate opens on the official art, the photo note waits hidden, and each view has a thumb', function () {
     ['collection' => $collection, 'card' => $card] = seedCardPage();
     CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'condition' => 'NM', 'quantity' => 1, 'photo_path' => 'my-photo.jpg']);
     $photoUrl = Storage::disk('collection-photos')->url('my-photo.jpg');
 
     $html = $this->get('/carlos/me05/116')->assertOk()->getContent();
 
-    expect($html)->toContain('data-view="photo"')
-        ->and($html)->toContain('alt="Your photo of Mega Darkrai ex, Pitch Black #116"')
-        ->and($html)->toContain('<p class="crd-note" data-crd-note>Your photo of this copy. The printed size applies to the official art.</p>')
+    expect($html)->toContain('data-view="official"')
+        ->and($html)->toContain('alt="Mega Darkrai ex, Pitch Black #116"')
+        ->and($html)->toContain('<p class="crd-note" data-crd-note hidden>Your photo of this copy. The printed size applies to the official art.</p>')
         ->and(substr_count($html, 'data-crd-view="'))->toBe(2)
-        ->and($html)->toContain('data-crd-view="'.$photoUrl.'" data-crd-kind="photo" data-crd-alt="Your photo of Mega Darkrai ex, Pitch Black #116" aria-pressed="true"')
-        ->and($html)->toContain('data-crd-view="https://official.example/116/high.webp" data-crd-kind="official" data-crd-alt="Mega Darkrai ex, Pitch Black #116" aria-pressed="false"');
+        ->and($html)->toContain('data-crd-view="https://official.example/116/high.webp" data-crd-kind="official" data-crd-alt="Mega Darkrai ex, Pitch Black #116" aria-pressed="true"')
+        ->and($html)->toContain('data-crd-view="'.$photoUrl.'" data-crd-kind="photo" data-crd-alt="Your photo of Mega Darkrai ex, Pitch Black #116" aria-pressed="false"');
 });
 
 test('a card with no image keeps its name on a hatched face and offers no views', function () {

@@ -23,8 +23,8 @@
     $stamps = $items->flatMap(fn ($i) => CardVariants::stampLabels($i->variant))->unique()->sort()->values();
     $stampText = $stamps->take(2)->implode(', ').($stamps->count() > 2 ? ' +'.($stamps->count() - 2) : '');
     $graded = $items->first(fn ($i) => $i->grade_company !== null && $i->grade_value !== null);
-    $photo = $items->first(fn ($i) => $i->photo_path !== null);
-    // The collector's own photo is always the primary image when it exists.
+    // The official art is the tile's image; the collector's photo stands in only when there is none.
+    $photo = $card->official_image_url ? null : $items->first(fn ($i) => $i->photo_path !== null);
     $imageUrl = $photo ? Storage::disk('collection-photos')->url($photo->photo_path) : CardImage::tile($card->official_image_url);
     // A graded slab replaces the rarity chip entirely, so a slab gets no tier accent.
     $tier = $graded ? 'standard' : Rarity::tier($card->rarity);

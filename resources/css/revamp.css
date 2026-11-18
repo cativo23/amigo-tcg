@@ -290,16 +290,19 @@ img { display: block; }
 .act--hero .lede { margin-top: clamp(1rem, 3svh, 2rem); }
 .act--gallery { min-height: 230svh; padding-bottom: 50svh; }
 .act--prices  { min-height: 240svh; padding-bottom: 50svh; }
+.act--size    { min-height: 230svh; padding-bottom: 50svh; }
 /* each act's copy enters only once the stage has cleared its side of the screen */
 .act--gallery { padding-top: 14svh; }
-.act--prices, .act--set { padding-top: 70svh; }
+.act--size, .act--prices, .act--set { padding-top: 70svh; }
 .act--set     { min-height: 260svh; }
 .act--close   { min-height: 100svh; padding-bottom: var(--space-2xl); }
 
 .act:not(.act--hero) .copy { width: min(31vw, 30rem); }
+.act .copy p + p { margin-top: .8em; }
 /* moving page: the three mid-act copies are pinned like the stage; stage.js fades each in once the previous act has
  * left and out before the next one starts (opacity + transform only) */
 .moving .act--gallery .copy,
+.moving .act--size .copy,
 .moving .act--prices .copy,
 .moving .act--set .copy { position: fixed; top: calc(var(--bar-h) + clamp(1rem, 16svh - 2rem, 9rem)); left: var(--gutter); will-change: transform, opacity; }
 .moving .act--prices .copy { left: auto; right: var(--gutter); }
@@ -405,6 +408,35 @@ img { display: block; }
 .bracket { position: absolute; height: 2px; background: var(--color-ink); transform-origin: 0 50%; }
 .bracket-lab { position: absolute; font: 400 var(--text-2xs)/1 var(--font-mono); font-variation-settings: "wdth" 87.5; color: var(--color-muted); white-space: nowrap; }
 
+/* the mat (size act): a 10 mm grid in calibrated millimetres (--mm, set by the stage), rulers, two marks, the photo slot */
+.mat-bg { transform-origin: 0 0; background-color: var(--color-binder-page); overflow: hidden;
+  background-image: linear-gradient(color-mix(in oklch, var(--color-ink) 7%, transparent) 1px, transparent 1px),
+                    linear-gradient(90deg, color-mix(in oklch, var(--color-ink) 7%, transparent) 1px, transparent 1px);
+  background-size: calc(var(--mm, 3.7795px) * 10) calc(var(--mm, 3.7795px) * 10); }
+.mat-big { position: absolute; right: 2vw; bottom: -5svh; white-space: nowrap; pointer-events: none;
+  font: 820 min(24vw, 44svh)/.8 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.03em;
+  color: color-mix(in oklch, var(--color-ink) 5%, transparent); }
+.mat-ruler { position: absolute; color: color-mix(in oklch, var(--color-ink) 55%, transparent); font: 500 9.5px/1 var(--font-mono); font-variation-settings: "wdth" 87.5; }
+.mat-ruler--h { background: linear-gradient(90deg, currentColor 1px, transparent 1px) 0 100% / var(--mm) 25% repeat-x,
+                            linear-gradient(90deg, currentColor 1px, transparent 1px) 0 100% / calc(var(--mm) * 5) 45% repeat-x,
+                            linear-gradient(90deg, currentColor 1px, transparent 1px) 0 100% / calc(var(--mm) * 10) 70% repeat-x; }
+.mat-ruler--v { background: linear-gradient(currentColor 1px, transparent 1px) 100% 0 / 25% var(--mm) repeat-y,
+                            linear-gradient(currentColor 1px, transparent 1px) 100% 0 / 45% calc(var(--mm) * 5) repeat-y,
+                            linear-gradient(currentColor 1px, transparent 1px) 100% 0 / 70% calc(var(--mm) * 10) repeat-y; }
+.mat-ruler--h span { position: absolute; top: -9px; transform: translateX(-50%); }
+.mat-ruler--v span { position: absolute; left: -9px; transform: translate(-100%, -50%); }
+.mat-hit { position: absolute; background: var(--color-accent); }
+.mat-slot { position: absolute; display: grid; place-items: center; border-radius: 4.762% / 3.409%; transform-origin: 50% 0;
+  font-size: var(--text-xs); color: var(--color-muted);
+  box-shadow: inset 0 0 0 1px var(--color-rule-2);
+  background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in oklch, var(--color-paper-3) 55%, transparent) 6px 7px); }
+.mat-slot.peek { place-items: center end; padding-right: 8px; text-align: right; }
+.mat-slot.peek .mat-slot-lab { max-width: 3.6em; line-height: 1.3; }
+.mat-cap { position: absolute; margin: 0; white-space: nowrap; font: 500 var(--text-2xs)/1 var(--font-mono); font-variation-settings: "wdth" 87.5; color: var(--color-muted); }
+.mat-loupe { overflow: hidden; border-radius: 50%; will-change: transform, opacity; background: var(--color-paper-3);
+  box-shadow: 0 0 0 1px var(--color-ink), 0 0 0 5px var(--color-stock), 0 0 0 6px var(--color-rule-2), 0 18px 30px -12px oklch(0% 0 0 / .45); }
+.mat-loupe img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; will-change: transform; }
+
 /* ---------- static page (reduced motion / ?motion=off) ---------- */
 .still .stage { display: none; }
 .still .acts { margin-top: 0; pointer-events: auto; }
@@ -441,9 +473,10 @@ img { display: block; }
 @media (max-width: 759px) {
   :root { --split: 54svh; --hero-stage: 25svh; }
   .act--hero .copy { max-width: none; }
-  .act--gallery, .act--prices, .act--set { padding-top: 0; }
+  .act--gallery, .act--size, .act--prices, .act--set { padding-top: 0; }
   .act:not(.act--hero) .copy { width: auto; }
   .moving .act--gallery .copy,
+  .moving .act--size .copy,
   .moving .act--prices .copy,
   .moving .act--set .copy { top: calc(var(--split) + 8px); left: var(--gutter); right: var(--gutter); }
   .moving .act--prices .copy { top: calc(var(--split) + 18px); }

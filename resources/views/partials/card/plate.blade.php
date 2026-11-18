@@ -63,8 +63,8 @@
         </div>
     @endif
     @if ($hasPhoto)
-        {{-- Shown while the photo is on the plate; card.js hides it on the official art. --}}
-        <p class="crd-note" data-crd-note>Your photo of this copy. The printed size applies to the official art.</p>
+        {{-- Shown while the photo is on the plate; card.js toggles it with the view. --}}
+        <p class="crd-note" data-crd-note{{ $lead['kind'] === 'photo' ? '' : ' hidden' }}>Your photo of this copy. The printed size applies to the official art.</p>
     @endif
     @if ($lead)
         <p class="crd-tool-note" data-crd-tool-note></p>
