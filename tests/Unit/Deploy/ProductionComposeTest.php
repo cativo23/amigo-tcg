@@ -150,3 +150,12 @@ test('postgres preloads pg_stat_statements, times I/O and logs temp files', func
         'log_temp_files=10MB',
     );
 });
+
+test('app recycles each FPM worker after a bounded number of requests', function () {
+    // The image's pool reads PHP_FPM_PM_MAX_REQUESTS (0, never, by default).
+    // A worker that slowly grows is replaced instead of carrying its memory
+    // until the pool reaps it idle.
+    $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
+
+    expect($compose['services']['app']['environment']['PHP_FPM_PM_MAX_REQUESTS'] ?? null)->toBe('500');
+});
