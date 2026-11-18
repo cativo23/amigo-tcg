@@ -6,6 +6,8 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-18
+
 ### Added
 
 - The landing has a new act, "See each card at its printed size.", between
