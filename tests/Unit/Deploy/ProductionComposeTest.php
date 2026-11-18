@@ -160,3 +160,19 @@ test('app recycles each FPM worker after a bounded number of requests', function
 
     expect($compose['services']['app']['environment']['PHP_FPM_PM_MAX_REQUESTS'] ?? null)->toBe('500');
 });
+
+test('the backup service keeps the copies for the period the privacy policy states', function () {
+    // The policy promises members how long a deleted account survives in the
+    // nightly backups; backup.sh deletes each copy just before it is
+    // BACKUP_KEEP_DAYS old. Changing one without the other breaks that promise.
+    $root = dirname(__DIR__, 3);
+    $compose = Yaml::parseFile($root.'/docker/prod/compose.prod.yml');
+    $days = $compose['services']['backup']['environment']['BACKUP_KEEP_DAYS'] ?? null;
+    $policy = (string) file_get_contents($root.'/resources/views/legal/privacy.blade.php');
+    $script = (string) file_get_contents($root.'/docker/prod/backup/backup.sh');
+
+    expect($days)->toBe(5)
+        ->and($policy)->toContain("kept on the same server for {$days} days")
+        ->and($policy)->toContain("from the nightly backups within {$days} days")
+        ->and($script)->toContain("KEEP_DAYS=\${BACKUP_KEEP_DAYS:-{$days}}");
+});

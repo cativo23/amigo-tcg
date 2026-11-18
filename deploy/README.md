@@ -434,12 +434,16 @@ after 03:00 UTC, into `~/deploy/tcg-vault/backups/`:
 - `db-YYYY-MM-DD.dump`: `pg_dump` in custom format
 - `photos-YYYY-MM-DD.tar`: the whole `collection-photos-data` volume
 
-Each backup is deleted once it is 14 days old; the privacy policy states
-that period, so change both together. The files are root-owned `0600`
-because they hold every member's email and password hash, so read them
-through a container. The scheduler's `backups:check-freshness` (06:00 UTC)
-posts to Discord if either kind is missing or older than 26 h, or if the
-disk has less than 5 GB free.
+Each backup is deleted just before it is 5 days old (`BACKUP_KEEP_DAYS`),
+so there are at most five of each and a restore can go back at most five
+days. The privacy policy states that period, so change both together
+(`tests/Unit/Deploy/ProductionComposeTest.php` checks they agree). The
+files are root-owned `0600` because they hold every member's email and
+password hash, so read them through a container. The scheduler's
+`backups:check-freshness` (06:00 UTC) posts to Discord if either kind is
+missing or older than 26 h, or if the disk has less than 5 GB free. Act on
+that alert within a few days: pruning keeps running while backups fail, so
+after about 5 days of failures no backup is left.
 
 **These copies live on the same server.** They cover a bad migration, a
 wrong delete or a corrupt volume, not losing polaris2. Copying them off the
@@ -534,7 +538,7 @@ deleted since the backup are deleted again, so none of them can sign in.
    extension: run its `CREATE EXTENSION IF NOT EXISTS` from "Slow queries"
    (harmless if it is already there). The restored database is a new one to
    Postgres either way, so the statement counters start again from zero.
-6. Once everything checks out, and **within 14 days** (the privacy policy's
+6. Once everything checks out, and **within 5 days** (the privacy policy's
    backup period), drop the old database:
    `dcp exec -T postgres sh -c 'dropdb -U "$POSTGRES_USER" tcg_vault_before_restore'`.
    The pre-restore files are pruned on their own.

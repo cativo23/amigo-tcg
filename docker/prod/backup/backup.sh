@@ -27,7 +27,7 @@ umask 077
 DIR=/backups
 PHOTOS=/photos
 HOUR=${BACKUP_HOUR:-3}
-KEEP_DAYS=${BACKUP_KEEP_DAYS:-14}
+KEEP_DAYS=${BACKUP_KEEP_DAYS:-5}
 CHECK_EVERY_SECONDS=600
 
 log() { echo "backup: $*" >&2; }
