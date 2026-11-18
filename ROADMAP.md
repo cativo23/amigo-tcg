@@ -63,6 +63,32 @@ Specs are saved in `.superpowers/sdd/`, one file per phase.
 - The `WarmValueSeriesJob` row in `failed_jobs` (attempt limit, cause never
   looked at; possibly a worker killed by a deploy).
 
+## Phase 2a — An owned print with no price of its own shows "No price"
+
+`S · high` — a stamped copy with no TCGplayer link shows the plain print's
+price on its tile (Mega Gengar ex: $1.77 instead of $41.06) while the total
+skips it. Rule: when no owned copy has a price of its own print, the tile,
+the Activity feed row and the card page all say there is no price, and the
+card page opens on the collector's own print. No production tile is affected
+today; it recurs with every stamped copy added before Phase 3 links it.
+Spec: `SPEC-B.md` (B1) in `.superpowers/sdd/2026-11-17-differentiator/`.
+
+## Phase 2b — What the rest of the set costs
+
+`M · med` — the set page sums what the missing cards cost, one of each card,
+at the price their pockets already show ("N of M priced" when some have
+none). No new price read; timed on production-sized history anyway. The
+placement is a design round. Spec: `SPEC-C.md`.
+
+## Phase 2c — Sell your own copy on the landing
+
+`S–M · med` — a landing act for what is built and never advertised: the
+collector's own photo of their copy, whole and under the loupe, behind a link
+anyone opens; and the official art at real size, approximate until
+calibrated. Copy round, then a mockup, then a demo photo seeded by
+`demo:seed-gallery` (a production write, with a yes). Touches the euro line
+Phase 8 owns. Spec: `SPEC-A.md`.
+
 ## Phase 3 — Linking prints to TCGplayer, and the CSV's price source
 
 `M · med-high`
@@ -155,10 +181,29 @@ market price, so re-count first. Ends with a release; Phase 8 starts at least
 - Last, the copy that still promises a euro price: `home.blade.php`,
   `terms.blade.php`, README.
 
+## Phase 8a — How prices work
+
+`S–M · med` — a public page on the binder system explaining the price
+method, linked from the "Approx." notes: TCGplayer market in USD, each copy
+at its own print, a print with no price says so, daily refresh, hand prices,
+frozen sources. After Phase 8 so it is written once, for USD only. Copy
+round first. Spec: `SPEC-B.md` (B2) in `.superpowers/sdd/2026-11-17-differentiator/`.
+
 ## Phase 9 — Wishlist / want-list
 
 `L · med-high` — the feature collectors are most likely to ask for; nothing
 exists yet.
+
+## Phase 9a — Master set mode on the set page
+
+`L · med` — a set counts one of each card today: owning any print completes
+the number. A switch to master set counts every print the catalogue lists
+(normal, holo, reverse, Poké Ball and Master Ball reverses; stamped prints
+and promos stay out), and the pockets, the printed strip, the % and Phase
+2b's total follow it. The catalogue already knows each card's prints, and
+TCGplayer prices about 94–100% of base prints. Open for the spec: per set or
+per collection, an "any reverse counts" tier, owner default or visitor
+toggle. Research: `RESEARCH-b.md` in `.superpowers/sdd/2026-11-17-differentiator/`.
 
 ## Phase 10 — Redesign the owner and staff pages
 
