@@ -135,3 +135,18 @@ test('horizon keeps its own internet egress', function () {
     expect($compose['services']['horizon']['networks'])->toContain('tcgvault-egress')
         ->and($compose['networks']['tcgvault-egress']['internal'] ?? false)->toBeFalse();
 });
+
+test('postgres preloads pg_stat_statements, times I/O and logs temp files', function () {
+    // Which statements spill to disk and which wait on reads decides any
+    // work_mem change, so production records both before anyone tunes it.
+    // shared_preload_libraries only takes effect on a server start, which is
+    // why all three ride the same restart.
+    $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
+    $command = $compose['services']['postgres']['command'];
+
+    expect($command)->toContain(
+        'shared_preload_libraries=pg_stat_statements',
+        'track_io_timing=on',
+        'log_temp_files=10MB',
+    );
+});
