@@ -26,8 +26,8 @@ use Livewire\Component;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * One card, presented as an object: the collector's own photo (or the
- * official art), the market read across every source, the copies they
+ * One card, presented as an object: the official art (with the collector's
+ * own photo as a second view), the market read across every source, the copies they
  * hold, and the card's own facts from the catalog payload.
  *
  * Reachable for every synced card in a set the collector shows publicly,
@@ -193,11 +193,14 @@ final class CardShow extends Component
             ])
             ->values();
 
-        // The collector's own photograph is the primary image whenever one
-        // exists — that is the thing nobody else can show.
-        $images = $photos->map(fn ($p) => $p + ['kind' => 'photo'])->all();
-        if ($card->official_image_url) {
-            $images[] = ['url' => $card->official_image_url, 'label' => 'Official art', 'kind' => 'official'];
+        // The official art leads, because it is the view that can be shown at
+        // its printed size; the collector's photos follow as second views and
+        // lead only when the card has no official art.
+        $images = $card->official_image_url
+            ? [['url' => $card->official_image_url, 'label' => 'Official art', 'kind' => 'official']]
+            : [];
+        foreach ($photos as $photo) {
+            $images[] = $photo + ['kind' => 'photo'];
         }
 
         // Priced like the collection tile for the same card (the collector's own print,

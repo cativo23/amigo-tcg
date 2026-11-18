@@ -118,7 +118,7 @@ test('a set that exists but the user has never touched 404s', function () {
     $response->assertNotFound();
 });
 
-test('uses the users own photo over official art when owned and photographed', function () {
+test('shows the official art on the tile even when the copy is photographed', function () {
     $user = User::factory()->create(['username' => 'carlos']);
     $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
     $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black', 'card_count' => 1]);
@@ -127,8 +127,8 @@ test('uses the users own photo over official art when owned and photographed', f
 
     $response = $this->get('/carlos/me05');
 
-    $response->assertSee(Storage::disk('collection-photos')->url('my-photo.jpg'), false);
-    $response->assertDontSee('https://official.example/card.webp', false);
+    $response->assertSee('https://official.example/card.webp', false);
+    $response->assertDontSee(Storage::disk('collection-photos')->url('my-photo.jpg'), false);
 });
 
 test('search filters the card grid by name', function () {
