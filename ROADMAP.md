@@ -64,10 +64,13 @@ compose file on the host.
    (EU bucket, restic, client-side encryption), with a restore test and a
    freshness alert; the privacy policy changes in the same release. ✋ The
    owner enables Cloudflare billing and creates the bucket and token first;
-   until then do parts 2–3. 🚀 **Minor** (privacy policy).
-2. **Postgres and PHP-FPM.** `S` — `pg_stat_statements`, `track_io_timing`,
-   `log_temp_files` in one restart; FPM `max_requests`. Read the stats after
-   7 days and decide `work_mem` then. 🚀 **Patch**.
+   until then go on with the parts below. 🚀 **Minor** (privacy policy).
+
+🚀 **Patch** for part 2 (Postgres statistics and FPM `max_requests`, merged):
+it restarts Postgres, so it goes alone. Seven days after it, read
+`pg_stat_statements` and the temp-file log lines (`deploy/README.md`, "Slow
+queries") and decide `work_mem`.
+
 3. **Redis.** `S` — `maxmemory 96mb` with `volatile-lru` on the shared
    instance (a dedicated cache instance stays the fallback), plus a memory
    and eviction alert. 🚀 **Patch**.
