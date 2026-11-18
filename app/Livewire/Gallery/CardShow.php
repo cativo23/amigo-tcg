@@ -106,7 +106,10 @@ final class CardShow extends Component
         $card = $this->card->load([
             'set',
             'priceSnapshots' => fn ($q) => $q->recent(),
-            'collectionItems' => fn ($q) => $public->scopeItems($q)->orderBy('created_at'),
+            // Copies added in one bulk action share a created_at, so the id
+            // decides which is "first" (the page opens on its print when
+            // none is priced).
+            'collectionItems' => fn ($q) => $public->scopeItems($q)->orderBy('created_at')->orderBy('id'),
         ]);
 
         $items = $card->collectionItems;
@@ -128,7 +131,7 @@ final class CardShow extends Component
             'snapshot' => $resolver->resolveForVariant($priced, $chip['variant']),
         ]);
         $switcher = $pills->count() > 1;
-        $selected = $switcher ? $this->selectedPill($pills, $valuation->headlineItem($priced), $items->isNotEmpty() ? $valuation->headlineSnapshot($priced) : null, $items->isNotEmpty()) : null;
+        $selected = $switcher ? $this->selectedPill($pills, $valuation->headlineItem($priced), $items->first()) : null;
 
         // The collector's own copy, at the price of the variant it
         // actually is — not resolve()'s card-level priority chain, which
@@ -169,6 +172,9 @@ final class CardShow extends Component
             $selected !== null && $snapshot?->market_minor === null => "No market price for {$selected['label']} yet.",
             $pricedBeforeWindow => 'No market price in the last '.CardPriceSnapshot::RECENT_DAYS.' days.',
             $marketReads->isEmpty() => 'No market price recorded for this card yet.',
+            // One pill, so no switcher names the print: an owned card whose copies have no price
+            // of their own must still say so, not list a read its tile does not show.
+            $items->isNotEmpty() && $snapshot?->market_minor === null => "No market price for {$pills->firstOrFail()['label']} yet.",
             default => null,
         };
 
@@ -264,13 +270,14 @@ final class CardShow extends Component
     /**
      * The pill to show: the one the URL names if this card has it; else the
      * collector's best priced copy's variant; else, when they own copies but
-     * none is priced, the pill carrying the price the set grid tile shows;
-     * else (an unowned card) the priciest pill; else the first.
+     * none is priced, the print of their first copy (the tile says "No
+     * price" too, never another print's); else (an unowned card) the
+     * priciest pill; else the first.
      *
      * @param  Collection<int, array{key: string, variant: ?string, label: string, count: int, snapshot: ?CardPriceSnapshot}>  $pills
      * @return array{key: string, variant: ?string, label: string, count: int, snapshot: ?CardPriceSnapshot}
      */
-    private function selectedPill(Collection $pills, ?CollectionItem $best, ?CardPriceSnapshot $tilePrice, bool $owned): array
+    private function selectedPill(Collection $pills, ?CollectionItem $best, ?CollectionItem $first): array
     {
         $byKey = $pills->keyBy('key');
 
@@ -280,19 +287,13 @@ final class CardShow extends Component
             return $named;
         }
 
-        if ($best !== null) {
-            $own = $byKey->get(($best->variant === null || $best->variant === '') ? self::UNSPECIFIED : $best->variant);
+        $own = $best ?? $first;
 
-            if ($own !== null) {
-                return $own;
-            }
-        }
+        if ($own !== null) {
+            $pill = $byKey->get(($own->variant === null || $own->variant === '') ? self::UNSPECIFIED : $own->variant);
 
-        if ($owned && $tilePrice !== null) {
-            $onTile = $pills->first(fn (array $pill): bool => $pill['snapshot'] !== null && $pill['snapshot']->is($tilePrice));
-
-            if ($onTile !== null) {
-                return $onTile;
+            if ($pill !== null) {
+                return $pill;
             }
         }
 

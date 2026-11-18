@@ -700,3 +700,25 @@ test('a set with no price owned shows no note', function () {
 
     expect(RevampHtml::note($this->get('/demo/sv03.5')->getContent()))->toBe('');
 });
+
+test('under value, an owned print with no price of its own sorts after the priced owned tiles and before the missing pockets', function () {
+    $user = User::factory()->create(['username' => 'carlos']);
+    $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black', 'card_count' => 3]);
+
+    $gengar = Card::create(['tcgdex_id' => 'me05-056', 'set_id' => $set->id, 'local_id' => '056', 'name' => 'Mega Gengar ex']);
+    $inkay = Card::create(['tcgdex_id' => 'me05-051', 'set_id' => $set->id, 'local_id' => '051', 'name' => 'Inkay']);
+    $darkrai = Card::create(['tcgdex_id' => 'me05-116', 'set_id' => $set->id, 'local_id' => '116', 'name' => 'Mega Darkrai ex']);
+
+    CardPriceSnapshot::create(['card_id' => $gengar->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 177]);
+    CardPriceSnapshot::create(['card_id' => $inkay->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 11]);
+    CardPriceSnapshot::create(['card_id' => $darkrai->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 5000]);
+
+    CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $gengar->id, 'card_tcgdex_id' => 'me05-056', 'variant' => 'holofoil:masterball', 'condition' => 'NM', 'quantity' => 1]);
+    CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $inkay->id, 'card_tcgdex_id' => 'me05-051', 'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1]);
+
+    Livewire::withQueryParams(['sort' => 'value', 'missing' => true])
+        ->test(Show::class, ['username' => 'carlos', 'setTcgdexId' => 'me05'])
+        ->assertViewHas('entries', fn ($entries) => $entries->pluck('card.name')->all() === ['Inkay', 'Mega Gengar ex', 'Mega Darkrai ex']
+            && $entries[1]['snapshot'] === null);
+});

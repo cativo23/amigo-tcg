@@ -444,19 +444,83 @@ test('the variant lands in the URL as a new history entry so the back button ret
         ->assertSeeHtml('&quot;use&quot;:&quot;push&quot;');
 });
 
-test('owned copies that are all unpriced open on the variant the set tile prices', function (?string $variant) {
+test('owned copies that are all unpriced open on the collector\'s own print', function () {
+    // The normal print is priced, but the collector owns only a stamped
+    // copy with no price of its own: the page must not open on (and so
+    // borrow) the plain print's price.
     $seed = seedVariantCard();
-    ownCopy($seed, $variant);
+    ownCopy($seed, 'holofoil:masterball');
 
-    $tile = Livewire::test(Show::class, ['username' => 'carlos', 'setTcgdexId' => 'me05'])
-        ->viewData('entries')->first(fn ($e) => $e['card']->is($seed['card']))['snapshot'];
+    $page = Livewire::test(CardShow::class, ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '116'])
+        ->assertViewHas('selected', fn ($s) => $s['key'] === 'holofoil:masterball')
+        ->assertViewHas('snapshot', null);
+
+    $page->assertSee("No market price for {$page->viewData('selected')['label']} yet.");
+});
+
+test('owned copies that are all unpriced open on the print of the first copy added', function () {
+    $seed = seedVariantCard();
+    $card = $seed['card'];
+    CollectionItem::create(['collection_id' => $seed['collection']->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'variant' => 'holofoil:masterball', 'condition' => 'NM', 'quantity' => 1])->forceFill(['created_at' => now()])->save();
+    CollectionItem::create(['collection_id' => $seed['collection']->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'variant' => 'reverse-holofoil:pokeball', 'condition' => 'NM', 'quantity' => 1])->forceFill(['created_at' => now()->subHour()])->save();
 
     Livewire::test(CardShow::class, ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '116'])
-        ->assertViewHas('snapshot', fn ($s) => $s->is($tile));
-})->with([
-    'a hand-entered print' => ['holofoil:masterball'],
-    'a copy with no variant' => [''],
-]);
+        ->assertViewHas('selected', fn ($s) => $s['key'] === 'reverse-holofoil:pokeball');
+});
+
+test('copies added together, all unpriced, open on the print of the one saved first', function () {
+    // A bulk add stamps every copy with the same created_at, so the id breaks the tie.
+    $seed = seedVariantCard();
+    $card = $seed['card'];
+    $at = now()->subHour();
+    CollectionItem::create(['collection_id' => $seed['collection']->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'variant' => 'reverse-holofoil:pokeball', 'condition' => 'NM', 'quantity' => 1])->forceFill(['created_at' => $at])->save();
+    CollectionItem::create(['collection_id' => $seed['collection']->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'variant' => 'holofoil:masterball', 'condition' => 'NM', 'quantity' => 1])->forceFill(['created_at' => $at])->save();
+
+    Livewire::test(CardShow::class, ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '116'])
+        ->assertViewHas('selected', fn ($s) => $s['key'] === 'reverse-holofoil:pokeball');
+});
+
+test('a copy saved with no print is priced by the card when the card has a base price', function () {
+    $seed = seedVariantCard();
+    ownCopy($seed, null);
+
+    Livewire::test(CardShow::class, ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '116'])
+        ->assertViewHas('selected', fn ($s) => $s['key'] === CardShow::UNSPECIFIED)
+        ->assertViewHas('snapshot', fn ($s) => $s?->variant === 'normal' && $s->market_minor === 42);
+});
+
+test('a copy saved with no print on a card with no base price shows no price on the tile or the page', function () {
+    $seed = seedCardPage();
+    $card = $seed['card'];
+    CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'manual', 'variant' => 'holofoil:masterball', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 4106]);
+    ownCopy($seed, null);
+
+    $tile = Livewire::test(Show::class, ['username' => 'carlos', 'setTcgdexId' => 'me05'])
+        ->viewData('entries')->first(fn ($e) => $e['card']->is($card))['snapshot'];
+
+    expect($tile)->toBeNull();
+
+    Livewire::test(CardShow::class, ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '116'])
+        ->assertViewHas('snapshot', null)
+        ->assertViewHas('hasMarket', false);
+});
+
+test('an owned print with no price of its own says so even with no switcher, and lists no borrowed read', function () {
+    // One pill, so no switcher: the only priced row is cardmarket's
+    // card-wide average, which the holo print may not borrow without a
+    // price of its own. The page must not show that row as its lead.
+    $seed = seedCardPage();
+    $card = $seed['card'];
+    $card->update(['variants' => ['normal' => false, 'reverse' => false, 'holo' => true]]);
+    CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'cardmarket', 'variant' => 'default', 'captured_on' => today(), 'currency' => 'EUR', 'market_minor' => 2500]);
+    ownCopy($seed, 'holofoil');
+
+    Livewire::test(CardShow::class, ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '116'])
+        ->assertViewHas('switcher', false)
+        ->assertViewHas('snapshot', null)
+        ->assertSee('No market price for Holofoil yet.')
+        ->assertDontSee('€25.00');
+});
 
 test('a variant whose latest row has no market price says so instead of the stale-window message', function () {
     $seed = seedVariantCard();

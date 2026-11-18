@@ -105,6 +105,37 @@ test('headlineSnapshot falls back to the default priority chain for a ghost card
     expect((new Valuation)->headlineSnapshot($card)->id)->toBe($tcgplayer->id);
 });
 
+test('headlineSnapshot is null when the collector owns the card but no copy has a price of its own print', function () {
+    // A stamped copy with no row of its own must not borrow the plain
+    // print's price through the card-level chain: the collection total
+    // already skips it, and the tile must agree.
+    $user = User::factory()->create(['username' => 'carlos']);
+    $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
+    $card = Card::create(['tcgdex_id' => 'me05-116', 'set_id' => $set->id, 'local_id' => '116', 'name' => 'Mega Darkrai ex']);
+
+    CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 177]);
+    CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'variant' => 'holofoil:masterball', 'condition' => 'NM', 'quantity' => 1]);
+
+    $card->load('priceSnapshots', 'collectionItems');
+
+    expect((new Valuation)->headlineSnapshot($card))->toBeNull();
+});
+
+test('headlineSnapshot still prices an owned copy saved with no print from the card-level chain', function () {
+    $user = User::factory()->create(['username' => 'carlos']);
+    $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
+    $card = Card::create(['tcgdex_id' => 'me05-116', 'set_id' => $set->id, 'local_id' => '116', 'name' => 'Mega Darkrai ex']);
+
+    $normal = CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 177]);
+    CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'variant' => null, 'condition' => 'NM', 'quantity' => 1]);
+
+    $card->load('priceSnapshots', 'collectionItems');
+
+    expect((new Valuation)->headlineSnapshot($card)?->id)->toBe($normal->id);
+});
+
 test('headlineItem is the owned copy whose variant prices highest', function () {
     $user = User::factory()->create(['username' => 'carlos']);
     $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
