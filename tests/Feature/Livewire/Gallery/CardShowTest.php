@@ -470,11 +470,15 @@ test('owned copies that are all unpriced open on the print of the first copy add
 
 test('copies added together, all unpriced, open on the print of the one saved first', function () {
     // A bulk add stamps every copy with the same created_at, so the id breaks the tie.
+    // The first copy is updated last, so the table's storage order puts it second and
+    // only the id can put it first.
     $seed = seedVariantCard();
     $card = $seed['card'];
     $at = now()->subHour();
-    CollectionItem::create(['collection_id' => $seed['collection']->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'variant' => 'reverse-holofoil:pokeball', 'condition' => 'NM', 'quantity' => 1])->forceFill(['created_at' => $at])->save();
-    CollectionItem::create(['collection_id' => $seed['collection']->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'variant' => 'holofoil:masterball', 'condition' => 'NM', 'quantity' => 1])->forceFill(['created_at' => $at])->save();
+    $first = CollectionItem::create(['collection_id' => $seed['collection']->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'variant' => 'reverse-holofoil:pokeball', 'condition' => 'NM', 'quantity' => 1]);
+    $second = CollectionItem::create(['collection_id' => $seed['collection']->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'variant' => 'holofoil:masterball', 'condition' => 'NM', 'quantity' => 1]);
+    $second->forceFill(['created_at' => $at])->save();
+    $first->forceFill(['created_at' => $at])->save();
 
     Livewire::test(CardShow::class, ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '116'])
         ->assertViewHas('selected', fn ($s) => $s['key'] === 'reverse-holofoil:pokeball');
@@ -502,7 +506,9 @@ test('a copy saved with no print on a card with no base price shows no price on 
 
     Livewire::test(CardShow::class, ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '116'])
         ->assertViewHas('snapshot', null)
-        ->assertViewHas('hasMarket', false);
+        ->assertViewHas('hasMarket', false)
+        ->assertSee('No market price for this card yet.')
+        ->assertDontSee('No market price for Unspecified');
 });
 
 test('an owned print with no price of its own says so even with no switcher, and lists no borrowed read', function () {
@@ -519,6 +525,7 @@ test('an owned print with no price of its own says so even with no switcher, and
         ->assertViewHas('switcher', false)
         ->assertViewHas('snapshot', null)
         ->assertSee('No market price for Holofoil yet.')
+        ->assertDontSee('Approx. market prices')
         ->assertDontSee('€25.00');
 });
 

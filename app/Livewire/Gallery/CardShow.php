@@ -174,7 +174,10 @@ final class CardShow extends Component
             $marketReads->isEmpty() => 'No market price recorded for this card yet.',
             // One pill, so no switcher names the print: an owned card whose copies have no price
             // of their own must still say so, not list a read its tile does not show.
-            $items->isNotEmpty() && $snapshot?->market_minor === null => "No market price for {$pills->firstOrFail()['label']} yet.",
+            // A copy saved with no print names none, so the sentence names the card.
+            $items->isNotEmpty() && $snapshot?->market_minor === null => $pills->firstOrFail()['variant'] === null
+                ? 'No market price for this card yet.'
+                : "No market price for {$pills->firstOrFail()['label']} yet.",
             default => null,
         };
 
