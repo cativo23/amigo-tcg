@@ -6,6 +6,12 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A selected divider tab runs straight into its sheet: the sheet no longer
+  draws a light line along its top edge (visible in dark mode) that cut the
+  tab off from it on the collection, card, activity and sets pages.
+
 ## [1.8.0] - 2026-11-17
 
 ### Changed
