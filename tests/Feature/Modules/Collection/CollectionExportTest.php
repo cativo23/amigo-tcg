@@ -6,12 +6,16 @@ use App\Models\User;
 use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Models\CardPriceSnapshot;
 use App\Modules\Catalog\Models\Set;
+use App\Modules\Catalog\Services\DecidingPriceRows;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
+use App\Modules\Collection\Services\CollectionCsvExporter;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Tests\Support\PriceRowReads;
 
 function collector(array $attributes = []): User
 {
@@ -192,4 +196,72 @@ test('the delete account form points to the export once, outside the confirm mod
     // would take focus from the password field.
     expect(substr_count($html, route('admin.collection.export')))->toBe(1)
         ->and($modal)->not->toContain(route('admin.collection.export'));
+});
+
+test('the export reads price rows only through the deciding query, once for the whole collection, and not at all when cached', function () {
+    $user = collector();
+    $this->actingAs($user);
+    $collection = Collection::factory()->for($user)->create(['slug' => 'main']);
+    $now = now();
+    $rows = [];
+    foreach (range(1, 3) as $n) {
+        $card = Card::create(['tcgdex_id' => "me05-{$n}", 'set_id' => $this->set->id, 'local_id' => (string) $n, 'name' => "Card {$n}"]);
+        CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => $card->tcgdex_id, 'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1]);
+        foreach (range(0, 39) as $day) {
+            $rows[] = ['card_id' => $card->id, 'source' => 'tcgplayer', 'origin' => 'tcgdex', 'variant' => 'normal', 'captured_on' => today()->subDays($day)->toDateString(), 'currency' => 'USD', 'market_minor' => 100 * $n + $day, 'raw' => '{}', 'created_at' => $now, 'updated_at' => $now];
+        }
+    }
+    CardPriceSnapshot::insert($rows);
+    $export = function (): string {
+        $out = fopen('php://memory', 'w+');
+        (new CollectionCsvExporter)->write($out);
+        rewind($out);
+
+        return (string) stream_get_contents($out);
+    };
+
+    $csv = null;
+    $miss = PriceRowReads::during(function () use ($export, &$csv) {
+        $csv = $export();
+    });
+    $hit = PriceRowReads::during($export);
+
+    expect($miss->stray)->toBe([])
+        ->and($miss->deciding)->toHaveCount(1)
+        ->and($miss->decidingIds(0))->toBe($collection->items()->orderBy('card_id')->pluck('card_id')->all())
+        ->and($hit->stray)->toBe([])
+        ->and($hit->deciding)->toBe([])
+        ->and(array_column(array_slice(exportRows($csv), 1), 11))->toBe(['1.00', '2.00', '3.00']);
+});
+
+test('a copy of a new card added while the export runs is still written, priced', function () {
+    $user = collector();
+    $this->actingAs($user);
+    $collection = Collection::factory()->for($user)->create(['slug' => 'main']);
+    CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $this->card->id, 'card_tcgdex_id' => $this->card->tcgdex_id, 'condition' => 'NM', 'quantity' => 1]);
+    $late = Card::create(['tcgdex_id' => 'me05-001', 'set_id' => $this->set->id, 'local_id' => '001', 'name' => 'Fomantis']);
+    CardPriceSnapshot::create(['card_id' => $late->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 75]);
+    // Adds the copy right after the export has read which cards to price.
+    app()->instance(DecidingPriceRows::class, new class($collection, $late) extends DecidingPriceRows
+    {
+        public function __construct(private ?Collection $collection, private Card $late) {}
+
+        public function loadOnto(EloquentCollection $cards): EloquentCollection
+        {
+            if ($this->collection !== null) {
+                CollectionItem::create(['collection_id' => $this->collection->id, 'card_id' => $this->late->id, 'card_tcgdex_id' => $this->late->tcgdex_id, 'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1]);
+                $this->collection = null;
+            }
+
+            return parent::loadOnto($cards);
+        }
+    });
+
+    $out = fopen('php://memory', 'w+');
+    (new CollectionCsvExporter)->write($out);
+    rewind($out);
+    $rows = array_slice(exportRows((string) stream_get_contents($out)), 1);
+
+    expect(array_column($rows, 0))->toBe(['Mega Darkrai ex', 'Fomantis'])
+        ->and($rows[1][11])->toBe('0.75');
 });

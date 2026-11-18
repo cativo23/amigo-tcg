@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Livewire\Admin;
 
+use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Services\CardPriceResolver;
+use App\Modules\Catalog\Services\DecidingPriceRows;
 use App\Modules\Catalog\Support\CardVariants;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection as SupportCollection;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
@@ -141,8 +145,7 @@ final class CollectionItems extends Component
         $collectionIds = Collection::query()->pluck('id');
 
         $itemsQuery = CollectionItem::query()
-            ->whereIn('collection_id', $collectionIds)
-            ->with(['card.set', 'card.priceSnapshots' => fn ($q) => $q->recent()]);
+            ->whereIn('collection_id', $collectionIds);
 
         if ($this->search !== '') {
             $term = '%'.trim($this->search).'%';
@@ -177,6 +180,7 @@ final class CollectionItems extends Component
         // aggregate a card-row sorts/pages by can only be computed after
         // every matching item is loaded.
         $allItems = $itemsQuery->orderBy('card_id')->orderBy('id')->limit(self::VALUE_SORT_ROW_LIMIT)->get();
+        $this->attachPricedCards($allItems, $collectionIds);
 
         // A count exactly at the ceiling means the query was almost
         // certainly cut off mid-result (rather than the collection
@@ -284,5 +288,40 @@ final class CollectionItems extends Component
             'totalCopies' => (int) $groups->sum('totalQuantity'),
             'possiblyTruncated' => $possiblyTruncated,
         ]);
+    }
+
+    /**
+     * Gives each item its card, priced from the rows that decide a current
+     * price (DecidingPriceRows). The rows are loaded for every card the
+     * owner holds, up to the row ceiling, not for the cards a search or a
+     * filter matched: the cache entry is keyed on the exact card set, so
+     * one set per owner means one entry however the list is narrowed. A
+     * matched card past that ceiling (only in a collection of more than
+     * VALUE_SORT_ROW_LIMIT distinct cards) is loaded on its own.
+     *
+     * @param  EloquentCollection<int, CollectionItem>  $items
+     * @param  SupportCollection<int, mixed>  $collectionIds
+     */
+    private function attachPricedCards(EloquentCollection $items, SupportCollection $collectionIds): void
+    {
+        if ($items->isEmpty()) {
+            return;
+        }
+
+        $loader = app(DecidingPriceRows::class);
+        $ownedIds = CollectionItem::query()
+            ->whereIn('collection_id', $collectionIds)
+            ->distinct()
+            ->orderBy('card_id')
+            ->limit(self::VALUE_SORT_ROW_LIMIT)
+            ->pluck('card_id');
+        $cards = $loader->loadOnto(Card::query()->with('set')->whereKey($ownedIds)->get())->keyBy('id');
+        $missing = $items->pluck('card_id')->unique()->diff($cards->keys())->values();
+
+        if ($missing->isNotEmpty()) {
+            $cards = $cards->union($loader->loadOnto(Card::query()->with('set')->whereKey($missing)->get())->keyBy('id'));
+        }
+
+        $items->each(fn (CollectionItem $item) => $item->setRelation('card', $cards->get($item->card_id)));
     }
 }

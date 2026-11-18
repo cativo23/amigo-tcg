@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Livewire\Admin\CollectionItems;
+use App\Livewire\Admin\SetGrid;
 use App\Livewire\Gallery\Activity;
 use App\Livewire\Gallery\CardShow;
 use App\Livewire\Gallery\Index;
@@ -18,9 +20,11 @@ use App\Modules\Catalog\Support\ChartRange;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
 use App\Modules\Collection\Scopes\TenantScope;
+use App\Modules\Collection\Services\CollectionCsvExporter;
 use App\Modules\Collection\Services\CollectionValueSeries;
 use App\Modules\Collection\Services\PublicCollection;
 use App\Modules\Collection\Services\Valuation;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -174,6 +178,78 @@ test('a gallery page shows the same values from the deciding rows as from the wh
         ->and($cached['data'])->toBe($full['data'])
         ->and($cached['html'])->toBe($full['html']);
 })->with('gallery pages');
+
+dataset('admin pages', [
+    'collector list' => [CollectionItems::class, [], [], ['cardGroups', 'totalCards', 'totalCopies']],
+    'collector list by name' => [CollectionItems::class, [], ['sort' => 'name'], ['cardGroups']],
+    'collector list by newest' => [CollectionItems::class, [], ['sort' => 'newest'], ['cardGroups']],
+    'collector list, filtered' => [CollectionItems::class, [], ['condition' => 'NM', 'variant' => 'holofoil'], ['cardGroups', 'totalCards']],
+    'collector list, searched' => [CollectionItems::class, [], ['search' => 'Card 1'], ['cardGroups', 'totalCards']],
+    'set grid' => [SetGrid::class, ['setTcgdexId' => 'me05'], [], ['entries', 'ownedCount']],
+    'set grid by value' => [SetGrid::class, ['setTcgdexId' => 'sv08'], ['sort' => 'value'], ['entries']],
+    'set grid, searched' => [SetGrid::class, ['setTcgdexId' => 'sv08'], ['search' => 'Card 1', 'sort' => 'value'], ['entries']],
+]);
+
+test('an admin page shows the same values from the deciding rows as from the whole recent window', function (string $component, array $params, array $query, array $keys) {
+    $this->freezeTime();
+    seedPagesCollection();
+    $this->seed(PermissionSeeder::class);
+    $this->actingAs(User::where('username', 'carlos')->sole());
+    // The collector list's groups come in a paginator, which the fingerprint
+    // would reduce to its class name: compare the groups themselves.
+    $render = function (DecidingPriceRows $loader, bool $flush = true) use ($component, $params, $query, $keys): array {
+        $page = renderPageWith($loader, $component, $params, $query, array_values(array_diff($keys, ['cardGroups'])), $flush);
+        if (in_array('cardGroups', $keys, true)) {
+            app()->instance(DecidingPriceRows::class, $loader);
+            $groups = Livewire::withQueryParams($query)->test($component, $params)->viewData('cardGroups')->items();
+            app()->forgetInstance(DecidingPriceRows::class);
+            // A copy is a model to the fingerprint, so its price is added beside it.
+            $page['data']['cardGroups'] = ViewDataFingerprint::of(array_map(fn (object $group) => [
+                ...(array) $group,
+                'itemValues' => $group->items->map(fn (CollectionItem $item) => [$item->id, $item->getAttribute('_valueMinor'), $item->getAttribute('_currency')])->all(),
+            ], $groups));
+        }
+
+        return $page;
+    };
+
+    $full = $render(new FullRecentPriceRows);
+    $deciding = $render(new DecidingPriceRows);
+    $cached = $render(new DecidingPriceRows, flush: false);
+
+    expect($full['data'])->not->toBeEmpty()
+        ->and($deciding['data'])->toBe($full['data'])
+        ->and($deciding['html'])->toBe($full['html'])
+        ->and($cached['data'])->toBe($full['data'])
+        ->and($cached['html'])->toBe($full['html']);
+})->with('admin pages');
+
+test('the CSV export writes the same rows from the deciding rows as from the whole recent window', function () {
+    $this->freezeTime();
+    seedPagesCollection();
+    $this->actingAs(User::where('username', 'carlos')->sole());
+    $export = function (DecidingPriceRows $loader): string {
+        app()->instance(DecidingPriceRows::class, $loader);
+        $out = fopen('php://memory', 'w+');
+        try {
+            (new CollectionCsvExporter)->write($out);
+        } finally {
+            app()->forgetInstance(DecidingPriceRows::class);
+        }
+        rewind($out);
+
+        return (string) stream_get_contents($out);
+    };
+
+    Cache::flush();
+    $full = $export(new FullRecentPriceRows);
+    $deciding = $export(new DecidingPriceRows);
+    $cached = $export(new DecidingPriceRows);
+
+    expect(substr_count($full, "\r\n"))->toBeGreaterThan(20)
+        ->and($deciding)->toBe($full)
+        ->and($cached)->toBe($full);
+});
 
 /*
  * The guard on PublicCollection::cardsQuery()'s contract: its cards come

@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Attributes\Renderless;
 use Livewire\Livewire;
+use Tests\Support\PriceRowReads;
 
 afterEach(function () {
     SetGrid::$lockWaitSeconds = 2;
@@ -935,4 +936,46 @@ test('the grid refreshes its chips when the editor reports a changed card', func
     setGridOwn($user, $first, ['variant' => 'normal', 'quantity' => 3]);
 
     $component->dispatch('card-copies-changed', cardId: $first->id)->assertSeeHtml('data-count="3"');
+});
+
+test('the set grid reads price rows only through the deciding query, once per set however it is searched', function (array $query) {
+    $user = setGridUser();
+    ['set' => $set, 'first' => $first, 'second' => $second] = setGridFixture();
+    setGridOwn($user, $first, ['variant' => 'normal']);
+    foreach ([$first, $second] as $card) {
+        foreach (range(0, 39) as $day) {
+            CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today()->subDays($day), 'currency' => 'USD', 'market_minor' => 100 + $day, 'raw' => ['day' => $day]]);
+        }
+    }
+    $render = fn () => Livewire::withQueryParams($query)->test(SetGrid::class, ['setTcgdexId' => 'me05']);
+
+    $miss = PriceRowReads::during($render);
+    $hit = PriceRowReads::during($render);
+
+    expect($miss->stray)->toBe([])
+        ->and($miss->deciding)->toHaveCount(1)
+        ->and($miss->decidingIds(0))->toBe($set->cards()->orderBy('id')->pluck('id')->all())
+        ->and($hit->stray)->toBe([])
+        ->and($hit->deciding)->toBe([]);
+})->with([
+    'no filter' => [[]],
+    'searched' => [['search' => 'darkrai']],
+    'one rarity' => [['rarity' => 'Common']],
+]);
+
+test('the set grid shows an owned card\'s latest price however long its history', function () {
+    $user = setGridUser();
+    ['first' => $first] = setGridFixture();
+    setGridOwn($user, $first, ['variant' => 'normal']);
+    foreach (range(0, 39) as $day) {
+        CardPriceSnapshot::create(['card_id' => $first->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today()->subDays($day), 'currency' => 'USD', 'market_minor' => 2500 + $day]);
+        CardPriceSnapshot::create(['card_id' => $first->id, 'source' => 'cardmarket', 'variant' => 'normal', 'captured_on' => today()->subDays($day), 'currency' => 'EUR', 'market_minor' => 900 + $day]);
+    }
+
+    $entry = Livewire::test(SetGrid::class, ['setTcgdexId' => 'me05'])->viewData('entries')
+        ->first(fn (array $entry) => $entry['card']->is($first));
+
+    expect($entry['snapshot']->market_minor)->toBe(2500)
+        ->and($entry['snapshot']->currency)->toBe('USD')
+        ->and($entry['card']->priceSnapshots->count())->toBeLessThan(10);
 });

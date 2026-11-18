@@ -6,6 +6,15 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The collection list and the set grid on `/admin`, and the CSV export,
+  read only the price rows that decide a current price instead of a month
+  of every price row per card. On a copy of production data the list's
+  memory peak drops from 175 MB to 61 MB and its render from about 2.3 s to
+  0.5 s; the export goes from 112 MB to 57 MB. Searching or filtering the
+  list or the grid reuses the cached rows instead of reading new ones.
+
 ## [1.9.0] - 2026-11-18
 
 ### Added
