@@ -67,7 +67,7 @@ function longestProductionSupervisorTimeout(): int
     return max([0, ...$timeouts]);
 }
 
-test('horizon is stopped with SIGTERM, the only stop signal it drains on', function () {
+test('horizon is stopped with SIGTERM, not the image\'s SIGQUIT', function () {
     // The base image's STOPSIGNAL is SIGQUIT (for its nginx/s6 default
     // command). `php artisan horizon` runs as PID 1 and installs no SIGQUIT
     // handler, so the kernel drops that signal and Docker kills the running
@@ -85,6 +85,28 @@ test('horizon gets longer than its longest job timeout to stop', function () {
     $grace = composeDurationSeconds((string) ($compose['services']['horizon']['stop_grace_period'] ?? '10s'));
 
     expect($grace)->toBeGreaterThan(longestProductionSupervisorTimeout());
+});
+
+test('no job sets a timeout past the longest supervisor timeout', function () {
+    // Horizon's master waits for its workers only up to the longest
+    // supervisor timeout, then exits and takes the container with it, while
+    // a worker's alarm follows the job's own timeout. A longer job timeout
+    // would be killed on a stop despite the grace period.
+    $timeouts = [];
+
+    foreach (glob(dirname(__DIR__, 3).'/app/Jobs/*.php') ?: [] as $file) {
+        $name = 'App\\Jobs\\'.basename($file, '.php');
+        expect(class_exists($name))->toBeTrue("{$name} does not autoload");
+        /** @var class-string $name */
+        $class = new ReflectionClass($name);
+
+        if ($class->hasProperty('timeout') && $class->getProperty('timeout')->hasDefaultValue()) {
+            $timeouts[$class->getName()] = (int) $class->getProperty('timeout')->getDefaultValue();
+        }
+    }
+
+    expect($timeouts)->not->toBeEmpty()
+        ->and(max([0, ...array_values($timeouts)]))->toBeLessThanOrEqual(longestProductionSupervisorTimeout());
 });
 
 test('the deploy script has time for horizon to drain', function () {
