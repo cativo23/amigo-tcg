@@ -63,13 +63,6 @@ Specs are saved in `.superpowers/sdd/`, one file per phase.
 - The `WarmValueSeriesJob` row in `failed_jobs` (attempt limit, cause never
   looked at; possibly a worker killed by a deploy).
 
-## Phase 2b — What the rest of the set costs
-
-`M · med` — the set page sums what the missing cards cost, one of each card,
-at the price their pockets already show ("N of M priced" when some have
-none). No new price read; timed on production-sized history anyway. The
-placement is a design round. Spec: `SPEC-C.md`.
-
 ## Phase 2c — Sell your own copy on the landing
 
 `S–M · med` — a landing act for what is built and never advertised: the
@@ -189,8 +182,8 @@ exists yet.
 `L · med` — a set counts one of each card today: owning any print completes
 the number. A switch to master set counts every print the catalogue lists
 (normal, holo, reverse, Poké Ball and Master Ball reverses; stamped prints
-and promos stay out), and the pockets, the printed strip, the % and Phase
-2b's total follow it. The catalogue already knows each card's prints, and
+and promos stay out), and the pockets, the printed strip, the % and the
+missing cards' total follow it. The catalogue already knows each card's prints, and
 TCGplayer prices about 94–100% of base prints. Open for the spec: per set or
 per collection, an "any reverse counts" tier, owner default or visitor
 toggle. Research: `RESEARCH-b.md` in `.superpowers/sdd/2026-11-17-differentiator/`.

@@ -293,6 +293,7 @@ function decidingAnswers(DecidingPriceRows $loader, array $ids, array $holdings,
     }
 
     $answers['totalsByCurrency'] = $valuation->totalsByCurrency($cards);
+    $answers['missingTotals'] = $valuation->missingTotals($cards);
     $answers['newest market day'] = decidingNewestMarketDay($cards);
     $answers['origins'] = decidingOrigins($cards);
 

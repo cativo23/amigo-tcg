@@ -34,8 +34,8 @@ use Illuminate\Support\Facades\DB;
  * The relation then answers current-price questions only, exactly as the
  * whole window would: resolve(), resolveForVariant(), resolveCardWide(),
  * hasCurrentMarketPrice(), deltaFor() / resolveDelta(), Valuation's
- * totalsByCurrency(), cardTotal() and headlineSnapshot(), and the newest
- * priced marketplace day and its origins. It does NOT answer as-of or
+ * totalsByCurrency(), cardTotal(), headlineSnapshot() and missingTotals(), and
+ * the newest priced marketplace day and its origins. It does NOT answer as-of or
  * history questions (resolveForVariantAsOf(), resolveAsOf(),
  * totalsByCurrencyAsOf(), resolveForVariantOnDays(),
  * distinctSnapshotDates()): those need the rows this drops. historyIn()
