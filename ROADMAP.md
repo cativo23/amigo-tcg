@@ -58,11 +58,6 @@ fails its deploy on purpose until the migration is run by hand
 `M · high` · specs: `phase-01-collection-price-read.md`,
 `phase-02-production-check-pass.md`
 
-2. **Stable card order for the capped reads; fix the flaky test.** `S` — add
-   `PublicCollection::cardsInIdOrder()` and switch the capped reads to it
-   (not inside `cardsQuery()`, which would break the Index sorts). This is
-   the suspected cause of the flaky `CollectionValueSeriesTest`; if a 50x
-   loop is still red, stop and report.
 3. **Drain Horizon on deploy.** `S` — a deploy killed a running warm job.
    `stop_grace_period` of at least 600 s on `horizon`, or
    `horizon:terminate` before `up -d`.
