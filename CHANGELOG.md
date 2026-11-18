@@ -6,6 +6,18 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Nightly backups are kept for 5 days instead of 14, so there are never
+  more than five copies, and a deleted account is gone from them within 5
+  days. The privacy policy says so.
+
+### Deploy notes
+
+- Recreates the `backup` service. Its first pass deletes every backup older
+  than about 5 days at once, which cannot be undone. Release outside the
+  03:00 backup run.
+
 ## [1.9.2] - 2026-11-18
 
 ### Changed
