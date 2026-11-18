@@ -8,6 +8,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- The landing has a new act, "See each card at its printed size.", between
+  the shared page and the prices: the official art drops onto a cutting mat
+  at 63 × 88 mm with millimetre rulers, a loupe passes over its corner, and a
+  slot beside it stands for the collector's own photo. A visitor who matched
+  a real card on a card page sees the card at their calibrated size, and the
+  caption says so. The set act now mentions the missing cards' total.
+
 - A set page says what the rest of the set costs: under the summary line,
   "The rest of the set: $1,303.09 for the 107 missing cards, one of each."
   It is one copy of every card the collector does not own, at the price its
@@ -16,6 +23,13 @@ All notable changes to this project are documented here. Format follows
   do ("104 of 107 missing cards priced"), counting card numbers the catalogue
   has not imported as missing too. Another currency is a separate note,
   never added in.
+
+### Changed
+
+- The official art is now the main picture of a card on its tile, its page
+  and its link preview, because it is the view that can be shown at its
+  printed size. A collector's own photo is the second view on the card
+  page, one click away, and still leads when a card has no official art.
 
 ### Fixed
 
