@@ -63,16 +63,6 @@ Specs are saved in `.superpowers/sdd/`, one file per phase.
 - The `WarmValueSeriesJob` row in `failed_jobs` (attempt limit, cause never
   looked at; possibly a worker killed by a deploy).
 
-## Phase 2a — An owned print with no price of its own shows "No price"
-
-`S · high` — a stamped copy with no TCGplayer link shows the plain print's
-price on its tile (Mega Gengar ex: $1.77 instead of $41.06) while the total
-skips it. Rule: when no owned copy has a price of its own print, the tile,
-the Activity feed row and the card page all say there is no price, and the
-card page opens on the collector's own print. No production tile is affected
-today; it recurs with every stamped copy added before Phase 3 links it.
-Spec: `SPEC-B.md` (B1) in `.superpowers/sdd/2026-11-17-differentiator/`.
-
 ## Phase 2b — What the rest of the set costs
 
 `M · med` — the set page sums what the missing cards cost, one of each card,
