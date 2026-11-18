@@ -58,11 +58,6 @@ fails its deploy on purpose until the migration is run by hand
 `M · high` · specs: `phase-01-collection-price-read.md`,
 `phase-02-production-check-pass.md`
 
-1. **`/admin` and the set grid read only the deciding price rows.** `M` —
-   `CollectionItems` and `SetGrid` still eager-load 30 days of every
-   snapshot (`raw` included); at 128M that was the 500 page. Move both to
-   `DecidingPriceRows::loadOnto`, with a cache key that stays stable per
-   owner. Time it on production-sized history (AGENTS.md).
 2. **Stable card order for the capped reads; fix the flaky test.** `S` — add
    `PublicCollection::cardsInIdOrder()` and switch the capped reads to it
    (not inside `cardsQuery()`, which would break the Index sorts). This is
