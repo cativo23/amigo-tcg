@@ -94,7 +94,7 @@ final class CollectionValueSeries
      */
     public function forPublicCollection(PublicCollection $public, ChartRange $range): array
     {
-        $cards = app(DecidingPriceRows::class)->loadOnto($public->cardsQuery()->take(self::MAX_CARDS)->get());
+        $cards = app(DecidingPriceRows::class)->loadOnto($public->cardsInIdOrder()->take(self::MAX_CARDS)->get());
         $totals = $this->valuation->totalsByCurrency($cards);
         $currency = $this->primaryCurrency($totals);
 
@@ -163,7 +163,7 @@ final class CollectionValueSeries
      */
     public function warm(PublicCollection $public, array $ranges): array
     {
-        $cards = $public->cardsQuery()->take(self::MAX_CARDS)->get();
+        $cards = $public->cardsInIdOrder()->take(self::MAX_CARDS)->get();
         $loader = app(DecidingPriceRows::class);
         $totals = [];
 

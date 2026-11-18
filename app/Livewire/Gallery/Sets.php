@@ -60,7 +60,7 @@ final class Sets extends Component
         // price rows that decide their current prices, grouped per set in PHP,
         // so the per-set value never becomes a query per set.
         $ownedBySet = app(DecidingPriceRows::class)
-            ->loadOnto($public->cardsQuery()->take(self::MAX_CARDS)->get())
+            ->loadOnto($public->cardsInIdOrder()->take(self::MAX_CARDS)->get())
             ->groupBy('set_id');
 
         $setValues = $sets->mapWithKeys(fn ($set) => [

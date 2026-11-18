@@ -86,6 +86,22 @@ final class PublicCollection
     }
 
     /**
+     * cardsQuery() in card id order, for the reads that cap it: without an
+     * order Postgres returns rows in whatever order it meets them, so two
+     * identical capped reads could keep different cards, and two full reads
+     * could see a different first card (the primary currency follows the
+     * order currencies are first met). Kept out of cardsQuery() itself
+     * because callers that sort append their own ORDER BY, which a leading
+     * id would override.
+     *
+     * @return Builder<Card>
+     */
+    public function cardsInIdOrder(): Builder
+    {
+        return $this->cardsQuery()->orderBy('cards.id');
+    }
+
+    /**
      * Every set the user has at least one public card from, annotated
      * with how many distinct cards they own from it and how many cards
      * the catalog actually holds for it (`Set.card_count` was not always

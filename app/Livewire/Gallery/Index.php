@@ -119,7 +119,7 @@ final class Index extends Component
         // rows are the ones that decide current prices (see
         // DecidingPriceRows), which every figure on this page is.
         $prices = app(DecidingPriceRows::class);
-        $allCards = $prices->loadOnto($public->cardsQuery()->take(self::MAX_CARDS)->get())->keyBy('id');
+        $allCards = $prices->loadOnto($public->cardsInIdOrder()->take(self::MAX_CARDS)->get())->keyBy('id');
         // Distinct cards, unfiltered. $allCards stops at MAX_CARDS, so a collection that fills it is counted.
         $collectionTotal = $allCards->count() < self::MAX_CARDS ? $allCards->count() : $public->cardsQuery()->count();
         $headlines = $allCards->map(fn (Card $card) => $valuation->headlineSnapshot($card));
@@ -177,8 +177,9 @@ final class Index extends Component
             // CardPriceResolver's variant-aware chain can't be expressed
             // as a SQL ORDER BY — take a bounded candidate set (a real
             // personal collection is nowhere near MAX_CARDS) and sort it
-            // in memory below.
-            'value' => $gridQuery,
+            // in memory below. In id order, so the cap keeps the same
+            // cards and equal values keep the same order on every render.
+            'value' => $gridQuery->orderBy('cards.id'),
             default => $gridQuery->orderBy('cards.name'), // 'name'
         };
 

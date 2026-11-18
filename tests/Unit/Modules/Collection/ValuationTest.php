@@ -30,7 +30,7 @@ test('totals are kept per currency and multiplied by owned quantity, USD listed 
     CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $eur->id, 'card_tcgdex_id' => 'me05-003', 'condition' => 'NM', 'quantity' => 1]);
     CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $unpriced->id, 'card_tcgdex_id' => 'me05-004', 'condition' => 'NM', 'quantity' => 1]);
 
-    $cards = (new DecidingPriceRows)->loadOnto(PublicCollection::for($user)->cardsQuery()->get());
+    $cards = (new DecidingPriceRows)->loadOnto(PublicCollection::for($user)->cardsInIdOrder()->get());
 
     $totals = (new Valuation)->totalsByCurrency($cards);
 
