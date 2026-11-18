@@ -6,6 +6,8 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [1.9.2] - 2026-11-18
+
 ### Changed
 
 - Postgres now records how long each kind of query takes, how long it waits
