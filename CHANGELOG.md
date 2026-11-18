@@ -6,6 +6,8 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [1.9.1] - 2026-11-19
+
 ### Changed
 
 - The collection list and the set grid on `/admin`, and the CSV export,
