@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { tabKeyTarget, nextTabIndex, revealScrollLeft, overflowsRight, copyText, fallbackSrc } from './collection-helpers.js';
+import { tabKeyTarget, nextTabIndex, revealScrollLeft, overflowsRight, overflowsLeft, copyText, fallbackSrc } from './collection-helpers.js';
 
 test('arrow keys move to the neighbouring tab and wrap around the ends', () => {
     assert.equal(nextTabIndex('ArrowRight', 0, 4), 1);
@@ -33,6 +33,12 @@ test('the edge fade shows only while the strip really runs past its right side',
     assert.equal(overflowsRight(0, 300, 301), false);   // within the 2px slop
     assert.equal(overflowsRight(0, 300, 600), true);
     assert.equal(overflowsRight(300, 300, 600), false);
+});
+
+test('the left edge fade shows only once the strip has scrolled past its first tab', () => {
+    assert.equal(overflowsLeft(0), false);
+    assert.equal(overflowsLeft(2), false);              // within the 2px slop
+    assert.equal(overflowsLeft(40), true);
 });
 
 test('a failed low-resolution tcgdex image is retried once at high resolution, anything else is not', () => {

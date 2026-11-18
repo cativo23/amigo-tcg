@@ -140,16 +140,18 @@
 /* isolation confines the tabs' z-index so a selected tab never paints over the sticky bar; the markup stacks the selected tab above the rest */
 .col-binder { isolation: isolate; padding: 0 var(--gutter) var(--space-2xl); }
 .col-tabs-wrap { position: relative; }
+/* Sideways only: overflow-x: auto would make overflow-y auto too, and a wheel or trackball could lift the row off the sheet.
+   The bottom padding holds the 4px the resting tabs sit lowered, so they never overflow; the negative margin tucks it under the sheet. */
 .col-tabs {
-  position: relative; isolation: isolate; display: flex; align-items: flex-end; overflow-x: auto; overscroll-behavior-x: contain;
-  padding: 10px 2px 0; margin: 0 -2px; scrollbar-width: none; scroll-padding-inline: 24px;
+  --fade-l: 0px; --fade-r: 0px;
+  position: relative; isolation: isolate; display: flex; align-items: flex-end; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  padding: 10px 2px 4px; margin: 0 -2px -4px; scrollbar-width: none; scroll-padding-inline: 24px;
+  /* soft edge where the row runs past the sheet: the tabs fade out over the real page, grain included */
+  mask-image: linear-gradient(to right, transparent, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent);
 }
 .col-tabs::-webkit-scrollbar { display: none; }
-/* soft edge where the tab row runs past the sheet (only when it actually overflows) */
-.col-tabs-wrap.is-more-right::after {
-  content: ""; position: absolute; z-index: 50; right: 0; top: 0; bottom: 1px; width: 56px; pointer-events: none;
-  background: linear-gradient(to right, transparent, var(--color-paper));
-}
+.col-tabs-wrap.is-more-left .col-tabs { --fade-l: 56px; }
+.col-tabs-wrap.is-more-right .col-tabs { --fade-r: 56px; }
 .col-tab {
   position: relative; flex: none; display: flex; align-items: baseline; gap: .55em; white-space: nowrap;
   margin-right: -6px; padding: 9px 18px 9px 14px; border: 0; cursor: pointer;

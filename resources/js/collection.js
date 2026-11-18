@@ -1,5 +1,5 @@
 // Client-only behaviour of the collection page. Filtering, counts and batching are Livewire (server-side).
-import { tabKeyTarget, nextTabIndex, revealScrollLeft, overflowsRight, copyText } from './collection-helpers.js';
+import { tabKeyTarget, nextTabIndex, revealScrollLeft, overflowsRight, overflowsLeft, copyText } from './collection-helpers.js';
 import { degradeImage, legacyCopy } from './dom-helpers.js';
 
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -55,6 +55,7 @@ document.addEventListener('keydown', (event) => {
 
 const syncEdge = () => document.querySelectorAll('[data-col-tabs-wrap]').forEach((wrap) => {
     const strip = wrap.querySelector('[data-col-tabs]');
+    wrap.classList.toggle('is-more-left', overflowsLeft(strip.scrollLeft));
     wrap.classList.toggle('is-more-right', overflowsRight(strip.scrollLeft, strip.clientWidth, strip.scrollWidth));
 });
 

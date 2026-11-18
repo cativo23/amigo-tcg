@@ -860,3 +860,24 @@ test('the footer names TCGplayer as the price source and says prices are approxi
         ->toContain('Card data and artwork from tcgdex.dev. Prices are approximate TCGplayer market values, updated daily from tcgdex.dev and tcgcsv.com. They are not appraisals.')
         ->and($html)->not->toContain('Prices are market references');
 });
+
+test('the set tab row scrolls sideways only, so a wheel or trackball never lifts it off the sheet', function () {
+    $css = (string) file_get_contents(resource_path('css/collection.css'));
+
+    expect(preg_match('/^\.col-tabs \{([^}]*)\}/m', $css, $rule))->toBe(1)
+        ->and($rule[1])->toContain('overflow-x: auto')
+        ->and($rule[1])->toContain('overflow-y: hidden');
+});
+
+test('the tab row fades at whichever edge it runs past by masking the tabs, never by painting over them', function () {
+    // A painted gradient in flat --color-paper showed as a box against the grained page, and only on the right.
+    $css = (string) file_get_contents(resource_path('css/collection.css'));
+    $js = (string) file_get_contents(resource_path('js/collection.js'));
+
+    expect($css)->not->toContain('.col-tabs-wrap.is-more-right::after')
+        ->and($css)->toContain('.col-tabs-wrap.is-more-left')
+        ->and($css)->toContain('.col-tabs-wrap.is-more-right')
+        ->and($css)->toMatch('/\.col-tabs \{[^}]*mask-image:/')
+        ->and($js)->toContain("'is-more-left'")
+        ->and($js)->toContain("'is-more-right'");
+});
