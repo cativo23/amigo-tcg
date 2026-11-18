@@ -398,9 +398,11 @@ there to measure before changing `work_mem`: which statements take the time,
 how long they wait on disk reads, and which sorts or hashes spill to disk.
 
 The library loads at server start; the extension that exposes it is created
-once, by hand, after the first start with the library (a migration would
-break CI and Sail, which do not preload it). It is a catalog write and
-survives restarts and recreates:
+once, by hand, after the release. It is not a migration because it is a
+production-only tool: CI and Sail do not preload the library, so there the
+extension would exist but its view would fail on every read. Creating it is
+a catalog write in the database, so it survives restarts and recreates
+(a restore is the exception, see "Replace the live database and photos"):
 ```bash
 docker compose -f compose.prod.yml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"'
 ```
@@ -413,14 +415,17 @@ docker compose -f compose.prod.yml exec -T postgres sh -c 'psql -U "$POSTGRES_US
 ```
 
 Each spill over 10 MB is logged with its size and the statement that caused
-it. The log is the container's own, so a recreate (any release that changes
-the `postgres` service) starts it empty:
+it. The statement appears as Postgres received it, so one with values
+written into it (typed in `psql`, a raw query in tinker) shows them: treat
+the output as private. The log is the container's own, so a recreate (any
+release that changes the `postgres` service) starts it empty:
 ```bash
 docker compose -f compose.prod.yml logs --no-log-prefix postgres | grep -A1 'temporary file'
 ```
 
-The counters add up from the extension's creation. Read them after at least
-a week that includes the 00:00 and 20:30 UTC runs.
+The counters run from the first server start with the library, before the
+extension exists, and survive clean restarts. Read them after at least a
+week that includes the 00:00 and 20:30 UTC runs.
 
 ## Backups
 The `backup` service (`docker/prod/backup/backup.sh`) writes, once a day
@@ -525,6 +530,10 @@ deleted since the backup are deleted again, so none of them can sign in.
    dcp start app horizon scheduler backup
    dcp exec app php artisan migrate:status
    ```
+   A dump taken before `pg_stat_statements` was created does not carry the
+   extension: run its `CREATE EXTENSION IF NOT EXISTS` from "Slow queries"
+   (harmless if it is already there). The restored database is a new one to
+   Postgres either way, so the statement counters start again from zero.
 6. Once everything checks out, and **within 14 days** (the privacy policy's
    backup period), drop the old database:
    `dcp exec -T postgres sh -c 'dropdb -U "$POSTGRES_USER" tcg_vault_before_restore'`.

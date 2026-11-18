@@ -166,8 +166,9 @@ services:
     # pg_stat_statements, track_io_timing and log_temp_files are there to measure before
     # tuning work_mem: which statements are slow, how long they wait on reads, and which
     # sort or hash spills more than 10 MB to disk (logged with its statement). The library
-    # loads only at server start; the extension itself is created once by hand (see
-    # deploy/README.md, "Slow queries"), because CI and Sail do not preload it.
+    # loads only at server start. The extension that exposes it is created once by hand
+    # (deploy/README.md, "Slow queries"), not in a migration: CI and Sail do not preload
+    # the library, so its view would fail on every read there.
     command: ["postgres", "-c", "shared_buffers=128MB", "-c", "effective_cache_size=256MB", "-c", "max_connections=20", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "track_io_timing=on", "-c", "log_temp_files=10MB"]
     environment:
       POSTGRES_DB: ${DB_DATABASE}
