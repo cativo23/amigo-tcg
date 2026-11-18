@@ -28,6 +28,8 @@ All notable changes to this project are documented here. Format follows
   finish its current job, so a deploy during the daily tcgcsv pull or an
   Activity chart warm-up waits for it instead of leaving it to fail 15
   minutes later. The deploy step's timeout grows to 30 minutes to match.
+  Docker stops a container with the settings it was created with, so this
+  protects deploys from the next release on, not the one that ships it.
 
 ## [1.9.0] - 2026-11-18
 

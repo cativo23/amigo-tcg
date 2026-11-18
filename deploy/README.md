@@ -542,7 +542,9 @@ pre-release dump instead (see Backups).
   `stop` can take up to 11 minutes when a long job (the daily tcgcsv pull, a warm) is
   running, and the queue waits until the new container starts. The deploy step's
   `command_timeout` (30m) covers that; keep it above the grace period if either changes
-  (`tests/Unit/Deploy/ProductionComposeTest.php` checks both).
+  (`tests/Unit/Deploy/ProductionComposeTest.php` checks both). Docker stops a container
+  with the signal and grace period it was created with, so a change to `stop_signal` or
+  `stop_grace_period` applies from the recreate after the one that ships it.
 - **The Activity chart's cache outlives price writes.** Its key carries the day, the
   owned prints (card, variant, summed quantity) and the price-history epoch, not the
   price data: a price written today is stamped today and cannot change a past day, and
