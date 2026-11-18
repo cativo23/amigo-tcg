@@ -144,11 +144,12 @@ test('postgres preloads pg_stat_statements, times I/O and logs temp files', func
     $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
     $command = $compose['services']['postgres']['command'];
 
-    expect($command)->toContain(
-        'shared_preload_libraries=pg_stat_statements',
-        'track_io_timing=on',
-        'log_temp_files=10MB',
-    );
+    foreach (['shared_preload_libraries=pg_stat_statements', 'track_io_timing=on', 'log_temp_files=10MB'] as $setting) {
+        $at = array_search($setting, $command, true);
+
+        expect($at)->not->toBeFalse("postgres command lacks {$setting}")
+            ->and($command[$at - 1] ?? null)->toBe('-c', "{$setting} is not passed with -c");
+    }
 });
 
 test('app recycles each FPM worker after a bounded number of requests', function () {
