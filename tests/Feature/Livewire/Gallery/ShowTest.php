@@ -722,3 +722,89 @@ test('under value, an owned print with no price of its own sorts after the price
         ->assertViewHas('entries', fn ($entries) => $entries->pluck('card.name')->all() === ['Inkay', 'Mega Gengar ex', 'Mega Darkrai ex']
             && $entries[1]['snapshot'] === null);
 });
+
+/** The missing cards' total line under the summary as visible text; '' when absent. */
+function restOfSet(string $html): string
+{
+    return RevampHtml::text('col-summary set-rest', $html);
+}
+
+test('the missing cards\' total is the sum of their pockets\' prices, the same with the pockets hidden or a search on', function () {
+    $seed = seedSetPage();
+    CardPriceSnapshot::create(['card_id' => $seed['cards']['004']->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 300]);
+    $page = fn (array $query) => Livewire::withQueryParams($query)->test(Show::class, ['username' => 'demo', 'setTcgdexId' => 'sv03.5']);
+
+    $shown = $page(['missing' => true]);
+    $pockets = $shown->viewData('entries')->reject(fn (array $e) => $e['owned'])->sum(fn (array $e) => $e['snapshot']->market_minor);
+
+    expect($pockets)->toBe(375)
+        ->and($shown->viewData('missingTotals'))->toBe(['totals' => ['USD' => 375], 'priced' => 2])
+        ->and($shown->viewData('missingSlots'))->toBe(2)
+        ->and($page([])->viewData('missingTotals'))->toBe($shown->viewData('missingTotals'))
+        ->and($page(['search' => 'Bulba', 'missing' => true])->viewData('missingTotals'))->toBe($shown->viewData('missingTotals'))
+        ->and(restOfSet($this->get('/demo/sv03.5')->getContent()))->toBe('The rest of the set: $3.75 for the 2 missing cards, one of each.');
+});
+
+test('the missing cards\' total names how many of them have a price when some do not', function () {
+    seedSetPage(); // #002 is priced, #004 is not
+
+    $html = $this->get('/demo/sv03.5')->getContent();
+
+    expect(restOfSet($html))->toBe('The rest of the set: $0.75 for one of each missing card. 1 of 2 missing cards priced.')
+        ->and(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices.');
+});
+
+test('one missing card reads as one card', function () {
+    $seed = seedSetPage();
+    CollectionItem::create(['collection_id' => $seed['collection']->id, 'card_id' => $seed['cards']['004']->id, 'card_tcgdex_id' => 'sv03.5-004', 'condition' => 'NM', 'quantity' => 1]);
+
+    expect(restOfSet($this->get('/demo/sv03.5')->getContent()))->toBe('The rest of the set: $0.75 for the 1 missing card.');
+});
+
+test('there is no missing cards\' total when nothing is missing or no missing card has a price', function (Closure $change) {
+    $seed = seedSetPage();
+    $change($seed);
+
+    expect(restOfSet($this->get('/demo/sv03.5')->getContent()))->toBe('');
+})->with([
+    'nothing missing' => [function (array $seed) {
+        foreach (['002', '004'] as $number) {
+            CollectionItem::create(['collection_id' => $seed['collection']->id, 'card_id' => $seed['cards'][$number]->id, 'card_tcgdex_id' => "sv03.5-$number", 'condition' => 'NM', 'quantity' => 1]);
+        }
+    }],
+    'no missing card priced' => [fn (array $seed) => CardPriceSnapshot::where('card_id', $seed['cards']['002']->id)->delete()],
+]);
+
+test('on a set the catalogue holds only in part, the cards not imported count as missing and unpriced', function () {
+    // 5 of 8 imported, 3 owned: 5 strip slots are not owned, 2 of them imported and priced.
+    $seed = seedSetPage(['card_count' => 8]);
+    CardPriceSnapshot::create(['card_id' => $seed['cards']['004']->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 300]);
+
+    $page = Livewire::test(Show::class, ['username' => 'demo', 'setTcgdexId' => 'sv03.5']);
+
+    expect($page->viewData('missingSlots'))->toBe(5)
+        ->and($page->viewData('missingTotals'))->toBe(['totals' => ['USD' => 375], 'priced' => 2])
+        ->and(restOfSet($this->get('/demo/sv03.5')->getContent()))->toBe('The rest of the set: $3.75 for one of each missing card. 2 of 5 missing cards priced.');
+});
+
+test('with nothing owned priced, the missing cards\' total still carries the page\'s price note', function () {
+    $seed = seedSetPage();
+    CardPriceSnapshot::whereIn('card_id', [$seed['cards']['003']->id, $seed['cards']['005']->id])->delete();
+
+    $html = $this->get('/demo/sv03.5')->getContent();
+
+    expect(RevampHtml::summary($html))->toBe('MEW · 3 of 5 cards · released Sep 2023')
+        ->and(restOfSet($html))->toBe('The rest of the set: $0.75 for one of each missing card. 1 of 2 missing cards priced.')
+        ->and(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices.');
+});
+
+test('a missing card priced in another currency is a separate footnote, never added to the total', function () {
+    $seed = seedSetPage();
+    CardPriceSnapshot::create(['card_id' => $seed['cards']['004']->id, 'source' => 'cardmarket', 'variant' => 'default', 'captured_on' => today(), 'currency' => 'EUR', 'market_minor' => 1000]);
+    CardPriceSnapshot::create(['card_id' => $seed['cards']['001']->id, 'source' => 'cardmarket', 'variant' => 'default', 'captured_on' => today(), 'currency' => 'EUR', 'market_minor' => 400]);
+
+    $html = $this->get('/demo/sv03.5')->getContent();
+
+    expect(restOfSet($html))->toBe('The rest of the set: $0.75 for the 2 missing cards, one of each.')
+        ->and(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices. Also €4.00 priced in EUR, not added to the total. Also €10.00 for missing cards priced in EUR, not added to the total.');
+});

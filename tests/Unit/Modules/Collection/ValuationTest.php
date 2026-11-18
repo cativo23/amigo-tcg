@@ -263,3 +263,25 @@ test('totals over a run of days match totalsByCurrencyAsOf day by day, on any pr
 
     expect($valuation->totalsByCurrencyOver($cards, $days))->toBe($expected);
 });
+
+test('missingTotals sums one copy of each card at its card-level price, currencies apart, and counts the priced cards', function () {
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
+    $card = fn (string $n, string $name) => Card::create(['tcgdex_id' => "me05-$n", 'set_id' => $set->id, 'local_id' => $n, 'name' => $name]);
+    $eur = $card('003', 'Fomantis');
+    $usd = $card('051', 'Inkay');
+    $special = $card('056', 'Mega Gengar ex');
+    $unpriced = $card('004', 'Lurantis');
+    $holo = $card('116', 'Mega Darkrai ex');
+
+    CardPriceSnapshot::create(['card_id' => $eur->id, 'source' => 'cardmarket', 'variant' => 'default', 'captured_on' => today(), 'currency' => 'EUR', 'market_minor' => 900]);
+    CardPriceSnapshot::create(['card_id' => $usd->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 11]);
+    // A special print never prices the card: only its plain row counts.
+    CardPriceSnapshot::create(['card_id' => $special->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 177]);
+    CardPriceSnapshot::create(['card_id' => $special->id, 'source' => 'tcgplayer', 'variant' => 'holofoil:masterball', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 9999]);
+    CardPriceSnapshot::create(['card_id' => $holo->id, 'source' => 'tcgplayer', 'variant' => 'holofoil', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 5000]);
+
+    $cards = (new DecidingPriceRows)->loadOnto(Card::with('collectionItems')->orderBy('local_id')->get());
+
+    expect((new Valuation)->missingTotals($cards))->toBe(['totals' => ['USD' => 5188, 'EUR' => 900], 'priced' => 4])
+        ->and((new Valuation)->missingTotals([]))->toBe(['totals' => [], 'priced' => 0]);
+});

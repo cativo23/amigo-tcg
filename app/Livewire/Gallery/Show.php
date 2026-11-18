@@ -159,6 +159,11 @@ final class Show extends Component
         // The completion figure is the sets list's too: it never rounds a real, nonzero owned count down to 0%.
         $percent = Completion::percent($ownedCount, $totalCount);
         $strip = $this->strip($byNumber, $totalCount);
+        // What the rest of the set costs: one of each card not owned, at its pocket's price. Over the whole
+        // set, never the grid, so a search or the toggle never changes it. Every strip slot not owned counts
+        // as missing, the numbers the catalogue has not imported included: they are missing, just unpriced.
+        $missingTotals = $valuation->missingTotals($byNumber->reject($owns));
+        $missingSlots = count(array_filter($strip, fn (array $slot) => $slot['state'] !== 'owned'));
 
         // tcgdex's literal "None" (promos, unrated prints) is not a rarity
         // anyone can pick; the rest follow the printed ladder.
@@ -179,6 +184,8 @@ final class Show extends Component
             // The pockets the toggle can reveal: imported cards the collector does not own. Cards the
             // catalogue has not imported are never pockets; they are the strip's absent slots.
             'missingCount' => $cards->count() - $ownedCount,
+            'missingTotals' => $missingTotals,
+            'missingSlots' => $missingSlots,
             'percent' => $percent,
             'strip' => $strip,
             'ticks' => StripScale::ticks(count($strip)),

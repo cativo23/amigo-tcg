@@ -154,6 +154,36 @@ final class Valuation
     }
 
     /**
+     * What one copy of each of $cards costs together: each card at its
+     * card-level price (resolve()), the price a missing card's pocket shows,
+     * since a ghost card's headlineSnapshot() is resolve(). Currencies stay
+     * apart; `priced` counts the cards that added to a total, so a caller can
+     * say how many of them had no price. The caller passes the cards the
+     * collector does not own; owned copies are not looked at.
+     *
+     * @param  iterable<int, Card>  $cards  each with its deciding `priceSnapshots` loaded
+     * @return array{totals: array<string, int>, priced: int} totals ordered USD first
+     */
+    public function missingTotals(iterable $cards): array
+    {
+        $totals = [];
+        $priced = 0;
+
+        foreach ($cards as $card) {
+            $snapshot = $this->resolver->resolve($card);
+
+            if ($snapshot === null || $snapshot->market_minor === null) {
+                continue;
+            }
+
+            $totals[$snapshot->currency] = ($totals[$snapshot->currency] ?? 0) + $snapshot->market_minor;
+            $priced++;
+        }
+
+        return ['totals' => self::order($totals), 'priced' => $priced];
+    }
+
+    /**
      * @return array<string, int> currency => minor units, unordered (caller orders)
      */
     private function itemTotals(Card $card, ?CarbonInterface $asOf = null): array

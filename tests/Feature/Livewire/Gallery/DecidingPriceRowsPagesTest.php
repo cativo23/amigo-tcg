@@ -150,9 +150,9 @@ dataset('gallery pages', [
     'index by newest' => [Index::class, [], ['sort' => 'newest'], ['entries', 'totals', 'updatedAt', 'topEntry']],
     'index by number, filtered' => [Index::class, [], ['sort' => 'number', 'set' => 'me05', 'rarity' => 'Rare'], ['entries', 'totals', 'topEntry']],
     'sets' => [Sets::class, [], [], ['sets', 'setValues']],
-    'set page' => [Show::class, ['setTcgdexId' => 'me05'], [], ['entries', 'ownedCount', 'ownedTotals', 'mostValuable']],
-    'set page with missing cards, by value' => [Show::class, ['setTcgdexId' => 'sv08'], ['missing' => true, 'sort' => 'value'], ['entries', 'ownedCount', 'ownedTotals', 'mostValuable']],
-    'set page, searched' => [Show::class, ['setTcgdexId' => 'sv08'], ['search' => 'Card 1'], ['entries', 'ownedCount', 'ownedTotals', 'mostValuable']],
+    'set page' => [Show::class, ['setTcgdexId' => 'me05'], [], ['entries', 'ownedCount', 'ownedTotals', 'mostValuable', 'missingTotals', 'missingSlots']],
+    'set page with missing cards, by value' => [Show::class, ['setTcgdexId' => 'sv08'], ['missing' => true, 'sort' => 'value'], ['entries', 'ownedCount', 'ownedTotals', 'mostValuable', 'missingTotals', 'missingSlots']],
+    'set page, searched' => [Show::class, ['setTcgdexId' => 'sv08'], ['search' => 'Card 1'], ['entries', 'ownedCount', 'ownedTotals', 'mostValuable', 'missingTotals', 'missingSlots']],
     'card page' => [CardShow::class, ['setTcgdexId' => 'me05', 'localId' => '2'], [], ['related', 'snapshot', 'delta', 'weekDelta']],
     'activity' => [Activity::class, [], [], ['feed', 'feedCount', 'totals', 'series', 'primaryCurrency', 'historySince']],
     'activity over a year' => [Activity::class, [], ['range' => '1y'], ['feed', 'totals', 'series', 'historySince']],
@@ -202,6 +202,9 @@ test('a gallery page reads price rows only through the deciding query, and not a
     'set page' => [Show::class, ['setTcgdexId' => 'me05'], [], 1],
     // A search only narrows the grid: the set loads once either way.
     'set page, searched' => [Show::class, ['setTcgdexId' => 'me05'], ['search' => 'Card'], 1],
+    // The missing cards' total prices them from the rows already loaded, pockets shown or not.
+    'set page with missing cards' => [Show::class, ['setTcgdexId' => 'sv08'], [], 1],
+    'set page with missing cards shown' => [Show::class, ['setTcgdexId' => 'sv08'], ['missing' => true], 1],
     'activity' => [Activity::class, [], [], 1],
 ]);
 

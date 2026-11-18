@@ -6,6 +6,17 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- A set page says what the rest of the set costs: under the summary line,
+  "The rest of the set: $1,303.09 for the 107 missing cards, one of each."
+  It is one copy of every card the collector does not own, at the price its
+  pocket shows, whether the missing cards are shown or not, and a search
+  never changes it. When some missing cards have no price it says how many
+  do ("104 of 107 missing cards priced"), counting card numbers the catalogue
+  has not imported as missing too. Another currency is a separate note,
+  never added in.
+
 ### Fixed
 
 - A copy whose print has no price of its own (a stamped copy with no
