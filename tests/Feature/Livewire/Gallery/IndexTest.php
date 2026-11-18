@@ -881,3 +881,28 @@ test('the tab row fades at whichever edge it runs past by masking the tabs, neve
         ->and($js)->toContain("'is-more-left'")
         ->and($js)->toContain("'is-more-right'");
 });
+
+test('an owned print with no price of its own shows No price and sorts after the priced tiles under value', function () {
+    // The plain print of Mega Gengar ex is priced at $1.77, but the
+    // collector owns only a stamped copy with no price of its own: its
+    // tile must not borrow $1.77, and it ranks as unpriced.
+    $user = User::factory()->create(['username' => 'carlos', 'name' => 'Carlos']);
+    $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
+
+    $gengar = Card::create(['tcgdex_id' => 'me05-056', 'set_id' => $set->id, 'local_id' => '056', 'name' => 'Mega Gengar ex']);
+    $inkay = Card::create(['tcgdex_id' => 'me05-051', 'set_id' => $set->id, 'local_id' => '051', 'name' => 'Inkay']);
+
+    CardPriceSnapshot::create(['card_id' => $gengar->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 177]);
+    CardPriceSnapshot::create(['card_id' => $inkay->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 11]);
+
+    CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $gengar->id, 'card_tcgdex_id' => 'me05-056', 'variant' => 'holofoil:masterball', 'condition' => 'NM', 'quantity' => 1]);
+    CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $inkay->id, 'card_tcgdex_id' => 'me05-051', 'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1]);
+
+    Livewire::withQueryParams(['sort' => 'value'])
+        ->test(Index::class, ['username' => 'carlos'])
+        ->assertViewHas('entries', fn ($entries) => $entries->pluck('card.name')->all() === ['Inkay', 'Mega Gengar ex']
+            && $entries->last()['snapshot'] === null)
+        ->assertSee('No price')
+        ->assertDontSee('$1.77');
+});

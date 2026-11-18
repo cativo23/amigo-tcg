@@ -135,17 +135,22 @@ final class Valuation
     /**
      * The single "headline" price for a card tile: the priciest owned
      * variant's resolved snapshot (what the collector's best copy is
-     * actually worth), falling back to the card-level priority chain
-     * for a ghost card (nothing owned) or when no owned item resolves
-     * to a real price.
+     * actually worth). A ghost card (nothing owned) takes the card-level
+     * priority chain. An owned card with no copy priced at its own print
+     * has no headline: borrowing the chain would show another print's
+     * price (a stamped copy at the plain print's), which the totals skip.
      */
     public function headlineSnapshot(Card $card): ?CardPriceSnapshot
     {
+        if ($card->collectionItems->isEmpty()) {
+            return $this->resolver->resolve($card);
+        }
+
         $item = $this->headlineItem($card);
 
         return $item !== null
             ? $this->resolver->resolveForVariant($card, $item->variant)
-            : $this->resolver->resolve($card);
+            : null;
     }
 
     /**

@@ -547,13 +547,10 @@ final class CardPriceResolver
      * TcgdexCardCatalogProvider::extractPrices) and which therefore
      * prices the card as a whole.
      *
-     * This is the only honest fallback for a screen that prints a price
-     * beside a SPECIFIC variant name. resolve() is not: its chain
-     * prefers tcgplayer 'normal'/'holofoil', so a copy with no row of
-     * its own would show a different print's value under its own label —
-     * exactly the mislabelling resolveForVariant() exists to prevent.
-     * Null when the card has no variant-agnostic price, in which case
-     * the caller must show nothing rather than something wrong.
+     * No page reads it: a copy whose print has no price of its own shows
+     * no price, never this card-wide row (Valuation::headlineSnapshot()).
+     * It stays covered by the parity tests until the Cardmarket removal
+     * deletes it. Null when the card has no variant-agnostic price.
      */
     public function resolveCardWide(Card $card): ?CardPriceSnapshot
     {

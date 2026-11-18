@@ -153,7 +153,7 @@ dataset('gallery pages', [
     'set page' => [Show::class, ['setTcgdexId' => 'me05'], [], ['entries', 'ownedCount', 'ownedTotals', 'mostValuable']],
     'set page with missing cards, by value' => [Show::class, ['setTcgdexId' => 'sv08'], ['missing' => true, 'sort' => 'value'], ['entries', 'ownedCount', 'ownedTotals', 'mostValuable']],
     'set page, searched' => [Show::class, ['setTcgdexId' => 'sv08'], ['search' => 'Card 1'], ['entries', 'ownedCount', 'ownedTotals', 'mostValuable']],
-    'card page' => [CardShow::class, ['setTcgdexId' => 'me05', 'localId' => '4'], [], ['related', 'snapshot', 'delta', 'weekDelta']],
+    'card page' => [CardShow::class, ['setTcgdexId' => 'me05', 'localId' => '2'], [], ['related', 'snapshot', 'delta', 'weekDelta']],
     'activity' => [Activity::class, [], [], ['feed', 'feedCount', 'totals', 'series', 'primaryCurrency', 'historySince']],
     'activity over a year' => [Activity::class, [], ['range' => '1y'], ['feed', 'totals', 'series', 'historySince']],
 ]);
@@ -282,7 +282,7 @@ test('the seeded collection gives the card page a strip with 7-day moves, so the
     $this->freezeTime();
     seedPagesCollection();
 
-    $related = Livewire::test(CardShow::class, ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '4'])->viewData('related');
+    $related = Livewire::test(CardShow::class, ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '2'])->viewData('related');
 
     expect($related)->not->toBeEmpty()
         ->and($related->filter(fn (array $entry) => $entry['weekDelta'] !== null))->not->toBeEmpty();

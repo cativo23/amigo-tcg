@@ -126,15 +126,11 @@ final class Activity extends Component
                 // entry would carry the normal print's price, which is a
                 // different card's value.
                 //
-                // resolveForVariant() matches the variant EXACTLY and
-                // returns null when nothing does — which a card priced
-                // only under cardmarket 'default' hits for any copy
-                // saved as 'normal'. resolveCardWide(), not resolve(),
-                // backstops that: it returns only the variant-agnostic
-                // 'default' row, so the fallback can never put another
-                // print's price under this row's label. No card-wide
-                // price means no price shown.
-                'snapshot' => $resolver->resolveForVariant($item->card, $item->variant) ?? $resolver->resolveCardWide($item->card),
+                // No fallback when the print has no price of its own: the
+                // tile, the totals and the CSV show none for it either, and
+                // the card-wide average would put another print's value
+                // under this row's label.
+                'snapshot' => $resolver->resolveForVariant($item->card, $item->variant),
                 'at' => $item->created_at,
             ]);
 

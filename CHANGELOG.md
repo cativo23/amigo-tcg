@@ -8,6 +8,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- A copy whose print has no price of its own (a stamped copy with no
+  TCGplayer link, say) now shows "No price" instead of the plain print's
+  price, so its tile agrees with the collection total, which already skipped
+  it. Its Activity row shows no price either, the card page opens on the
+  collector's own print and says it has no market price yet, and Value order
+  ranks it as unpriced, in the gallery and the admin set grid alike.
 - A selected divider tab runs straight into its sheet: the sheet no longer
   draws a light line along its top edge (visible in dark mode) that cut the
   tab off from it on the collection, card, activity and sets pages.

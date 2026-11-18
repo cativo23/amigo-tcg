@@ -222,16 +222,11 @@ test('an added item is priced at its own variant, not the card-level chain', fun
     $response->assertDontSee('$0.05');
 });
 
-test('an added item whose exact variant has no snapshot still shows a price', function () {
-    // resolveForVariant() matches the variant EXACTLY and returns null
-    // otherwise, so it cannot stand alone here. A cardmarket-only card
-    // with no usable `variants` flags stores its price under 'default'
-    // (TcgdexCardCatalogProvider::extractPrices), while the add form
-    // falls back to offering all three variants (AddCollectionItem's
-    // KNOWN_VARIANTS) — so the copy can legitimately be saved as
-    // 'normal' with no 'normal' row to match. Without the same
-    // card-level fallback Valuation::headlineSnapshot() already applies,
-    // the gallery tile would show a price while this feed row went blank.
+test('an added copy whose print has no price of its own shows none, like its tile', function () {
+    // A cardmarket-only card stores its price under the card-wide
+    // 'default' row, while the copy is saved as 'normal'. The normal print
+    // has no price of its own, so the tile, the totals and this row all
+    // show none rather than the card-wide average.
     $user = User::factory()->create(['username' => 'carlos']);
     $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
     $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
@@ -243,7 +238,26 @@ test('an added item whose exact variant has no snapshot still shows a price', fu
     $response = $this->get('/carlos/activity');
 
     $response->assertOk();
-    $response->assertSee('€0.20');
+    $response->assertSee('Lampent');
+    $response->assertDontSee('€0.20');
+});
+
+test('an added stamped copy with no price of its own never shows the plain print\'s price', function () {
+    $user = User::factory()->create(['username' => 'carlos']);
+    $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
+    $card = Card::create(['tcgdex_id' => 'me05-056', 'set_id' => $set->id, 'local_id' => '056', 'name' => 'Mega Gengar ex']);
+    CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-056', 'condition' => 'NM', 'quantity' => 1, 'variant' => 'holofoil:masterball']);
+
+    CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 177]);
+    CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'cardmarket', 'variant' => 'default', 'captured_on' => today(), 'currency' => 'EUR', 'market_minor' => 150]);
+
+    $response = $this->get('/carlos/activity');
+
+    $response->assertOk();
+    $response->assertSee('Mega Gengar ex');
+    $response->assertDontSee('$1.77');
+    $response->assertDontSee('€1.50');
 });
 
 test('the feed never prices one variant with a different print\'s snapshot', function () {
