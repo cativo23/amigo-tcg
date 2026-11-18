@@ -56,6 +56,18 @@ services:
       REDIS_CLIENT: phpredis
       TELESCOPE_ENABLED: "false"
     command: ["php", "artisan", "horizon"]
+    # A deploy (`up -d`) or any recreate must let a running job finish. The
+    # base image's STOPSIGNAL is SIGQUIT, meant for its nginx/s6 default
+    # command; here `php artisan horizon` is PID 1 and handles no SIGQUIT, so
+    # the kernel drops it and Docker kills the job when the grace period ends.
+    # On SIGTERM Horizon stops taking jobs, lets each worker finish its own and
+    # waits up to the longest supervisor timeout (600 s, supervisor-tcgcsv in
+    # config/horizon.php). The grace period stays above that so Horizon exits
+    # on its own; a killed job sits reserved until retry_after and then fails
+    # with its one try spent. The deploy step's command_timeout
+    # (.github/workflows/deploy.yml) has to cover this wait.
+    stop_signal: SIGTERM
+    stop_grace_period: 660s
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }

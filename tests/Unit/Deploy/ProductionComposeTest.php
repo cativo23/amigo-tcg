@@ -37,3 +37,101 @@ test('Telescope is switched off in every production service that runs the app', 
 
     expect($compose['services'][$service]['environment']['TELESCOPE_ENABLED'])->toBe('false');
 })->with(fn () => appImageServices());
+
+/**
+ * A compose duration ("660s", "11m", "1m30s") in seconds.
+ */
+function composeDurationSeconds(string $duration): int
+{
+    preg_match_all('/(\d+)(h|m|s)/', $duration, $parts, PREG_SET_ORDER);
+    expect(implode('', array_column($parts, 0)))->toBe($duration, "unparsed duration {$duration}");
+
+    return array_sum(array_map(
+        fn (array $part): int => (int) $part[1] * ['h' => 3600, 'm' => 60, 's' => 1][$part[2]],
+        $parts,
+    ));
+}
+
+/**
+ * The longest job timeout any production Horizon supervisor allows: how long
+ * Horizon waits for its workers once it is told to stop.
+ */
+function longestProductionSupervisorTimeout(): int
+{
+    $horizon = require dirname(__DIR__, 3).'/config/horizon.php';
+    $supervisors = array_replace_recursive($horizon['defaults'], $horizon['environments']['production']);
+
+    $timeouts = array_column($supervisors, 'timeout');
+    expect($timeouts)->not->toBeEmpty();
+
+    return max([0, ...$timeouts]);
+}
+
+test('horizon is stopped with SIGTERM, not the image\'s SIGQUIT', function () {
+    // The base image's STOPSIGNAL is SIGQUIT (for its nginx/s6 default
+    // command). `php artisan horizon` runs as PID 1 and installs no SIGQUIT
+    // handler, so the kernel drops that signal and Docker kills the running
+    // job when the grace period ends.
+    $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
+
+    expect($compose['services']['horizon']['stop_signal'] ?? null)->toBe('SIGTERM');
+});
+
+test('horizon gets longer than its longest job timeout to stop', function () {
+    // On SIGTERM Horizon lets each worker finish its job and waits up to the
+    // longest supervisor timeout. A shorter grace period kills the job, which
+    // then sits reserved until retry_after and fails with its one try spent.
+    $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
+    $grace = composeDurationSeconds((string) ($compose['services']['horizon']['stop_grace_period'] ?? '10s'));
+
+    expect($grace)->toBeGreaterThan(longestProductionSupervisorTimeout());
+});
+
+test('no job sets a timeout past the longest supervisor timeout', function () {
+    // Horizon's master waits for its workers only up to the longest
+    // supervisor timeout, then exits and takes the container with it, while
+    // a worker's alarm follows the job's own timeout. A longer job timeout
+    // would be killed on a stop despite the grace period.
+    $timeouts = [];
+
+    foreach (glob(dirname(__DIR__, 3).'/app/Jobs/*.php') ?: [] as $file) {
+        $name = 'App\\Jobs\\'.basename($file, '.php');
+        expect(class_exists($name))->toBeTrue("{$name} does not autoload");
+        /** @var class-string $name */
+        $class = new ReflectionClass($name);
+
+        if ($class->hasProperty('timeout') && $class->getProperty('timeout')->hasDefaultValue()) {
+            $timeouts[$class->getName()] = (int) $class->getProperty('timeout')->getDefaultValue();
+        }
+    }
+
+    expect($timeouts)->not->toBeEmpty()
+        ->and(max([0, ...array_values($timeouts)]))->toBeLessThanOrEqual(longestProductionSupervisorTimeout());
+});
+
+test('the deploy script has time for horizon to drain', function () {
+    // appleboy/ssh-action cuts the session at command_timeout (10m when
+    // unset), and `up -d` waits out horizon's grace period. The rest of the
+    // script keeps the 10 minutes it ran in before.
+    $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
+    $workflow = Yaml::parseFile(dirname(__DIR__, 3).'/.github/workflows/deploy.yml');
+    $deploy = array_values(array_filter(
+        $workflow['jobs']['deploy']['steps'],
+        fn (array $step): bool => ($step['name'] ?? null) === 'Deploy to server',
+    ))[0];
+
+    $grace = composeDurationSeconds((string) ($compose['services']['horizon']['stop_grace_period'] ?? '10s'));
+    $commandTimeout = composeDurationSeconds((string) ($deploy['with']['command_timeout'] ?? '10m'));
+
+    expect($commandTimeout)->toBeGreaterThanOrEqual($grace + 600);
+});
+
+test('horizon keeps its own internet egress', function () {
+    // Queued jobs call tcgdex and tcgcsv from this container; without a
+    // network Docker routes out of, every call fails on DNS with no
+    // user-facing error.
+    $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
+
+    expect($compose['services']['horizon']['networks'])->toContain('tcgvault-egress')
+        ->and($compose['networks']['tcgvault-egress']['internal'] ?? false)->toBeFalse();
+});

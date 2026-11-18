@@ -110,6 +110,11 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ vars.DEPLOY_PORT }}
           envs: IMAGE_TAG,DOCKER_USERNAME,DOCKER_PASSWORD
+          # `up -d` waits for horizon to finish its running job, up to its
+          # stop_grace_period in compose.prod.yml (660 s). The action's
+          # default of 10m would cut the session mid-`up -d`; this leaves the
+          # rest of the script the 10 minutes it had before on top of that.
+          command_timeout: 30m
           script: |
             # Fails loud instead of silently falling back to compose.prod.yml's
             # own `:-latest` default — appleboy/ssh-action's `envs:` passthrough
