@@ -391,6 +391,42 @@ IMAGE_TAG=vX.Y.Z docker compose -f compose.prod.yml up -d --force-recreate horiz
       healthy/up.
 - [ ] `~/deploy/tcg-vault/.env` is mode `600`; no secrets in the image or git.
 
+## Slow queries
+Postgres starts with `pg_stat_statements` preloaded, `track_io_timing=on` and
+`log_temp_files=10MB` (the `postgres` command in `compose.prod.yml`). They are
+there to measure before changing `work_mem`: which statements take the time,
+how long they wait on disk reads, and which sorts or hashes spill to disk.
+
+The library loads at server start; the extension that exposes it is created
+once, by hand, after the release. It is not a migration because it is a
+production-only tool: CI and Sail do not preload the library, so there the
+extension would exist but its view would fail on every read. Creating it is
+a catalog write in the database, so it survives restarts and recreates
+(a restore is the exception, see "Replace the live database and photos"):
+```bash
+docker compose -f compose.prod.yml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"'
+```
+
+The top statements, read-only (change the `ORDER BY` to `total_exec_time`
+or `shared_blk_read_time` for the other two views). Constants show as `$1`,
+`$2`, so no member data appears:
+```bash
+docker compose -f compose.prod.yml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -x -c "SELECT calls, round(total_exec_time) AS total_ms, round(mean_exec_time) AS mean_ms, temp_blks_written, round(shared_blk_read_time) AS read_ms, left(query, 300) AS query FROM pg_stat_statements ORDER BY temp_blks_written DESC LIMIT 10;"'
+```
+
+Each spill over 10 MB is logged with its size and the statement that caused
+it. The statement appears as Postgres received it, so one with values
+written into it (typed in `psql`, a raw query in tinker) shows them: treat
+the output as private. The log is the container's own, so a recreate (any
+release that changes the `postgres` service) starts it empty:
+```bash
+docker compose -f compose.prod.yml logs --no-log-prefix postgres | grep -A1 'temporary file'
+```
+
+The counters run from the first server start with the library, before the
+extension exists, and survive clean restarts. Read them after at least a
+week that includes the 00:00 and 20:30 UTC runs.
+
 ## Backups
 The `backup` service (`docker/prod/backup/backup.sh`) writes, once a day
 after 03:00 UTC, into `~/deploy/tcg-vault/backups/`:
@@ -494,6 +530,10 @@ deleted since the backup are deleted again, so none of them can sign in.
    dcp start app horizon scheduler backup
    dcp exec app php artisan migrate:status
    ```
+   A dump taken before `pg_stat_statements` was created does not carry the
+   extension: run its `CREATE EXTENSION IF NOT EXISTS` from "Slow queries"
+   (harmless if it is already there). The restored database is a new one to
+   Postgres either way, so the statement counters start again from zero.
 6. Once everything checks out, and **within 14 days** (the privacy policy's
    backup period), drop the old database:
    `dcp exec -T postgres sh -c 'dropdb -U "$POSTGRES_USER" tcg_vault_before_restore'`.
@@ -516,9 +556,20 @@ docker compose -f compose.prod.yml up -d
 ```
 `deploy.yml` itself is release-triggered only (no `workflow_dispatch`), so
 there's no "re-run the last deploy" button — roll back by hand as above, or
-publish the known-good tag as a new GitHub Release. A rollback does not undo
-a migration: if the older code cannot run on the newer schema, restore the
-pre-release dump instead (see Backups).
+publish the known-good tag as a new GitHub Release.
+
+A release that changes `compose.prod.yml` overwrites the server's copy, and
+the tag alone does not bring the old one back. Before releasing one, copy the
+live file under a dated name:
+```bash
+cp -p compose.prod.yml compose.prod.yml.bak-pre-<part>-$(date -u +%F)
+```
+To roll back, copy it over `compose.prod.yml` before the `up -d` above. Use
+only a copy made for the release being undone: `compose.prod.yml.bak-pre-192m`
+is a much older file.
+
+A rollback does not undo a migration: if the older code cannot run on the
+newer schema, restore the pre-release dump instead (see Backups).
 
 ## Architecture notes
 - **One app image, three roles, plus three stock services.** From the app image: `app`

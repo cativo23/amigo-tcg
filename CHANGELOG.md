@@ -6,6 +6,24 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Postgres now records how long each kind of query takes, how long it waits
+  on disk reads, and logs every sort or hash that spills more than 10 MB to
+  disk, so the memory it gives each query can be tuned from real numbers.
+  The release restarts Postgres once (10–30 seconds).
+- Each web worker is replaced after 500 requests, so one that slowly grows
+  cannot hold its memory indefinitely.
+
+### Deploy notes
+
+- Restarts Postgres: release between 13:00 and 19:00 or 22:00 and 23:00
+  UTC, with the queue idle, and not on the same day as another release that changes the host.
+  Copy the live compose file first (`deploy/README.md`, "Rollback").
+- After the release, create the extension once:
+  `docker compose -f compose.prod.yml exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements;"'`
+  (`deploy/README.md`, "Slow queries").
+
 ## [1.9.1] - 2026-11-18
 
 ### Changed

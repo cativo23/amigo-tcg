@@ -135,3 +135,28 @@ test('horizon keeps its own internet egress', function () {
     expect($compose['services']['horizon']['networks'])->toContain('tcgvault-egress')
         ->and($compose['networks']['tcgvault-egress']['internal'] ?? false)->toBeFalse();
 });
+
+test('postgres preloads pg_stat_statements, times I/O and logs temp files', function () {
+    // Which statements spill to disk and which wait on reads decides any
+    // work_mem change, so production records both before anyone tunes it.
+    // shared_preload_libraries only takes effect on a server start, which is
+    // why all three ride the same restart.
+    $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
+    $command = array_values($compose['services']['postgres']['command']);
+
+    foreach (['shared_preload_libraries=pg_stat_statements', 'track_io_timing=on', 'log_temp_files=10MB'] as $setting) {
+        $at = array_search($setting, $command, true);
+        expect($at)->toBeInt("postgres command lacks {$setting}");
+
+        expect($command[(int) $at - 1] ?? null)->toBe('-c', "{$setting} is not passed with -c");
+    }
+});
+
+test('app recycles each FPM worker after a bounded number of requests', function () {
+    // The image's pool reads PHP_FPM_PM_MAX_REQUESTS (0, never, by default).
+    // A worker that slowly grows is replaced instead of carrying its memory
+    // until the pool reaps it idle.
+    $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
+
+    expect($compose['services']['app']['environment']['PHP_FPM_PM_MAX_REQUESTS'] ?? null)->toBe('500');
+});
