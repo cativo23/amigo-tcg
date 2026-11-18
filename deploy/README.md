@@ -407,7 +407,7 @@ disk has less than 5 GB free.
 
 **These copies live on the same server.** They cover a bad migration, a
 wrong delete or a corrupt volume, not losing polaris2. Copying them off the
-host is still open in `ROADMAP.md` (Phase 11).
+host is still open in `ROADMAP.md` (Phase B).
 
 Every block below starts from:
 ```bash
@@ -546,7 +546,7 @@ pre-release dump instead (see Backups).
   (`activity chart built on a page view`).
 - **Own Postgres and Redis**, not shared with the host's other projects — decided
   deliberately (the coupling costs more than the RAM it would save). The cache and
-  the queue still share this Redis (see `ROADMAP.md`, Phase 11).
+  the queue still share this Redis (see `ROADMAP.md`, Phase B).
 - **Caches** are warmed at container boot via serversideup `AUTORUN_*` flags;
   **migrations are never auto-run** (see "A release with a migration").
 - **DNS** (`tcgvault.cativo.dev`) already resolves via Cloudflare (DNS-only, unproxied);

@@ -1,269 +1,327 @@
 # Roadmap
 
-The pending work, grouped into phases. Each phase is a self-contained block of
-work with one theme, sized to be finished in one go, and the phases are
-ordered by **value for the effort**: quick, valuable work first, big projects
-after, polish last. At equal effort, anything that risks losing or corrupting
-data goes before anything a visitor merely sees.
+Everything still to do, grouped into phases. A phase holds related work; its
+parts are done in order, and one part is one focused block of work (usually
+one PR). Phases run in the order below: the first ones fix or protect data,
+the later ones add features. What shipped lives in
+[`CHANGELOG.md`](CHANGELOG.md), not here.
 
-Each phase carries its effort and value:
+- **Effort:** `S` under half a day with tests · `M` one to two days · `L`
+  more · `XL` weeks of calendar.
+- **Value:** `high` breaks something, loses data or misprices cards · `med` a
+  real improvement · `low` polish.
+- 🚀 marks a release point (see "Releases" below). ✋ marks a step that writes
+  to production or goes outside the repo: it needs the owner's yes, with the
+  exact command, every time.
+- Each phase names its spec. Specs are local and git-ignored, in
+  `.superpowers/roadmap/specs/`, and keep the numbers they were written
+  under (`phase-07-…` is Phase D's spec). Re-check a spec against the code
+  before acting on it.
 
-- **Effort** — `S` under half a day with tests · `M` one to two days · `L` more.
-- **Value** — `high` breaks something or misprices cards · `med` a real
-  improvement · `low` polish.
+## Releases
 
-A finished phase leaves this file in the same PR that closes it; what shipped
-is in [`CHANGELOG.md`](CHANGELOG.md). Anything marked *(prod)* needs a look at
-production before acting, and any write to production needs a yes.
+A release is the only way code reaches production: publishing it deploys it
+(`deploy/README.md`, "Cutting a release"). So "when to deploy" and "when to
+release" are the same question.
 
-## Phase 0 — Write the specs
+**When.** At each 🚀 in this file and nowhere else. By default that is the
+end of a phase. A phase gets a 🚀 mid-way only when something forces it: a
+migration that must be live before the next part, or a wait measured in
+nightly runs. Parts merge to `master` as they finish and wait there, listed
+under `[Unreleased]`.
 
-`M · high` — turn every phase below into a spec that stands alone: scope, the
-files and callers it touches (checked against the code), the tests written
-first, the production steps that need a yes, the risks, and what "done" means.
-Phases that already have a plan (6, 7, 8) get that plan re-checked against the
-current code instead of rewritten. Phases that touch production data get a
-red-team pass before anyone signs off. The feature phases (9, 13–16) also need
-product decisions, so their specs list the open questions rather than guess.
+**Exceptions.**
+- A production data-integrity bug ships alone, right away, as a patch.
+- Never two releases that change the host (compose, `.env`, Postgres,
+  Redis) on the same day, and never one of those together with a migration.
+- No release inside the nightly windows (00:00–01:00, 03:00–03:15,
+  04:00–04:30, 20:30–21:00, 21:45 UTC).
 
-Specs are saved in `.superpowers/sdd/`, one file per phase.
+**Which number** (`MAJOR.MINOR.PATCH`):
+- **Patch** (`1.9.0 → 1.9.1`): only fixes, performance, operations or
+  internal code. A visitor or member sees nothing new.
+- **Minor** (`1.9.0 → 1.10.0`): anything a visitor or member can see or use
+  that is new or changed: a page, a filter, a command, a CSV column, a copy
+  change, a changed figure.
+- **Major** (`2.0.0`): once, when registration opens to the public (end of
+  Phase I). Nothing else bumps the major.
 
-## Phase 1 — The collection page's price read, and release v1.7.1
+Each 🚀 below names the bump it expects; the CHANGELOG at release time
+decides. Every release needs the owner's yes. A release with a migration
+fails its deploy on purpose until the migration is run by hand
+(`deploy/README.md`, "A release with a migration").
 
-`M · high`
+---
 
-1. **Bound the collection page's price read.** `S–M · high` — `/admin`
-   (`CollectionItems`) eager-loads 30 days of every snapshot of every owned
-   card, `raw` included, and sorts them in PHP; at 128M it showed the 500
-   page, and 192M only delays it. Load only the deciding rows, as the public
-   pages already do (`DecidingPriceRows::loadOnto`); `SetGrid` has the same
-   pattern. Its cache key is per card-id set, so a search keystroke writes a
-   new Redis entry while Redis has no `maxmemory` (Phase 11 closes that side).
-2. **Fix the flaky `CollectionValueSeriesTest`.** `S · med` — "warming sums the
-   totals over card chunks…" fails now and then on CI, and a red `test` check
-   blocks a release. Suspect: `PublicCollection::cardsQuery()` has no
-   `ORDER BY`, so the first-seen currency can differ between the warm run and
-   the page. Try `orderBy('cards.id')`; unconfirmed.
-3. **Release v1.7.1.** `S · med` — CHANGELOG entries for #171, #172 and #174
-   (unreleased on `master`, including the two compose changes: PHP
-   `memory_limit` 192M, `app` limit 384M, 4 FPM workers) and for items 1–2, so
-   the page fixes reach production and the repo's compose file matches the
-   host it ships to. Needs a yes.
+## Phase A — Fix the owner's price read, then check production
 
-## Phase 2 — Production check pass
+`M · high` · specs: `phase-01-collection-price-read.md`,
+`phase-02-production-check-pass.md`
 
-`S · med` *(prod)* — read-only, after a nightly run.
+1. **`/admin` and the set grid read only the deciding price rows.** `M` —
+   `CollectionItems` and `SetGrid` still eager-load 30 days of every
+   snapshot (`raw` included); at 128M that was the 500 page. Move both to
+   `DecidingPriceRows::loadOnto`, with a cache key that stays stable per
+   owner. Time it on production-sized history (AGENTS.md).
+2. **Stable card order for the capped reads; fix the flaky test.** `S` — add
+   `PublicCollection::cardsInIdOrder()` and switch the capped reads to it
+   (not inside `cardsQuery()`, which would break the Index sorts). This is
+   the suspected cause of the flaky `CollectionValueSeriesTest`; if a 50x
+   loop is still red, stop and report.
+3. **Drain Horizon on deploy.** `S` — a deploy killed a running warm job.
+   `stop_grace_period` of at least 600 s on `horizon`, or
+   `horizon:terminate` before `up -d`.
+4. **Production check pass.** `S` — read-only, after a nightly run, with the
+   spec's runbook: tcgdex `mep`/`30th`/`30th-c`, `sv10.5w`, the held-back
+   list, the 30th cross-variant outliers (they feed Phase C). Also look at
+   the redis DNS errors of 2026-11-18 04:06 UTC (around a redis restart).
+   Then, each ✋: forget the two stale `failed_jobs` rows; import the full
+   catalogue of `swsh7`, `swsh8`, `swsh11` and `base1`
+   (`catalog:import-set`), which today hold only the demo's own cards, so
+   their set pages show no missing-cards total.
 
-- tcgdex v2.49.0: the links and prices of `mep`, `30th` and `30th-c` did not
-  change, and the images and prices tcgcsv fills agree with tcgdex's.
-- `sv10.5w` (mapped by hand) has its links and prices.
-- The held-back list (`gaps_implausible` in the last run summary): the
-  2026-10-22 list predates v1.6.16, which removed the Cardmarket check that
-  held most of them.
-- The `WarmValueSeriesJob` row in `failed_jobs` (attempt limit, cause never
-  looked at; possibly a worker killed by a deploy).
+🚀 **Patch** after part 3 (parts 1–3).
 
-## Phase 3 — Linking prints to TCGplayer, and the CSV's price source
+## Phase B — Backups off the host, and host tuning
 
-`M · med-high`
+`M–L · high` · spec: `phase-11-host-redis-postgres-backups.md`. One part per
+release, never two on the same day; each starts with a dated copy of the
+compose file on the host.
 
-1. **A command to link a print to a TCGplayer product.** `S · med-high` —
-   today every admin link is a tinker one-liner. A `catalog:link-tcgplayer`
-   command (card, variant, product, subtype, group; validated against the
-   group's products) makes the open link gaps routine:
-   - ten MEP cards with no link and no image (`mep-055`–`mep-063`,
-     `mep-Museum`);
-   - about 26 deck-exclusive prints tcgdex gives no TCGplayer id;
-   - every stamped print a collector adds (Prize Pack, Pokéween), which never
-     links itself.
-2. **Say where each price came from in the CSV export.** `S · med` — add a
-   `price_source` column (`CollectionCsvExporter::HEADER` has none). Then
-   delete the hand-entered rows tcgcsv now covers (10 rows over 7 prints) — a
-   production write, with a yes.
+1. **Backups off the host.** `M · high` — losing polaris2 loses the backups
+   too. A second backup service ships the dumps and photos to Cloudflare R2
+   (EU bucket, restic, client-side encryption), with a restore test and a
+   freshness alert; the privacy policy changes in the same release. ✋ The
+   owner enables Cloudflare billing and creates the bucket and token first;
+   until then do parts 2–3. 🚀 **Minor** (privacy policy).
+2. **Postgres and PHP-FPM.** `S` — `pg_stat_statements`, `track_io_timing`,
+   `log_temp_files` in one restart; FPM `max_requests`. Read the stats after
+   7 days and decide `work_mem` then. 🚀 **Patch**.
+3. **Redis.** `S` — `maxmemory 96mb` with `volatile-lru` on the shared
+   instance (a dedicated cache instance stays the fallback), plus a memory
+   and eviction alert. 🚀 **Patch**.
+4. **Sessions only where they are needed.** `S` — about 1,600 guest
+   sessions a day; start a session only on login, forms and Livewire
+   routes. 🚀 **Patch**.
+5. **Compose tidy-up.** `S` — recreate `backup` on deploy instead of
+   restarting it; postgres/redis health checks every 30 s with a
+   `start_interval`; re-measure CPU throttling on scheduler, horizon and
+   backup before changing any limit. 🚀 **Patch** (can ride with part 4).
 
-## Phase 4 — Cleanup and chart leftovers
+## Phase C — TCGplayer links and price-link integrity
 
-`M · low`
+`M · med-high` · specs: `phase-03-tcgplayer-links-and-csv-source.md`,
+`phase-06-price-link-integrity.md`; plan
+`.superpowers/roadmap/refs/price-link-redesign/FINAL.md`
 
-- **Small hygiene.** `composer.json` says `"php": "^8.3"` while the lock needs
-  8.4 (Pest 5, PHPUnit 13) and every runtime is 8.4; delete the orphaned
-  Breeze pages (verify-email, confirm-password, `dashboard`,
-  `x-application-logo`) and the unused styles and tokens listed at the end of
-  `design.md`.
-- **Chart code.** Unify `PriceChart` and `ValueChart` (give
-  `PriceChart::plot()` a `maxStep`, delete `ValueChart`) and fold the
-  copy-link and chart-slider code duplicated in `card.js`, `collection.js` and
-  `activity.js` into shared modules, aligning `stepReading` / `readingStep`
-  argument order.
-- **Chart behavior.** After a mouse sweep over a chart, the next arrow key
-  steps from the day under the pointer while the slider still announces the
-  last keyboard value. A manual price's step line stops at its first and last
-  entry instead of reaching the range edges.
-- **Page limits and sizing.** Activity reads the first 500 cards, the
-  collection page 600. A card page strip with fewer than three tiles renders
-  slightly smaller than the mockup.
+1. **`catalog:link-tcgplayer`.** `S–M` — link a print to a TCGplayer product
+   from the command line instead of tinker (dry run by default,
+   `--apply`), plus a product listing by printed number. Covers the
+   deck-exclusive prints with no TCGplayer id and every stamped print a
+   collector adds. ✋ After release: confirm the 10 `gaps_unverified` prints
+   from Phase A one link at a time.
+2. **The CSV says where each price came from.** `S · low` — a
+   `price_source` column at the end of the export. The 10 hand-entered rows
+   stay. 🚀 **Minor** (parts 1–2).
+3. **The identity matcher writes links.** `M` — it has agreed with every
+   existing link in log mode since v1.6.12. Cross-card guard, trust level,
+   `tcgcsv-identity` method with its evidence (additive migration). 🚀
+   **Minor**. Then two full nightly runs with the switch still on `log`, and
+   ✋ switch `TCGCSV_IDENTITY_LINKS=on` (`.env` + recreate).
+4. **Integrity constraints.** `S–M` — CHECKs on link `method` and snapshot
+   `origin`, `UNIQUE(product_id, sub_type)`, `group_id NOT NULL`, and
+   `UNIQUE(set_id, local_id)` on `cards` (a number imported twice would
+   count twice in the strip and the missing total; count duplicates in
+   production first, read-only). ✋ First: a backup and
+   the `30th-c-007` cleanup (irreversible). 🚀 **Patch** (migration). A
+   rollback goes to part 3's tag, never older.
 
-## Phase 5 — Filter the collection by card type
+While part 3 waits on the nightly runs, take Phase D's first part.
 
-`M · med` — selling a batch of Trainers means finding them first. Pokémon
-(Basic, Stage 1, Stage 2), Trainer (Supporter, Item, Tool, Stadium), Energy
-(Basic, Special), combinable with the set and price filters. The stored tcgdex
-payload (`raw`) has `category` on every card, `trainerType` on modern trainers
-(null on some old ones) and `energyType` on energy, so a first version can
-read the payload without a migration. Needs a ruling on BREAK, V, VMAX and ex.
-*(prod: count cards with no `category`.)*
+## Phase D — USD only
 
-## Phase 6 — Price link integrity
+`L · high` · specs: `phase-07-usd-only-stop-cardmarket.md`,
+`phase-08-usd-only-purge.md`, `SPEC-B.md` (the B2 page); plan
+`.superpowers/roadmap/refs/remove-cardmarket/`. Cardmarket's figure is EUR
+and often another print's. Needs Phases A and C done.
 
-`M–L · med-high` *(prod)* — plan:
-`.superpowers/sdd/2026-10-23-price-link-redesign/FINAL.md`.
+1. **Read only TCGplayer and hand prices.** `M` — re-count the prints that
+   will go blank first. One market-sources filter at every price read site,
+   the parity oracle, staleness by the print's market date (anchored on the
+   newest TCGplayer day). These two never ship apart.
+2. **Stop storing Cardmarket.** `M` — the provider emits none, the sync
+   skips non-USD entries; delete the dead card-wide code; stop reading
+   `trend_minor`.
+3. **The public copy, as a correction.** `S` — the landing's euro line,
+   `terms.blade.php` (and its "Last updated"), the README. The owner
+   approves every line. Parts 1–3 are one branch and one PR, never released
+   in pieces. 🚀 **Minor**. About 331 prints (14 cards, none owned) go blank.
+4. **How prices work.** `S–M · med` — a public page on the binder system
+   explaining the method (TCGplayer market in USD, each copy at its own
+   print, "No price", daily refresh, hand prices, frozen sources), linked
+   from the "Approx." notes. Copy, then a mockup, then the build. 🚀
+   **Minor**.
+5. **The purge command.** `M` — `prices:purge-source` (dry run by default)
+   and the test fixtures rewritten. May merge during the wait. 🚀 **Patch**.
+   Then, at least 7 nights after part 3's release: ✋ a restore test, a dump
+   of the table, ✋ the purge (about 445,000 rows, irreversible except from
+   the dump), `VACUUM (ANALYZE)`.
+6. **Constrain the data.** `S–M` — 7 days after the purge: `CHECK` on
+   `source` and `currency`, drop `trend_minor`. Reversible with
+   `migrate:rollback`. 🚀 **Patch** (migration). After it, no rollback to a
+   tag older than part 3's.
+7. **Remove the two-currency code.** `S` — `Valuation::order`, the secondary
+   totals and notes, the mixed-currency paths in `CollectionItems`, the
+   legacy resolver. Dead once part 6 is live. Rides the next release.
 
-1. **Write the identity matcher's links.** `M · med-high` — the matcher has run
-   in log mode since v1.6.12 and agreed with every existing link (6,916
-   agree, 0 different, 9 new on 2026-10-26). Turning it on needs code, not
-   just config: `TCGCSV_IDENTITY_LINKS` knows only `log` and off, and
-   `CardTcgplayerLink::TRUST` has no identity level. Roll out with a yes after
-   two matching builds.
-2. **Integrity constraints on prices and links.** `M · med` — CHECKs on
-   source/origin/currency/method, `UNIQUE(product_id, sub_type)` on links,
-   `group_id NOT NULL`; no variant-key CHECK (it would break the nightly
-   sync). Needs the `30th-c-007` cleanup first, with a yes. The spec settles
-   which CHECKs belong here and which in Phase 8, so the currency CHECK is
-   written once.
+## Phase E — Code cleanup and tooling
 
-## Phase 7 — USD only, part 1: stop using Cardmarket
+`M · low` · specs: `phase-04-cleanup-and-chart-leftovers.md`,
+`phase-12-slimmer-ci-cd.md`, `phase-17-larastan-level-9.md`
 
-`L · high` *(prod)* — Cardmarket's figure is EUR and often another print's.
-Plan and red team: `.superpowers/sdd/2026-10-28-remove-cardmarket/`.
+1. **Small hygiene.** `S` — `composer.json` to `php ^8.4`; delete the
+   orphaned Breeze views (the `dashboard` route stays); dead CSS and tokens
+   from `design.md`; the card-page strip with fewer than 3 tiles; check the
+   card page at 390 px on a phone (the plate may overflow, "320 HP" outside
+   the frame).
+2. **One chart class.** `M` — `PriceChart::plot()` gets `maxStep` and
+   `ValueChart` goes; shared slider and copy-link modules; arrow keys step
+   from the value the slider announced.
+3. **Chart and page limits.** `S–M` — a manual price's line held out to
+   today (amend `design.md`); one shared 600-card cap in a stable order,
+   with a visible "covers the first 600 of N" note; `srcset` images.
+4. **Slimmer CI.** `S` — skip `test` and `image` on same-repo `release/*`
+   PRs (a job-level skip, not a trigger filter), retry the image build,
+   cancel stale runs only on PRs, a guard test for the workflow contract.
+5. **Larastan level 9.** `M` — a typed parsing layer for tcgdex's JSON, then
+   the other errors file by file. After Phase D (it removes a third of them).
 
-- Stop reading and writing it together (S2+S4, which also stops storing
-  Cardmarket `raw`).
-- Resolver staleness by `source_updated_at`.
-- The remaining read paths (S2b, S2c).
-- The rename (S3).
+🚀 **Minor** at the end (the cap note and the chart line are visible).
 
-On 2026-10-28 about 344 prints and 17 cards would have been left with no
-market price, so re-count first. Ends with a release; Phase 8 starts at least
-7 days later.
+## Phase F — Collection features
 
-## Phase 8 — USD only, part 2: purge and the last copy
+`L · med-high` · specs: `phase-05-collection-card-type-filter.md`,
+`phase-09-wishlist.md`; research for master set:
+`.superpowers/roadmap/specs/RESEARCH-b.md`. Each UI part: copy first, then
+a local mockup, demo data only.
 
-`M · high` *(prod)* — the irreversible half of Phase 7, same plan.
+1. **Filter by card type.** `M` — Pokémon (Basic, Stage 1, Stage 2), Trainer
+   (Supporter, Item, Tool, Stadium), Energy (Basic, Special), on the public
+   page and in `/admin`; kinds not owned are hidden. 🚀 **Minor**.
+2. **Wishlist, the core.** `M` — a private list of wanted cards (card plus
+   an optional print), added from the set page's missing pockets and by
+   search, owner only; its own page with current prices. Open: the name
+   ("Wishlist" or "Want list"), the tile link for a want's set. 🚀
+   **Minor** (migration).
+3. **Wishlist targets and sharing.** `M` — a target price per want (with a
+   non-colour "below target" marker) and an optional public wishlist page.
+   Open: where the public flag lives (decide with Phase H part 1). 🚀
+   **Minor** (migration).
+4. **Master set mode, the spec.** `S` — no spec yet. Settle: per set or per
+   collection, an "any reverse counts" tier, owner default or visitor
+   switch, how Poké Ball and Master Ball reverses count.
+5. **Master set mode, the build.** `L` — every print the catalogue lists
+   counts (stamped prints and promos stay out), and the pockets, strip, %
+   and missing total follow it. 🚀 **Minor**.
 
-- Purge the Cardmarket data (S5a) and add the CHECK (S5b), both irreversible,
-  each with a yes.
-- Last, the copy that still promises a euro price: `home.blade.php`,
-  `terms.blade.php`, README.
+## Phase G — Owner and staff pages on the design system
 
-## Phase 8a — How prices work
+`XL · med` · spec: `phase-10-admin-staff-redesign.md`; inventory
+`.superpowers/roadmap/refs/admin-revamp/INVENTORY.md`. `/admin`, `/staff`,
+auth, legal and error pages still use `app.css`. Each part: copy round,
+local mockup, then the build; parts merge on green as they finish.
 
-`S–M · med` — a public page on the binder system explaining the price
-method, linked from the "Approx." notes: TCGplayer market in USD, each copy
-at its own print, a print with no price says so, daily refresh, hand prices,
-frozen sources. After Phase 8 so it is written once, for USD only. Copy
-round first. Spec: `SPEC-B.md` (B2) in `.superpowers/sdd/2026-11-17-differentiator/`.
+1. A guard test, then the legal pages (the last users of `layouts.public`).
+2. Login, the guest shell, the `x-ui.*` primitives and tokens (proves the
+   token bridge; if it fails, parts 7–10 become one PR).
+3. Sign-up and invite.
+4. Password recovery.
+5. Error pages. 🚀 **Minor** (parts 1–5).
+6. The owner shell and the profile page.
+7. Staff pages.
+8. My collection and the card editor (one drawer).
+9. The set grid.
+10. My sets, the set picker and Add a card.
+11. Import.
+12. Cleanup: delete `--chrome-*`, `app.css`, Tailwind and the old layouts.
+    🚀 **Minor** (parts 6–12).
 
-## Phase 9 — Wishlist / want-list
+## Phase H — More collector features
 
-`L · med-high` — the feature collectors are most likely to ask for; nothing
-exists yet.
+`L each · low-med` · specs: `phase-13-…`, `phase-14-…`, `phase-15-…`,
+`phase-16-…`. Their decisions are provisional defaults; confirm them before
+each part starts.
 
-## Phase 9a — Master set mode on the set page
+1. **Multiple collections, the model.** `M` — one service for the user's
+   collections, a default flag (migration), create/rename/move/delete with a
+   cap of 10. No UI. 🚀 **Patch** (migration).
+2. **Multiple collections, the pages.** `L` — a switcher in `/admin`, a
+   destination in Add and Import, public collection pages, a `collection`
+   CSV column. After Phase G. 🚀 **Minor**.
+3. **Deck lists, the rules.** `M` — the deck validator, deck tables
+   (migration), owned vs needed per line.
+4. **Deck lists, the pages.** `M–L` — the owner's deck pages, PTCGL text
+   import and export (needs a real export sample first). 🚀 **Minor**.
+5. **Sales and trades log.** `L` — "Sold or traded" next to Remove, an
+   append-only log, its page and CSV; privacy copy. 🚀 **Minor**.
+6. **Owner stats.** `S–M` — signups, cards added per day, public
+   collections, from the existing tables. 🚀 **Minor**.
+7. **Page-view counters.** `L` — first-party, cookieless; only near Phase I.
+   Counters need a store that never evicts (Phase B's Redis evicts keys
+   with a TTL). 🚀 **Minor**.
 
-`L · med` — a set counts one of each card today: owning any print completes
-the number. A switch to master set counts every print the catalogue lists
-(normal, holo, reverse, Poké Ball and Master Ball reverses; stamped prints
-and promos stay out), and the pockets, the printed strip, the % and the
-missing cards' total follow it. The catalogue already knows each card's prints, and
-TCGplayer prices about 94–100% of base prints. Open for the spec: per set or
-per collection, an "any reverse counts" tier, owner default or visitor
-toggle. Research: `RESEARCH-b.md` in `.superpowers/sdd/2026-11-17-differentiator/`.
+## Phase I — Public beta
 
-## Phase 10 — Redesign the owner and staff pages
+`L · low until registration opens` · spec:
+`phase-18-public-beta-prerequisites.md`. Schedule it when registration is
+about to open; the terms review has the longest wait, so it starts first.
 
-`L · med` — `/admin`, `/staff`, auth, legal and error pages still use
-`app.css` and the old primitives (inventory:
-`.superpowers/sdd/2026-11-05-admin-revamp/INVENTORY.md`). Deleting the retired
-`--chrome-*` tokens needs a plan for the legal, auth and error pages too, not
-only `/admin`.
+1. **Terms with real teeth.** `M` — a draft with recorded acceptance
+   (`terms_accepted_at`, `terms_version`). Open: who reviews it (a lawyer,
+   an adapted template, or the draft as is). ✋ Members get the new terms by
+   email 30 days before they apply.
+2. **Mandatory email verification.** `M` — the `verified` gate covers
+   Livewire requests too; an email change unverifies today.
+3. **Signup abuse controls.** `S–M` — per-IP limits, a honeypot, limits on
+   forgot-password and resend.
+4. **Photo moderation.** `M` — a report button, a staff queue, one-click
+   removal (migration).
+5. **Open registration.** ✋ The pre-flight checklist in the spec, then the
+   switch in `/staff/settings`. 🚀 **Major: v2.0.0**.
 
-## Phase 11 — Host: Redis, Postgres and PHP-FPM tuning, backups off the host
-
-`L · med-high` *(prod)* — one batch of production-host changes.
-
-- **Redis.** Give the cache its own instance (a cache wants eviction, a queue
-  must never evict), then set `maxmemory`; consider one shared Redis for the
-  host's projects instead of a second one-off here.
-- **Postgres and PHP-FPM tuning.** `pg_stat_statements`, `track_io_timing` and
-  `work_mem` in one restart; an FPM `max_requests`; `srcset` images.
-- **Copy the backups off the host.** `M · med-high` — losing polaris2 loses
-  the backups too. Cloudflare R2's free tier needs billing enabled on the
-  Cloudflare account first.
-
-## Phase 12 — Slimmer CI/CD
-
-`M · low` — after a short design talk. A feature plus its release runs the
-full suite four times (PR and push to `master`, twice). Constraints: branch
-protection requires `audit`, `test` and `image`, so a workflow-level
-`paths-ignore` would leave them pending and block the merge, and
-`auto-release.yml` waits up to 15 min for `test` on the merge commit. Safe
-levers: job-level conditions (skip `image` when nothing it builds changed), no
-PR run for `release/*`, a warm npm cache for new branches, and a retry on the
-`image` job's `composer install` (it failed once on GitHub 504s).
-
-## Phases 13–16 — Collector features
-
-`L each · low-med` — in this order, which is the likely order of demand; none
-exists yet. Each is its own phase.
-
-- **Phase 13 — Multiple collections.**
-- **Phase 14 — Deck lists.**
-- **Phase 15 — Trade and sale tracking.**
-- **Phase 16 — Usage analytics.**
-
-## Phase 17 — Larastan level 9
-
-`L · low` — most of what level 9 adds is `TcgdexCardCatalogProvider` reading
-tcgdex's JSON as `mixed`. The fix is a parsing layer that validates each field
-before building `CardDetailData` / `PriceEntryData`, with its own tests; then
-raise `phpstan.neon`.
-
-## Phase 18 — Public beta prerequisites
-
-`L · low until registration opens` — mandatory email verification (`User` does
-not implement `MustVerifyEmail`, and invite signup marks the address
-verified), signup abuse controls, uploaded-photo moderation, terms with real
-teeth.
+---
 
 ## Parked
 
-Each waits on a trigger; none is a phase until it fires.
+Each waits on a trigger; none is a part until it fires.
 
-- **The Activity chart in the nightly window** — measure it between 00:00 and
-  01:00 UTC with real traffic, and watch the "activity chart built on a page
-  view" warnings. Build the precomputed per-print table only if one trigger
-  fires: more than 3 page-view builds a week for two weeks, one over 10 s for
-  a non-owner, ten or more public users, a warm run over 200 s, or a second
-  use for per-print daily values.
-- **Automatic links for stamped prints** (Prize Pack group 22880 by name and
-  number) — postponed by the owner; Phase 3's command covers it by hand.
-- **An admin link editor in the UI** — only if Phase 3's command proves too
-  slow.
+- **The Activity chart in the nightly window** — build the precomputed
+  per-print table (design in `.superpowers/roadmap/refs/perf-audit/`) only
+  if one fires: more than 3 page-view builds a week for two weeks, one over
+  10 s for a non-owner, ten or more public users, a warm run over 200 s, or
+  a second use for per-print daily values.
+- **Cache the missing-cards total** next to the deciding rows — if set pages
+  on ~300-card sets show its ~20 ms in production timings.
+- **A per-group `LATERAL … LIMIT 1` for the deciding-rows query** — if the
+  cold `/admin` render after the nightly sync (about 2 s) bothers.
+- **The nightly sync refreshes `sets.card_count`** — if more sets keep
+  growing after release (a stale count hid 26 cards once).
+- **Rename the product-id signals** (the remove-cardmarket plan's S3) —
+  after Phase D; nothing depends on it.
+- **Wishlist alerts by email** — its own spec, after Phase F part 3.
+- **Automatic links for stamped prints** (Prize Pack group 22880 by name
+  and number) — postponed by the owner; `catalog:link-tcgplayer` covers it
+  by hand.
+- **An admin link editor in the UI** — only if `catalog:link-tcgplayer`
+  proves too slow.
 - **A purchase price per copy** — parked by the owner.
-- **The real stamp as an image on a stamped print's tile** — the band carries
-  the stamp's name today. An image would need a hand-cut asset per stamp (no
-  feed publishes them), would cover only the most common few of 120+, and
-  uses official logos; revisit if collectors ask for it.
-- **Why tcgdex sends no TCGplayer price for about half its cards each night**
-  — unanswered upstream.
-- **A collector's photo at real size** (`L`) — crop and straighten the photo
-  to the card's edges on upload, so Actual size can apply to it too. Today
-  only the official art has Actual size, and the card page says so under the
-  photo. Revisit if collectors ask for it now that the landing shows the
-  photo as the second view.
-- **A photo of a real copy on the demo account** — the landing's size act and
-  the demo's card pages show an empty "Your photo" slot. The demo holds chase
-  cards nobody on the team owns (the Umbreon VMAX alt art is about $3,000),
-  so it waits for a photo someone can give with permission; one taken from
-  the web needs its licence checked first. Seeding it is a production write
-  (`demo:seed-gallery` would need a `--photo` option that strips EXIF).
+- **The real stamp as an image on a stamped print's tile** — needs a
+  hand-cut asset per stamp, covers a few of 120+, uses official logos;
+  revisit if collectors ask.
+- **Why tcgdex sends no TCGplayer price for about half its cards each
+  night** — unanswered upstream.
+- **A collector's photo at real size** (`L`) — crop and straighten on
+  upload so Actual size applies to it; revisit if collectors ask.
+- **A photo of a real copy on the demo account** — waits for a photo given
+  with permission (a web photo needs its licence checked); seeding it is a
+  production write (`demo:seed-gallery --photo`, stripping EXIF).
