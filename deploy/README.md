@@ -535,6 +535,14 @@ pre-release dump instead (see Backups).
   is a private bridge used by nothing else on the host — not `space-server_web` — since
   `horizon` exposes no port/service and gains nothing from sitting on the same
   ~25-container shared network `app` needs for Traefik ingress.
+- **Stopping `horizon` waits for its running job.** Compose stops it with SIGTERM (the
+  image's own SIGQUIT is dropped by `php artisan horizon` as PID 1) and gives it 660 s:
+  Horizon stops taking jobs, lets each worker finish and exits within its longest
+  supervisor timeout (600 s). So a deploy, a manual `up -d --force-recreate horizon` or a
+  `stop` can take up to 11 minutes when a long job (the daily tcgcsv pull, a warm) is
+  running, and the queue waits until the new container starts. The deploy step's
+  `command_timeout` (30m) covers that; keep it above the grace period if either changes
+  (`tests/Unit/Deploy/ProductionComposeTest.php` checks both).
 - **The Activity chart's cache outlives price writes.** Its key carries the day, the
   owned prints (card, variant, summed quantity) and the price-history epoch, not the
   price data: a price written today is stamped today and cannot change a past day, and

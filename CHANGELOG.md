@@ -23,6 +23,11 @@ All notable changes to this project are documented here. Format follows
   sort. For a collection with no US dollar price, the Activity chart's
   background warm-up and the page could pick different currencies, and the
   page rebuilt a chart the warm-up had already cached; they now agree.
+- A deploy no longer kills a running background job. The queue container
+  now stops with the signal Horizon listens to and gets 11 minutes to
+  finish its current job, so a deploy during the daily tcgcsv pull or an
+  Activity chart warm-up waits for it instead of leaving it to fail 15
+  minutes later. The deploy step's timeout grows to 30 minutes to match.
 
 ## [1.9.0] - 2026-11-18
 
