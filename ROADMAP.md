@@ -65,12 +65,12 @@ compose file on the host.
    freshness alert; the privacy policy changes in the same release. ✋ The
    owner enables Cloudflare billing and creates the bucket and token first;
    until then go on with the parts below. 🚀 **Minor** (privacy policy).
-
-🚀 **Patch** for part 2 (Postgres statistics and FPM `max_requests`, merged):
-it restarts Postgres, so it goes alone. Seven days after it, read
-`pg_stat_statements` and the temp-file log lines (`deploy/README.md`, "Slow
-queries") and decide `work_mem`.
-
+2. **`work_mem` from real numbers.** `S` — v1.9.2 turned on
+   `pg_stat_statements` and temp-file logging on 2026-11-18. From
+   2026-11-25, read the top statements and the temp-file lines
+   (`deploy/README.md`, "Slow queries") and decide a per-query
+   `SET LOCAL work_mem` or a global raise. 🚀 **Patch** if it changes the
+   compose.
 3. **Redis.** `S` — `maxmemory 96mb` with `volatile-lru` on the shared
    instance (a dedicated cache instance stays the fallback), plus a memory
    and eviction alert. 🚀 **Patch**.
