@@ -907,3 +907,17 @@ test('an owned print with no price of its own shows No price and sorts after the
         ->assertSee('No price')
         ->assertDontSee('$1.77');
 });
+
+test('the value sort takes its candidates in card id order, so a tie keeps one order', function () {
+    seedCollection();
+    $statements = [];
+    DB::listen(function (QueryExecuted $query) use (&$statements) {
+        $statements[] = $query->sql;
+    });
+
+    Livewire::withQueryParams(['sort' => 'value'])->test(Index::class, ['username' => 'carlos']);
+
+    // The grid's own read picks ids only; the stat band's read selects every column.
+    expect(collect($statements)->first(fn (string $sql) => str_starts_with($sql, 'select "cards"."id" from "cards"')))
+        ->toContain('order by "cards"."id" asc limit 600');
+});

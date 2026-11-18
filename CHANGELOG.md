@@ -15,6 +15,15 @@ All notable changes to this project are documented here. Format follows
   0.5 s; the export goes from 112 MB to 57 MB. Searching or filtering the
   list or the grid reuses the cached rows instead of reading new ones.
 
+### Fixed
+
+- The collection, Sets and Activity pages read a collection's cards in a
+  fixed order, so a collection past their card limit counts the same cards
+  on every load, and cards of equal value keep one order under the value
+  sort. For a collection with no US dollar price, the Activity chart's
+  background warm-up and the page could pick different currencies, and the
+  page rebuilt a chart the warm-up had already cached; they now agree.
+
 ## [1.9.0] - 2026-11-18
 
 ### Added

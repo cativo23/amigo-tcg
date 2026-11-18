@@ -483,7 +483,7 @@ test('a feed copy whose card is past the headline\'s card cap is still priced', 
 
     // The same query the page runs, so the same card is left out; its copy
     // becomes the newest, so the feed lists it.
-    $headlineCards = PublicCollection::for($user)->cardsQuery()->take(CollectionValueSeries::MAX_CARDS)->get()->modelKeys();
+    $headlineCards = PublicCollection::for($user)->cardsInIdOrder()->take(CollectionValueSeries::MAX_CARDS)->get()->modelKeys();
     $leftOut = Card::whereKeyNot($headlineCards)->sole();
     CollectionItem::where('card_id', $leftOut->id)->update(['created_at' => $now->copy()->addDay()]);
 

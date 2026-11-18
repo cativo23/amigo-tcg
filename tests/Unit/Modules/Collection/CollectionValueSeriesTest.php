@@ -626,3 +626,51 @@ test('warming sums the totals over card chunks, so its primary currency and keys
         ->and($page['cached'])->toBeTrue()
         ->and($service->warm(PublicCollection::for($this->user), ChartRange::cases()))->toBe(['computed' => 0, 'warm' => 4]);
 });
+
+test('the cards a public page prices are read in id order', function () {
+    ($this->own)('001');
+    $statements = [];
+    DB::listen(function ($query) use (&$statements) {
+        $statements[] = $query->sql;
+    });
+
+    PublicCollection::for($this->user)->cardsInIdOrder()->get();
+
+    expect(collect($statements)->first(fn (string $sql) => str_starts_with($sql, 'select * from "cards"')))
+        ->toContain('order by "cards"."id" asc');
+});
+
+test('warming and the page agree on the primary currency whatever order the rows are stored in', function () {
+    $service = new CollectionValueSeries(new Valuation(new CardPriceResolver));
+    $price = $this->price;
+    // Card 000 alone is priced in EUR and every other card in GBP, so the primary currency is whichever
+    // currency the first card read carries: the two reads agree only if they read the cards in one order.
+    $first = ($this->own)('000');
+    foreach ([40, 0] as $ago) {
+        $price($first, $ago, 100, 'normal', 'cardmarket', 'EUR');
+    }
+    for ($i = 1; $i < CollectionValueSeries::WARM_CHUNK + 5; $i++) {
+        $card = ($this->own)(sprintf('%03d', $i));
+        foreach ([40, 0] as $ago) {
+            $price($card, $ago, 50000, 'normal', 'cardmarket', 'GBP');
+        }
+    }
+
+    $service->warm(PublicCollection::for($this->user), ChartRange::cases());
+    // An update writes a new tuple at the end of the table, so a read in storage order now meets card 000 last.
+    DB::table('cards')->where('id', $first->id)->update(['updated_at' => now()->addSecond()]);
+    DB::table('collection_items')->where('card_id', $first->id)->update(['updated_at' => now()->addSecond()]);
+    $page = $service->forPublicCollection(PublicCollection::for($this->user), ChartRange::OneYear);
+
+    expect($page['currency'])->toBe('EUR')
+        ->and($page['cached'])->toBeTrue();
+});
+
+test('a capped read takes the lowest ids', function () {
+    $cards = collect(['001', '002', '003', '004', '005'])->map(fn (string $localId) => ($this->own)($localId));
+    $lowest = $cards->take(3)->pluck('id')->all();
+    // Rewritten rows move to the end of the table, so a read in storage order would take the other two first.
+    DB::table('cards')->whereIn('id', $lowest)->update(['updated_at' => now()->addSecond()]);
+
+    expect(PublicCollection::for($this->user)->cardsInIdOrder()->take(3)->get()->modelKeys())->toBe($lowest);
+});
