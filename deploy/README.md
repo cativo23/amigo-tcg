@@ -439,9 +439,11 @@ so there are at most five of each and a restore can go back at most five
 days. The privacy policy states that period, so change both together
 (`tests/Unit/Deploy/ProductionComposeTest.php` checks they agree). The
 files are root-owned `0600` because they hold every member's email and
-password hash, so read them through a container. The scheduler's `backups:check-freshness` (06:00 UTC)
-posts to Discord if either kind is missing or older than 26 h, or if the
-disk has less than 5 GB free.
+password hash, so read them through a container. The scheduler's
+`backups:check-freshness` (06:00 UTC) posts to Discord if either kind is
+missing or older than 26 h, or if the disk has less than 5 GB free. Act on
+that alert within a few days: pruning keeps running while backups fail, so
+after about 5 days of failures no backup is left.
 
 **These copies live on the same server.** They cover a bad migration, a
 wrong delete or a corrupt volume, not losing polaris2. Copying them off the
