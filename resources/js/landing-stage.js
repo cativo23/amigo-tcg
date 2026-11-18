@@ -146,7 +146,7 @@ if (document.getElementById('stage')) {
     this.heroTag = hangTag(ORDER[0], true, 48, 34, 'M48 34 C 30 34, 12 26, 1 1');
     this.heroOv.appendChild(this.heroTag);
 
-    /* the total: travels from the page head onto the price slip */
+    /* the total: sits in the page head, fades out while the mat is up and back in on the price slip */
     this.total = el('div', 'ov total');
     var tv = money(D.total).split('.');
     this.total.appendChild(document.createTextNode(tv[0]));
@@ -345,7 +345,9 @@ if (document.getElementById('stage')) {
     var pair = pad + mc.w * 2 + gap * 1.6 <= R.w;
     var groupW = pad + (pair ? mc.w * 2 + gap : mc.w * 1.3);
     var ox = R.x + Math.max(0, (R.w - groupW) / 2) + pad;
-    var oy = R.y + pad + Math.max(0, (R.h - pad - mc.h - capH) * .45);
+    /* a narrow stage is shorter than the card plus its copy: the caption goes above the rulers there, so the copy
+     * underneath can only ever cover the card's foot, never the line that says the size is approximate */
+    var oy = m ? R.y + capH + pad : R.y + pad + Math.max(0, (R.h - pad - mc.h - capH) * .45);
     var c = ORDER[0];
     out[c.id] = { x: ox, y: oy, w: mc.w, r: 0, o: 1 };
     out[c.id].enter = { x: ox, y: oy - mc.h * .3, w: mc.w, r: -3 };
@@ -500,10 +502,11 @@ if (document.getElementById('stage')) {
     var slotLab = el('span', 'mat-slot-lab', 'Your photo'); slot.appendChild(slotLab);
     if (M.pair) { put(slot, M.ox + mc.w + M.gap, M.oy + 6 * mmPx, mc.w, mc.h); slot.style.transform = 'rotate(2.5deg)'; }
     else { put(slot, Math.min(M.ox + mc.w * .3, M.R.x + M.R.w - mc.w), M.oy + 4 * mmPx, mc.w, mc.h); slot.style.transform = 'rotate(3deg)'; slot.classList.add('peek'); }
-    /* on a narrow stage the caption starts at the stage edge so it stays on one line */
-    var cap = el('p', 'mat-cap', mc.caption); put(cap, m ? M.R.x : M.ox, M.oy + mc.h + 12);
+    /* on a narrow stage the caption sits above the rulers, from the stage edge, so it stays on one line */
+    var cap = el('p', 'mat-cap', mc.caption); put(cap, m ? M.R.x : M.ox, m ? M.R.y : M.oy + mc.h + 12);
     /* on a narrow screen the copy sits under the stage, so the mat stops where the stage does */
-    this.matBg.style.bottom = m && !this.still ? (this.H - (this.H * .54)).toFixed(1) + 'px' : '';
+    this.matH = m && !this.still ? this.H * .54 : this.H;
+    this.matBg.style.bottom = this.matH < this.H ? (this.H - this.matH).toFixed(1) + 'px' : '';
     [slot, rh, rv, hh, hv, cap].forEach(function (e) { self.matTop.appendChild(e); });
     /* the loupe: a circle that shows the high-resolution art at LOUPE_ZOOM, moved with transforms only */
     var L = m ? 104 : 148;
@@ -592,7 +595,7 @@ if (document.getElementById('stage')) {
     if (a === MAT - 1 && b === MAT && G) {
       var sx = G.R.x, sy = G.R.y, gw = Math.max(this.gridBox.w, this.setsBox.w), gh = Math.max(this.gridBox.h, this.setsBox.h);
       var k2 = ease(clamp(t * 1.4));
-      var tx = lerp(sx, 0, k2), ty = lerp(sy, 0, k2), scx = lerp(gw / this.W, 1, k2), scy = lerp(gh / this.H, 1, k2);
+      var tx = lerp(sx, 0, k2), ty = lerp(sy, 0, k2), scx = lerp(gw / this.W, 1, k2), scy = lerp(gh / this.matH, 1, k2);
       this.matBg.style.transform = 'translate3d(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px,0) scale(' + scx.toFixed(4) + ',' + scy.toFixed(4) + ')';
     } else this.matBg.style.transform = '';
     this.matTop.style.opacity = clamp((wm - .5) * 2).toFixed(3);
