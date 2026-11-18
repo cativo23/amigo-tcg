@@ -205,7 +205,7 @@ services:
       PGUSER: ${DB_USERNAME}
       PGPASSWORD: ${DB_PASSWORD}
       BACKUP_HOUR: 3
-      BACKUP_KEEP_DAYS: 14
+      BACKUP_KEEP_DAYS: 5
     depends_on:
       postgres: { condition: service_healthy }
     volumes:
