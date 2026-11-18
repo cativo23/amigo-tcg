@@ -142,13 +142,13 @@ test('postgres preloads pg_stat_statements, times I/O and logs temp files', func
     // shared_preload_libraries only takes effect on a server start, which is
     // why all three ride the same restart.
     $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
-    $command = $compose['services']['postgres']['command'];
+    $command = array_values($compose['services']['postgres']['command']);
 
     foreach (['shared_preload_libraries=pg_stat_statements', 'track_io_timing=on', 'log_temp_files=10MB'] as $setting) {
         $at = array_search($setting, $command, true);
+        expect($at)->toBeInt("postgres command lacks {$setting}");
 
-        expect($at)->not->toBeFalse("postgres command lacks {$setting}")
-            ->and($command[$at - 1] ?? null)->toBe('-c', "{$setting} is not passed with -c");
+        expect($command[(int) $at - 1] ?? null)->toBe('-c', "{$setting} is not passed with -c");
     }
 });
 
