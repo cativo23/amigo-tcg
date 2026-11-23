@@ -328,3 +328,12 @@ test('a trailing number and a plain-number total in the name still match a produ
 
     expect($outcomes['holofoil']['status'])->toBe('new');
 });
+
+test('a placeholder card is judged on its inferred variants, not on its single normal', function () {
+    $card = identityCard('me06-106', 'Growlithe', ['normal' => true], ['variants_detailed' => [['type' => 'normal', 'size' => 'standard', 'variantId' => 'generated']]]);
+    $card->update(['inferred_variants' => ['holofoil', 'reverse-holofoil']]);
+
+    $outcomes = identityOutcomes($card->fresh(), identityFeed(24451, [709970 => ['name' => 'Growlithe -  106', 'number' => '106', 'subTypes' => ['Holofoil', 'Reverse Holofoil']]]));
+
+    expect(array_keys($outcomes))->toBe(['holofoil', 'reverse-holofoil']);
+});

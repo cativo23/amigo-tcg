@@ -189,7 +189,7 @@ class TcgplayerIdentityMatcher
         $lone = $this->loneStampedKey($raw);
         $prints = [];
 
-        foreach (CardVariants::available($card->variants ?? [], $raw) as $key) {
+        foreach (CardVariants::available($card->variants ?? [], $raw, $card->inferred_variants) as $key) {
             if (! CardVariants::isSpecial($key)) {
                 $prints[$key] = $key === $lone;
             }

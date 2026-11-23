@@ -979,3 +979,43 @@ test('the set grid shows an owned card\'s latest price however long its history'
         ->and($entry['snapshot']->currency)->toBe('USD')
         ->and($entry['card']->priceSnapshots->count())->toBeLessThan(10);
 });
+
+function setGridInferredCard(array $inferred): Card
+{
+    $set = Set::where('tcgdex_id', 'me05')->firstOrFail();
+
+    return Card::create([
+        'tcgdex_id' => 'me05-020', 'set_id' => $set->id, 'local_id' => '020', 'name' => 'Growlithe',
+        'variants' => ['normal' => true, 'reverse' => false, 'holo' => false],
+        'raw' => ['variants_detailed' => [['type' => 'normal', 'size' => 'standard', 'variantId' => 'generated']]],
+        'inferred_variants' => $inferred,
+    ]);
+}
+
+test('a tile of a placeholder card offers its inferred variants as chips, with no marker', function () {
+    setGridUser();
+    setGridFixture();
+    $card = setGridInferredCard(['holofoil', 'reverse-holofoil']);
+
+    $component = Livewire::test(SetGrid::class, ['setTcgdexId' => 'me05']);
+
+    expect(setGridEntry($component, $card)['chips'])->toBe([
+        ['variant' => 'holofoil', 'label' => 'Holofoil', 'count' => 0],
+        ['variant' => 'reverse-holofoil', 'label' => 'Reverse Holofoil', 'count' => 0],
+    ]);
+});
+
+test('quickAdd accepts a variant from a placeholder card\'s inferred list and refuses the rest', function () {
+    setGridUser();
+    setGridFixture();
+    $card = setGridInferredCard(['holofoil', 'reverse-holofoil']);
+
+    Livewire::test(SetGrid::class, ['setTcgdexId' => 'me05'])
+        ->call('quickAdd', $card->id, 'holofoil')
+        ->assertReturned(fn (array $result) => $result['ok'] === true);
+    Livewire::test(SetGrid::class, ['setTcgdexId' => 'me05'])
+        ->call('quickAdd', $card->id, 'normal')
+        ->assertReturned(fn (array $result) => $result['ok'] === false);
+
+    expect(CollectionItem::sole()->variant)->toBe('holofoil');
+});

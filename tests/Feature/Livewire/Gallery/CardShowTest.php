@@ -1255,3 +1255,20 @@ test('the card script bundle carries the plate tools', function () {
 
     expect($bundle)->toContain('tcg-vault-cal')->toContain('crd:view');
 });
+
+test('the card page shows a placeholder card\'s inferred variants and files the whole-card read under the home one', function () {
+    $seed = seedCardPage();
+    $seed['card']->update([
+        'variants' => ['normal' => true],
+        'raw' => ['variants_detailed' => [['type' => 'normal', 'size' => 'standard', 'variantId' => 'generated']]],
+        'inferred_variants' => ['holofoil', 'reverse-holofoil'],
+    ]);
+    CardPriceSnapshot::create(['card_id' => $seed['card']->id, 'source' => 'cardmarket', 'variant' => 'default', 'captured_on' => today(), 'currency' => 'EUR', 'market_minor' => 37]);
+    ownCopy($seed, 'holofoil');
+
+    $component = Livewire::withQueryParams(['variant' => 'holofoil'])
+        ->test(CardShow::class, ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '116']);
+
+    expect($component->viewData('pills')->pluck('key')->all())->toBe(['holofoil', 'reverse-holofoil'])
+        ->and($component->viewData('marketReads')->pluck('variant')->all())->toContain('default');
+});
