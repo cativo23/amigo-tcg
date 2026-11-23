@@ -20,10 +20,6 @@ All notable changes to this project are documented here. Format follows
 - The daily price-coverage report on Discord also names each set whose cards
   use a deduced variant list, and says once when a set stops being one.
 
-- Nightly backups are kept for 5 days instead of 14, so there are never
-  more than five copies, and a deleted account is gone from them within 5
-  days. The privacy policy says so.
-
 ### Deploy notes
 
 - Adds two nullable columns (`sets.variant_counts`, `cards.inferred_variants`),
@@ -35,6 +31,17 @@ All notable changes to this project are documented here. Format follows
   cards keep the lists they have today; the lists fill in by themselves that
   night. `php artisan catalog:import-set me06` fills them at once, but syncs the
   set's cards outside the queue's rate limiter.
+
+## [1.10.0] - 2026-11-23
+
+### Changed
+
+- Nightly backups are kept for 5 days instead of 14, so there are never
+  more than five copies, and a deleted account is gone from them within 5
+  days. The privacy policy says so.
+
+### Deploy notes
+
 - Recreates the `backup` service. Its first pass deletes every backup older
   than about 5 days at once, which cannot be undone. Release outside the
   03:00 backup run.
