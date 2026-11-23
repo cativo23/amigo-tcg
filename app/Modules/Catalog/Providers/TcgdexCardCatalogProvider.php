@@ -164,7 +164,39 @@ final class TcgdexCardCatalogProvider implements CardCatalogProvider
             // set has one (older/promo sets), so this stays null rather
             // than falling back to a made-up abbreviation.
             abbreviation: $json['abbreviation']['official'] ?? null,
+            variantCounts: $this->variantCounts($json['cardCount'] ?? null),
         );
+    }
+
+    /**
+     * The set's print counts when the payload carries normal, holo and reverse
+     * as non-negative integers, else null: a missing count is unknown, never
+     * zero. Zero for all three is how tcgdex marks a set it has not filled in.
+     *
+     * @return array{normal: int, holo: int, reverse: int, firstEd: int}|null
+     */
+    private function variantCounts(mixed $cardCount): ?array
+    {
+        if (! is_array($cardCount)) {
+            return null;
+        }
+
+        $counts = [];
+
+        foreach (['normal', 'holo', 'reverse'] as $key) {
+            $value = $cardCount[$key] ?? null;
+
+            if (! is_int($value) || $value < 0) {
+                return null;
+            }
+
+            $counts[$key] = $value;
+        }
+
+        $firstEd = $cardCount['firstEd'] ?? 0;
+        $counts['firstEd'] = is_int($firstEd) && $firstEd >= 0 ? $firstEd : 0;
+
+        return $counts;
     }
 
     public function listSets(): array

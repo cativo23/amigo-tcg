@@ -424,6 +424,69 @@ test('findSet leaves the abbreviation null for a set tcgdex has none for', funct
     expect($set->abbreviation)->toBeNull();
 });
 
+function fakeTcgdexSetWithCounts(array $cardCount): TcgdexCardCatalogProvider
+{
+    Http::fake([
+        'api.tcgdex.net/v2/en/sets/me06' => Http::response([
+            'id' => 'me06',
+            'name' => 'Delta Reign',
+            'cardCount' => $cardCount,
+        ], 200),
+    ]);
+
+    return new TcgdexCardCatalogProvider(config('tcgdex.base_url'));
+}
+
+test('findSet reads the set\'s variant counts', function () {
+    $set = fakeTcgdexSetWithCounts([
+        'total' => 120, 'official' => 84, 'normal' => 68, 'holo' => 58, 'reverse' => 74, 'firstEd' => 0,
+    ])->findSet('me06');
+
+    expect($set->variantCounts)->toEqual(['normal' => 68, 'holo' => 58, 'reverse' => 74, 'firstEd' => 0]);
+});
+
+test('findSet records zero counts as zero, never as missing', function () {
+    $set = fakeTcgdexSetWithCounts([
+        'total' => 141, 'official' => 103, 'normal' => 0, 'holo' => 0, 'reverse' => 0, 'firstEd' => 0,
+    ])->findSet('me06');
+
+    expect($set->variantCounts)->toEqual(['normal' => 0, 'holo' => 0, 'reverse' => 0, 'firstEd' => 0]);
+});
+
+test('findSet treats an absent firstEd as zero', function () {
+    $set = fakeTcgdexSetWithCounts([
+        'total' => 141, 'normal' => 3, 'holo' => 2, 'reverse' => 1,
+    ])->findSet('me06');
+
+    expect($set->variantCounts)->toEqual(['normal' => 3, 'holo' => 2, 'reverse' => 1, 'firstEd' => 0]);
+});
+
+test('findSet stores no counts when a payload lacks any of normal, holo and reverse', function (array $cardCount) {
+    expect(fakeTcgdexSetWithCounts($cardCount)->findSet('me06')->variantCounts)->toBeNull();
+})->with([
+    'none of them' => [['total' => 141, 'official' => 103]],
+    'no reverse' => [['total' => 141, 'normal' => 1, 'holo' => 1]],
+    'no holo' => [['total' => 141, 'normal' => 1, 'reverse' => 1]],
+    'no normal' => [['total' => 141, 'holo' => 1, 'reverse' => 1]],
+]);
+
+test('findSet stores no counts when a count is negative or not a number', function (array $cardCount) {
+    expect(fakeTcgdexSetWithCounts($cardCount)->findSet('me06')->variantCounts)->toBeNull();
+})->with([
+    'negative' => [['total' => 141, 'normal' => -1, 'holo' => 0, 'reverse' => 0]],
+    'text' => [['total' => 141, 'normal' => 'many', 'holo' => 0, 'reverse' => 0]],
+    'float' => [['total' => 141, 'normal' => 1.5, 'holo' => 0, 'reverse' => 0]],
+    'null' => [['total' => 141, 'normal' => null, 'holo' => 0, 'reverse' => 0]],
+]);
+
+test('findSet drops every key of the payload that is not a known count', function () {
+    $set = fakeTcgdexSetWithCounts([
+        'total' => 141, 'official' => 103, 'normal' => 1, 'holo' => 2, 'reverse' => 3, 'firstEd' => 4, 'surprise' => 9,
+    ])->findSet('me06');
+
+    expect(array_keys($set->variantCounts))->toEqualCanonicalizing(['normal', 'holo', 'reverse', 'firstEd']);
+});
+
 test('findSet throws SetNotFoundException on a 404', function () {
     Http::fake([
         'api.tcgdex.net/v2/en/sets/does-not-exist' => Http::response(null, 404),

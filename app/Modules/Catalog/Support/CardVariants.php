@@ -46,6 +46,9 @@ final class CardVariants
     /** Well under collection_items.variant's 255, with room to spare. */
     private const MAX_KEY_LENGTH = 120;
 
+    /** The variant id tcgdex gives the print it invents for a card it has not filled in. */
+    private const PLACEHOLDER_ID = 'generated';
+
     /**
      * tcgdex's own `foil` and `stamp` vocabulary (VariantStamps and
      * variant_detailed.foil in tcgdex/cards-database interfaces.d.ts), plus
@@ -118,10 +121,17 @@ final class CardVariants
     /**
      * @param  array<string, mixed>  $tcgdexVariants  a Card's `variants` column
      * @param  array<string, mixed>  $raw  the card's full tcgdex payload (a Card's `raw` column)
+     * @param  array<int, string>|null  $inferred  a Card's `inferred_variants` column: the base variants deduced while
+     *                                             tcgdex has not filled the card's prints in. Used only while the card is
+     *                                             still placeholder-only; null or empty changes nothing.
      * @return array<int, string>
      */
-    public static function available(array $tcgdexVariants, array $raw = []): array
+    public static function available(array $tcgdexVariants, array $raw = [], ?array $inferred = null): array
     {
+        if ($inferred !== null && $inferred !== [] && self::isPlaceholderOnly($raw)) {
+            return array_values(array_intersect(self::ORDER, $inferred));
+        }
+
         $mapped = collect(self::MAP)
             ->filter(fn (string $_, string $tcgdex) => ($tcgdexVariants[$tcgdex] ?? false) === true)
             ->values()
@@ -153,6 +163,65 @@ final class CardVariants
             ->all();
 
         return [...collect(self::ORDER)->intersect($mapped)->diff($onlySpecial)->values()->all(), ...$special];
+    }
+
+    /**
+     * Whether tcgdex has not filled in the card's prints: it lists at least one
+     * entry in `variants_detailed` and every one is the placeholder it invents.
+     *
+     * @param  array<string, mixed>  $raw  the card's full tcgdex payload
+     */
+    public static function isPlaceholderOnly(array $raw): bool
+    {
+        $detailed = $raw['variants_detailed'] ?? null;
+
+        if (! is_array($detailed) || $detailed === []) {
+            return false;
+        }
+
+        foreach ($detailed as $entry) {
+            if (! is_array($entry) || ($entry['variantId'] ?? null) !== self::PLACEHOLDER_ID) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * The base variants of a card whose set tcgdex has not filled in, taken from
+     * the TCGplayer price labels held for it, or null when the rule does not
+     * apply: the set's counts are unknown or report any print, the card has real
+     * print entries, or no label is one of the three base variants. Never a
+     * special print: only normal, holofoil and reverse-holofoil are returned.
+     *
+     * @param  array<string, mixed>  $raw  the card's full tcgdex payload
+     * @param  array<int, string>  $tcgplayerLabels  variant labels of the card's recent TCGplayer prices
+     * @param  array<string, int>|null  $setCounts  the set's recorded variant counts
+     * @return array<int, string>|null
+     */
+    public static function inferUnconfirmed(array $raw, array $tcgplayerLabels, ?array $setCounts): ?array
+    {
+        if ($setCounts === null || ! self::reportsNoPrints($setCounts) || ! self::isPlaceholderOnly($raw)) {
+            return null;
+        }
+
+        $labels = array_values(array_intersect(self::ORDER, $tcgplayerLabels));
+
+        return $labels === [] ? null : $labels;
+    }
+
+    /**
+     * Whether a set reports no normal, holo or reverse print at all, the state
+     * tcgdex leaves a set in until it fills the prints in.
+     *
+     * @param  array<string, int>  $setCounts
+     */
+    private static function reportsNoPrints(array $setCounts): bool
+    {
+        return ($setCounts['normal'] ?? null) === 0
+            && ($setCounts['holo'] ?? null) === 0
+            && ($setCounts['reverse'] ?? null) === 0;
     }
 
     /**
