@@ -751,3 +751,22 @@ test('searchCardsByName sends the query as a URL parameter, never string-interpo
         return str_starts_with($request->url(), 'https://api.tcgdex.net/v2/en/cards?name=');
     });
 });
+
+test('a placeholder card\'s cardmarket rows carry the labels they carry without any deduced list', function () {
+    Http::fake(['api.tcgdex.net/v2/en/cards/me06-001' => Http::response([
+        'id' => 'me06-001', 'localId' => '001', 'name' => 'Mega Rayquaza Cap',
+        'set' => ['id' => 'me06', 'name' => 'Delta Reign'],
+        'variants' => ['normal' => true, 'holo' => false, 'reverse' => false],
+        'variants_detailed' => [['type' => 'normal', 'size' => 'standard', 'variantId' => 'generated']],
+        'pricing' => [
+            'cardmarket' => ['unit' => 'EUR', 'avg' => 0.25, 'avg-holo' => 0.63],
+            'tcgplayer' => ['unit' => 'USD', 'normal' => ['marketPrice' => 0.24], 'reverse-holofoil' => ['marketPrice' => 0.57]],
+        ],
+    ], 200)]);
+
+    $card = (new TcgdexCardCatalogProvider(config('tcgdex.base_url')))->findCard('me06-001');
+    $bySource = fn (string $source) => $card->prices->toCollection()->where('source', $source)->pluck('variant')->all();
+
+    expect($bySource('cardmarket'))->toBe(['normal'])
+        ->and($bySource('tcgplayer'))->toBe(['normal', 'reverse-holofoil']);
+});

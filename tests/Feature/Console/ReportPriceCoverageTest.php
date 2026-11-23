@@ -9,6 +9,7 @@ use App\Modules\Catalog\Models\CardTcgplayerLink;
 use App\Modules\Catalog\Models\Set;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
@@ -224,4 +225,53 @@ test('a finding is repeated once its quiet week is over', function () {
     $this->artisan('catalog:report-price-coverage')->assertSuccessful();
 
     expect(coverageAlerts())->toBe(2);
+});
+
+function coverageUnconfirmedCard(string $tcgdexId = 'me06-001', string $setId = 'me06'): Card
+{
+    $card = coverageCard($tcgdexId, setId: $setId);
+    $card->update(['inferred_variants' => ['normal', 'reverse-holofoil']]);
+    coverageFreshSources($card);
+
+    return $card;
+}
+
+test('a set whose cards use deduced variants is named with its card count', function () {
+    coverageUnconfirmedCard('me06-001');
+    coverageUnconfirmedCard('me06-002');
+
+    $this->artisan('catalog:report-price-coverage')->assertSuccessful();
+
+    Http::assertSent(fn ($request) => str_contains($request['content'], 'me06') && str_contains($request['content'], '2 card'));
+});
+
+test('a set that stays unconfirmed is announced once under the repeat rule', function () {
+    coverageUnconfirmedCard();
+
+    $this->artisan('catalog:report-price-coverage')->assertSuccessful();
+    $this->artisan('catalog:report-price-coverage')->assertSuccessful();
+
+    expect(coverageAlerts())->toBe(1);
+});
+
+test('a set that stops being unconfirmed is announced once, even after the per-finding record expired', function () {
+    $card = coverageUnconfirmedCard();
+    $this->artisan('catalog:report-price-coverage')->assertSuccessful();
+    Cache::forget('price-coverage:reported:unconfirmed:me06');
+    $card->update(['inferred_variants' => null]);
+
+    $this->artisan('catalog:report-price-coverage')->assertSuccessful();
+    $this->artisan('catalog:report-price-coverage')->assertSuccessful();
+
+    expect(coverageAlerts())->toBe(2);
+    Http::assertSent(fn ($request) => str_contains($request['content'], 'me06') && str_contains($request['content'], 'no longer'));
+});
+
+test('the first run seeds the sets last seen without announcing a stop', function () {
+    $card = coverageCard('me05-001', setId: 'me05');
+    coverageFreshSources($card);
+
+    $this->artisan('catalog:report-price-coverage')->assertSuccessful();
+
+    expect(coverageAlerts())->toBe(0);
 });

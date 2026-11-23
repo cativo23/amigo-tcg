@@ -148,3 +148,106 @@ test('the cards of a set with no TCGplayer rows keep the list they have today', 
     expect($card->inferred_variants)->toBeNull();
     expect(Card::where('tcgdex_id', 'me06-001')->sole()->inferred_variants)->toBeNull();
 });
+
+/** @return array<string, mixed> */
+function uvsRealRaw(): array
+{
+    return ['id' => 'me06-001', 'variants_detailed' => [
+        ['type' => 'normal', 'size' => 'standard', 'variantId' => 'a1b2c3'],
+        ['type' => 'reverse', 'size' => 'standard', 'variantId' => 'd4e5f6'],
+    ]];
+}
+
+/**
+ * @param  list<string>  $labels
+ * @param  array<string, mixed>  $raw
+ * @param  array{normal: int, holo: int, reverse: int, firstEd: int}|null  $counts
+ */
+function uvsSyncWith(array $labels, array $raw, ?array $counts): Card
+{
+    $detail = uvsDetail($labels);
+    $detail->raw = $raw;
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me06-001')->andReturn($detail);
+    $provider->shouldReceive('findSet')->with('me06')->andReturn(new SetSummaryData(
+        tcgdexId: 'me06', name: 'Delta Reign', series: null, releasedOn: null, cardCount: null, logoUrl: null,
+        variantCounts: $counts,
+    ));
+
+    return (new CatalogSyncService($provider))->syncCard('me06-001');
+}
+
+test('a card is never given a deduced list outside the unconfirmed gate, whatever its TCGplayer rows say', function (array $raw, ?array $counts) {
+    uvsStoredCard($counts ?? ['normal' => 80, 'holo' => 60, 'reverse' => 70, 'firstEd' => 0]);
+    if ($counts === null) {
+        Set::where('tcgdex_id', 'me06')->update(['variant_counts' => null]);
+    }
+
+    $card = uvsSyncWith(['normal', 'holofoil'], $raw, $counts);
+
+    expect($card->inferred_variants)->toBeNull()
+        ->and(CardVariants::available($card->variants, $card->raw, $card->inferred_variants))
+        ->toBe(CardVariants::available($card->variants, $card->raw));
+})->with([
+    'a confirmed set, placeholder card' => [fn () => uvsPlaceholderRaw(), ['normal' => 80, 'holo' => 60, 'reverse' => 70, 'firstEd' => 0]],
+    'counts never recorded' => [fn () => uvsPlaceholderRaw(), null],
+    'zero counts but real print entries' => [fn () => uvsRealRaw(), ['normal' => 0, 'holo' => 0, 'reverse' => 0, 'firstEd' => 0]],
+]);
+
+test('a previously inferred card is cleared when tcgdex fills its prints in, and available() already ignores the stale list', function () {
+    $card = uvsStoredCard();
+    $card->update(['inferred_variants' => ['normal', 'reverse-holofoil']]);
+
+    expect(CardVariants::available(['normal' => true, 'reverse' => true], uvsRealRaw(), ['normal', 'reverse-holofoil', 'holofoil']))
+        ->toBe(CardVariants::available(['normal' => true, 'reverse' => true], uvsRealRaw()));
+
+    $synced = uvsSyncWith(['normal', 'reverse-holofoil'], uvsRealRaw(), ['normal' => 0, 'holo' => 0, 'reverse' => 0, 'firstEd' => 0]);
+
+    expect($synced->inferred_variants)->toBeNull();
+});
+
+test('a previously inferred card is cleared when its set starts reporting prints', function () {
+    $card = uvsStoredCard();
+    $card->update(['inferred_variants' => ['normal', 'reverse-holofoil']]);
+
+    $synced = uvsSyncWith(['normal', 'reverse-holofoil'], uvsPlaceholderRaw(), ['normal' => 80, 'holo' => 60, 'reverse' => 70, 'firstEd' => 0]);
+
+    expect($synced->inferred_variants)->toBeNull();
+});
+
+test('two nightly syncs give the identical list', function () {
+    uvsStoredCard();
+
+    $first = uvsSync(['normal', 'reverse-holofoil'])->inferred_variants;
+    $second = uvsSync(['normal', 'reverse-holofoil'])->inferred_variants;
+
+    expect($second)->toBe($first)->toBe(['normal', 'reverse-holofoil']);
+});
+
+test('a night tcgdex omits the card\'s prices keeps the list while earlier rows are in the window and clears it beyond', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-20 10:00', 'UTC'));
+    uvsStoredCard();
+    uvsSync(['normal', 'reverse-holofoil']);
+
+    $this->travelTo(CarbonImmutable::parse('2026-11-21 10:00', 'UTC'));
+    $nextNight = uvsSync()->inferred_variants;
+
+    $this->travelTo(CarbonImmutable::parse('2026-11-23 10:00', 'UTC'));
+    $atEdge = uvsSync()->inferred_variants;
+
+    $this->travelTo(CarbonImmutable::parse('2026-11-24 10:00', 'UTC'));
+    $beyond = uvsSync()->inferred_variants;
+
+    expect($nextNight)->toBe(['normal', 'reverse-holofoil'])
+        ->and($atEdge)->toBe(['normal', 'reverse-holofoil'])
+        ->and($beyond)->toBeNull();
+});
+
+test('the deduced list never reaches a price write', function () {
+    $card = uvsStoredCard();
+    $card->update(['inferred_variants' => ['normal', 'reverse-holofoil']]);
+
+    uvsSync();
+
+    expect(CardPriceSnapshot::where('card_id', $card->id)->count())->toBe(0);
+});
