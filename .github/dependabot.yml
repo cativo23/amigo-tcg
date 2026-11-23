@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # postgres and redis are pinned by version and digest in the production
+  # compose file (deploy/README.md, "Updating postgres and redis"). One weekly
+  # PR keeps both current; major versions are ignored on purpose.
+  - package-ecosystem: docker-compose
+    directory: /docker/prod
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      stock-images:
+        patterns:
+          - "postgres"
+          - "redis"
+    ignore:
+      - dependency-name: "postgres"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "redis"
+        update-types: ["version-update:semver-major"]
