@@ -71,3 +71,17 @@ test('a placeholder card chips its inferred variants with the usual labels and n
         ['variant' => 'reverse-holofoil', 'label' => 'Reverse Holofoil', 'count' => 0],
     ]);
 });
+
+test('a copy saved under a variant the inferred list no longer offers keeps its own chip', function () {
+    [$collection, $card] = chipCard(['normal' => true]);
+    $card->update([
+        'raw' => ['variants_detailed' => [['type' => 'normal', 'size' => 'standard', 'variantId' => 'generated']]],
+        'inferred_variants' => ['holofoil'],
+    ]);
+    chipItem($collection, $card, 'normal', 3);
+
+    expect(VariantChips::for($card->fresh(), $card->collectionItems()->get()))->toBe([
+        ['variant' => 'holofoil', 'label' => 'Holofoil', 'count' => 0],
+        ['variant' => 'normal', 'label' => 'Normal', 'count' => 3],
+    ]);
+});

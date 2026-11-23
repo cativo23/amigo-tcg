@@ -1652,3 +1652,29 @@ test('the editor offers a placeholder card\'s inferred variants instead of its s
         ->call('openCardEditor', $card->id)
         ->assertSet('editingAvailableVariants', ['holofoil', 'reverse-holofoil']);
 });
+
+test('a copy saved as normal on a card that now offers only holofoil stays selectable and can be moved', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    $set = Set::create(['tcgdex_id' => 'me06', 'name' => 'Delta Reign']);
+    $card = Card::create([
+        'tcgdex_id' => 'me06-106', 'set_id' => $set->id, 'local_id' => '106', 'name' => 'Growlithe',
+        'variants' => ['normal' => true],
+        'raw' => ['variants_detailed' => [['type' => 'normal', 'size' => 'standard', 'variantId' => 'generated']]],
+        'inferred_variants' => ['holofoil'],
+    ]);
+    $collection = Collection::factory()->for($user)->create(['name' => 'Main', 'slug' => 'main']);
+    $item = CollectionItem::create([
+        'collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me06-106',
+        'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1,
+    ]);
+
+    Livewire::test(CardEditor::class)
+        ->call('openCardEditor', $card->id)
+        ->assertSet('editingAvailableVariants', ['holofoil', 'normal'])
+        ->assertSet('editingRows.0.variant', 'normal')
+        ->set('editingRows.0.variant', 'holofoil')
+        ->call('updateRow', 0);
+
+    expect($item->fresh()->variant)->toBe('holofoil');
+});

@@ -1019,3 +1019,17 @@ test('quickAdd accepts a variant from a placeholder card\'s inferred list and re
 
     expect(CollectionItem::sole()->variant)->toBe('holofoil');
 });
+
+test('quickAdd still adds a variant the owner holds although the inferred list no longer offers it', function () {
+    $user = setGridUser();
+    setGridFixture();
+    $card = setGridInferredCard(['holofoil']);
+    setGridOwn($user, $card, ['variant' => 'normal']);
+
+    Livewire::test(SetGrid::class, ['setTcgdexId' => 'me05'])
+        ->call('quickAdd', $card->id, 'normal')
+        ->assertReturned(fn (array $result) => $result['ok'] === true && $result['variantCount'] === 2);
+    Livewire::test(SetGrid::class, ['setTcgdexId' => 'me05'])
+        ->call('quickAdd', $card->id, 'reverse-holofoil')
+        ->assertReturned(fn (array $result) => $result['ok'] === false);
+});
