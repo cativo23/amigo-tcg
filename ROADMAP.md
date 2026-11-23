@@ -32,6 +32,10 @@ under `[Unreleased]`.
 
 **Exceptions.**
 - A production data-integrity bug ships alone, right away, as a patch.
+- A `postgres` or `redis` update that fixes a security issue (found in the
+  weekly Dependabot PR or an advisory) ships alone as a patch within 7 days,
+  not waiting for the next 🚀. The rules below still hold: it recreates
+  stock services, so it is a host-changing release.
 - Never two releases that change the host (compose, `.env`, Postgres,
   Redis) on the same day, and never one of those together with a migration.
 - No release inside the nightly windows (00:00–01:00, 03:00–03:15,

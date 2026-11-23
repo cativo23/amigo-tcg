@@ -559,9 +559,10 @@ newer version or a rebuilt digest. Major versions are ignored: Postgres 18 needs
 dump and restore or `pg_upgrade`, and Redis 8 is a licence and behaviour change,
 each its own project.
 
-1. Read the PR's release notes. Whether the update ships alone as a patch or rides
-   the next planned release is the owner's call; either way never inside a nightly
-   window and never on a day another release changed the host.
+1. Read the PR's release notes. An update that fixes a security issue ships alone as
+   a patch within 7 days (ROADMAP, "Releases"); any other rides the next planned
+   release. Either way never inside a nightly window and never on a day another
+   release changed the host.
 2. `postgres` and `backup` always change together, to the same pin.
 3. Before the release: `cp -p compose.prod.yml compose.prod.yml.bak-pre-<tag>` on the
    host, then a dry run over stdin that shows only the changed services recreated.
