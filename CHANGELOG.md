@@ -6,6 +6,8 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-23
+
 ### Changed
 
 - A card from a set tcgdex has not filled in yet (it lists a placeholder print
