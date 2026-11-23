@@ -26,6 +26,18 @@ use Illuminate\Support\Facades\Schema;
 use Spatie\LaravelData\DataCollection;
 use Tests\Support\ShownPrices;
 
+/** @return array{normal: int, holo: int, reverse: int, firstEd: int} */
+function refreshRealCounts(): array
+{
+    return ['normal' => 80, 'holo' => 60, 'reverse' => 70, 'firstEd' => 0];
+}
+
+/** @return array{normal: int, holo: int, reverse: int, firstEd: int} */
+function refreshZeroCounts(): array
+{
+    return ['normal' => 0, 'holo' => 0, 'reverse' => 0, 'firstEd' => 0];
+}
+
 function fakeCardDetail(): CardDetailData
 {
     return new CardDetailData(
@@ -53,7 +65,7 @@ test('syncCard creates the set, the card, and its price snapshots on first sync'
     $provider->shouldReceive('findCard')->with('me05-116')->andReturn(fakeCardDetail());
     $provider->shouldReceive('findSet')->with('me05')->andReturn(new SetSummaryData(
         tcgdexId: 'me05', name: 'Pitch Black', series: 'Mega Evolution',
-        releasedOn: null, cardCount: 84, logoUrl: 'https://assets.tcgdex.net/en/me/me05/logo.png',
+        releasedOn: null, cardCount: 84, logoUrl: 'https://assets.tcgdex.net/en/me/me05/logo.png', variantCounts: refreshRealCounts(),
     ));
 
     $service = new CatalogSyncService($provider);
@@ -77,7 +89,7 @@ test('syncCard persists the sets official abbreviation when tcgdex has one', fun
     $provider->shouldReceive('findSet')->with('me05')->andReturn(new SetSummaryData(
         tcgdexId: 'me05', name: 'Pitch Black', series: 'Mega Evolution',
         releasedOn: null, cardCount: 84, logoUrl: 'https://assets.tcgdex.net/en/me/me05/logo.png',
-        abbreviation: 'PBL',
+        abbreviation: 'PBL', variantCounts: refreshRealCounts(),
     ));
 
     $service = new CatalogSyncService($provider);
@@ -110,7 +122,7 @@ test('syncing the same card twice on the same day updates the card but does not 
     $provider = Mockery::mock(CardCatalogProvider::class);
     $provider->shouldReceive('findCard')->with('me05-116')->twice()->andReturn(fakeCardDetail());
     $provider->shouldReceive('findSet')->with('me05')->once()->andReturn(new SetSummaryData(
-        tcgdexId: 'me05', name: 'Pitch Black', series: null, releasedOn: null, cardCount: null, logoUrl: null,
+        tcgdexId: 'me05', name: 'Pitch Black', series: null, releasedOn: null, cardCount: null, logoUrl: null, variantCounts: refreshRealCounts(),
     ));
 
     $service = new CatalogSyncService($provider);
@@ -138,7 +150,7 @@ test('syncCard only fetches the set once across two cards in the same set', func
     $provider->shouldReceive('findCard')->with('me05-116')->once()->andReturn(fakeCardDetail());
     $provider->shouldReceive('findCard')->with('me05-117')->once()->andReturn($secondCardDetail);
     $provider->shouldReceive('findSet')->with('me05')->once()->andReturn(new SetSummaryData(
-        tcgdexId: 'me05', name: 'Pitch Black', series: null, releasedOn: null, cardCount: null, logoUrl: null,
+        tcgdexId: 'me05', name: 'Pitch Black', series: null, releasedOn: null, cardCount: null, logoUrl: null, variantCounts: refreshRealCounts(),
     ));
 
     $service = new CatalogSyncService($provider);
@@ -163,7 +175,7 @@ test('re-syncing an already-known card from a FRESH service instance never calls
         tap(Mockery::mock(CardCatalogProvider::class), function ($provider) {
             $provider->shouldReceive('findCard')->once()->with('me05-116')->andReturn(fakeCardDetail());
             $provider->shouldReceive('findSet')->once()->with('me05')->andReturn(new SetSummaryData(
-                tcgdexId: 'me05', name: 'Pitch Black', series: null, releasedOn: null, cardCount: null, logoUrl: null,
+                tcgdexId: 'me05', name: 'Pitch Black', series: null, releasedOn: null, cardCount: null, logoUrl: null, variantCounts: refreshRealCounts(),
             ));
         }),
     );
@@ -221,7 +233,7 @@ test('a rolled back card sync does not poison the memoized set for a later card 
     $provider->shouldReceive('findCard')->with('me05-116')->once()->andReturn($poisonedCardDetail);
     $provider->shouldReceive('findCard')->with('me05-117')->once()->andReturn($healthyCardDetail);
     $provider->shouldReceive('findSet')->with('me05')->once()->andReturn(new SetSummaryData(
-        tcgdexId: 'me05', name: 'Pitch Black', series: null, releasedOn: null, cardCount: null, logoUrl: null,
+        tcgdexId: 'me05', name: 'Pitch Black', series: null, releasedOn: null, cardCount: null, logoUrl: null, variantCounts: refreshRealCounts(),
     ));
 
     $service = new CatalogSyncService($provider);
@@ -253,7 +265,7 @@ function providerReturningImage(?string $image): CardCatalogProvider
     $provider = Mockery::mock(CardCatalogProvider::class);
     $provider->shouldReceive('findCard')->with('me05-116')->andReturn($detail);
     $provider->shouldReceive('findSet')->andReturn(new SetSummaryData(
-        tcgdexId: 'me05', name: 'Pitch Black', series: null, releasedOn: null, cardCount: null, logoUrl: null,
+        tcgdexId: 'me05', name: 'Pitch Black', series: null, releasedOn: null, cardCount: null, logoUrl: null, variantCounts: refreshRealCounts(),
     ));
 
     return $provider;
@@ -661,4 +673,123 @@ test('a sync whose baseline refresh fails still stores the day\'s prices', funct
 
     expect($synced->priceSnapshots->firstWhere('captured_on', today())?->market_minor)->toBe(19524);
     Exceptions::assertReported(QueryException::class);
+});
+
+/** @param  array{normal: int, holo: int, reverse: int, firstEd: int}|null  $counts */
+function refreshStoredDarkrai(?array $counts): Card
+{
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black', 'variant_counts' => $counts]);
+
+    return Card::create(['tcgdex_id' => 'me05-116', 'set_id' => $set->id, 'local_id' => '116', 'name' => 'Mega Darkrai ex']);
+}
+
+/** @param  array{normal: int, holo: int, reverse: int, firstEd: int}|null  $counts */
+function refreshPitchBlackSummary(?array $counts): SetSummaryData
+{
+    return new SetSummaryData(
+        tcgdexId: 'me05', name: 'Pitch Black', series: null, releasedOn: null, cardCount: null, logoUrl: null,
+        variantCounts: $counts,
+    );
+}
+
+test('a new set is stored with the variant counts its payload carries', function () {
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me05-116')->andReturn(fakeCardDetail());
+    $provider->shouldReceive('findSet')->once()->with('me05')->andReturn(refreshPitchBlackSummary(refreshRealCounts()));
+
+    (new CatalogSyncService($provider))->syncCard('me05-116');
+
+    expect(Set::where('tcgdex_id', 'me05')->sole()->variant_counts)->toEqual(refreshRealCounts());
+});
+
+test('a stored card whose set has recorded non-zero counts never asks tcgdex for the set', function () {
+    refreshStoredDarkrai(refreshRealCounts());
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me05-116')->andReturn(fakeCardDetail());
+    $provider->shouldNotReceive('findSet');
+
+    (new CatalogSyncService($provider))->syncCard('me05-116');
+});
+
+test('a stored card whose set has no recorded counts triggers one set request that records them', function () {
+    refreshStoredDarkrai(null);
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me05-116')->andReturn(fakeCardDetail());
+    $provider->shouldReceive('findSet')->once()->with('me05')->andReturn(refreshPitchBlackSummary(refreshRealCounts()));
+
+    (new CatalogSyncService($provider))->syncCard('me05-116');
+
+    expect(Set::where('tcgdex_id', 'me05')->sole()->variant_counts)->toEqual(refreshRealCounts());
+});
+
+test('a set with all-zero counts is requested once per UTC day, however many syncs and service instances', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-23 10:00', 'UTC'));
+    refreshStoredDarkrai(refreshZeroCounts());
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me05-116')->andReturn(fakeCardDetail());
+    $provider->shouldReceive('findSet')->once()->with('me05')->andReturn(refreshPitchBlackSummary(refreshZeroCounts()));
+
+    (new CatalogSyncService($provider))->syncCard('me05-116');
+    (new CatalogSyncService($provider))->syncCard('me05-116');
+    (new CatalogSyncService($provider))->syncCard('me05-116');
+});
+
+test('a set with all-zero counts is requested again on the next UTC day', function () {
+    $this->travelTo(CarbonImmutable::parse('2026-11-23 23:30', 'UTC'));
+    refreshStoredDarkrai(refreshZeroCounts());
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me05-116')->andReturn(fakeCardDetail());
+    $provider->shouldReceive('findSet')->twice()->with('me05')->andReturn(refreshPitchBlackSummary(refreshZeroCounts()));
+
+    (new CatalogSyncService($provider))->syncCard('me05-116');
+    $this->travelTo(CarbonImmutable::parse('2026-11-24 00:30', 'UTC'));
+    (new CatalogSyncService($provider))->syncCard('me05-116');
+});
+
+test('a set that stops reporting zero counts is recorded as confirmed by the next refresh', function () {
+    refreshStoredDarkrai(refreshZeroCounts());
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me05-116')->andReturn(fakeCardDetail());
+    $provider->shouldReceive('findSet')->once()->with('me05')->andReturn(refreshPitchBlackSummary(refreshRealCounts()));
+
+    (new CatalogSyncService($provider))->syncCard('me05-116');
+
+    expect(Set::where('tcgdex_id', 'me05')->sole()->variant_counts)->toEqual(refreshRealCounts());
+});
+
+test('a failed set refresh is reported, keeps the stored counts, and the card still syncs its prices', function () {
+    Exceptions::fake();
+    refreshStoredDarkrai(refreshZeroCounts());
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me05-116')->andReturn(fakeCardDetail());
+    $provider->shouldReceive('findSet')->once()->with('me05')->andThrow(new RuntimeException('tcgdex is down'));
+
+    $card = (new CatalogSyncService($provider))->syncCard('me05-116');
+
+    Exceptions::assertReported(RuntimeException::class);
+    expect(Set::where('tcgdex_id', 'me05')->sole()->variant_counts)->toEqual(refreshZeroCounts())
+        ->and($card->priceSnapshots)->toHaveCount(1);
+});
+
+test('a set payload without counts keeps the stored counts', function () {
+    refreshStoredDarkrai(refreshZeroCounts());
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me05-116')->andReturn(fakeCardDetail());
+    $provider->shouldReceive('findSet')->once()->with('me05')->andReturn(refreshPitchBlackSummary(null));
+
+    (new CatalogSyncService($provider))->syncCard('me05-116');
+
+    expect(Set::where('tcgdex_id', 'me05')->sole()->variant_counts)->toEqual(refreshZeroCounts());
+});
+
+test('recordSetCounts fetches the set, stores its counts, and returns it, even when the set is already stored', function () {
+    refreshStoredDarkrai(null);
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findSet')->once()->with('me05')->andReturn(refreshPitchBlackSummary(refreshZeroCounts()));
+
+    $set = (new CatalogSyncService($provider))->recordSetCounts('me05');
+
+    expect($set->tcgdex_id)->toBe('me05')
+        ->and($set->variant_counts)->toEqual(refreshZeroCounts())
+        ->and(Set::where('tcgdex_id', 'me05')->sole()->variant_counts)->toEqual(refreshZeroCounts());
 });

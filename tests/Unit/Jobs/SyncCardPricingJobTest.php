@@ -10,6 +10,8 @@ use App\Modules\Catalog\Data\SetSummaryData;
 use App\Modules\Catalog\Exceptions\CardNotFoundException;
 use App\Modules\Catalog\Exceptions\SetNotFoundException;
 use App\Modules\Catalog\Models\Card;
+use App\Modules\Catalog\Models\CardPriceSnapshot;
+use App\Modules\Catalog\Models\Set;
 use App\Modules\Catalog\Services\CatalogSyncService;
 use GuzzleHttp\Psr7\Response as Psr7Response;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -17,6 +19,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Queue\Middleware\RateLimited;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Spatie\LaravelData\DataCollection;
@@ -298,4 +301,31 @@ test('a job released after a tcgdex 503 keeps its lock, so a second dispatch is 
 
     SyncCardPricingJob::dispatch('me05-116');
     SyncCardPricingJob::dispatch('me05-116');
+});
+
+test('the job still writes the card\'s prices, and neither fails nor retries, when the set refresh throws', function () {
+    Exceptions::fake();
+    Queue::fake();
+    $set = Set::create([
+        'tcgdex_id' => 'me05', 'name' => 'Pitch Black',
+        'variant_counts' => ['normal' => 0, 'holo' => 0, 'reverse' => 0, 'firstEd' => 0],
+    ]);
+    Card::create(['tcgdex_id' => 'me05-116', 'set_id' => $set->id, 'local_id' => '116', 'name' => 'Mega Darkrai ex']);
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->once()->with('me05-116')->andReturn(new CardDetailData(
+        tcgdexId: 'me05-116', setTcgdexId: 'me05', localId: '116', name: 'Mega Darkrai ex',
+        rarity: null, variants: [], officialImageUrl: 'https://assets.tcgdex.net/en/me/me05/116/high.webp',
+        prices: new DataCollection(PriceEntryData::class, [
+            new PriceEntryData(source: 'tcgplayer', variant: 'holofoil', currency: 'USD', marketMinor: 19524, lowMinor: null, trendMinor: null, sourceUpdatedAt: null, raw: []),
+        ]),
+        raw: ['id' => 'me05-116'],
+    ));
+    $provider->shouldReceive('findSet')->once()->with('me05')->andThrow(new RuntimeException('tcgdex is down'));
+    $this->app->instance(CardCatalogProvider::class, $provider);
+
+    $job = new SyncCardPricingJob('me05-116');
+    $job->handle(app(CatalogSyncService::class));
+
+    expect(CardPriceSnapshot::where('source', 'tcgplayer')->where('variant', 'holofoil')->value('market_minor'))->toBe(19524);
+    Queue::assertNothingPushed();
 });

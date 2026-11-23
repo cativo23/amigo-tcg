@@ -15,7 +15,9 @@ use App\Modules\Catalog\Models\Set;
 use App\Modules\Catalog\Tcgcsv\TcgcsvFallbackPrices;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 final class CatalogSyncService
 {
@@ -60,6 +62,7 @@ final class CatalogSyncService
         // from the same set.
         // `??` also covers a null $existingCard, not just a null set.
         $set = $existingCard->set ?? $this->syncSet($cardDetail->setTcgdexId);
+        $set = $this->withRefreshedCounts($set);
 
         $imageUrl = $this->imageUrlFor($cardDetail, $existingCard, $set);
 
@@ -120,6 +123,44 @@ final class CatalogSyncService
         return Set::where('tcgdex_id', $setTcgdexId)->first() ?? $this->syncSet($setTcgdexId);
     }
 
+    /**
+     * Fetches the set from tcgdex and stores it with the variant counts the
+     * payload carries, even when the set is already stored. For callers that
+     * need the counts right now, such as the add-copy flow.
+     */
+    public function recordSetCounts(string $setTcgdexId): Set
+    {
+        return $this->syncSet($setTcgdexId);
+    }
+
+    /**
+     * A stored set whose variant counts are unknown or all zero is asked
+     * for again, at most once per UTC day, so the nightly sync notices when
+     * tcgdex confirms it without requesting a set payload that never carries
+     * counts for every card every night. A failed request is reported and
+     * the stored set is used, so the card's prices still sync.
+     */
+    private function withRefreshedCounts(Set $set): Set
+    {
+        $counts = $set->variant_counts;
+        if (is_array($counts) && array_sum($counts) > 0) {
+            return $set;
+        }
+
+        $day = CarbonImmutable::now('UTC')->format('Y-m-d');
+        if (! Cache::add("set-counts:{$set->tcgdex_id}:{$day}", true, CarbonImmutable::now()->addDay())) {
+            return $set;
+        }
+
+        try {
+            return $this->syncSet($set->tcgdex_id);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $set;
+        }
+    }
+
     private function syncSet(string $setTcgdexId): Set
     {
         return $this->syncedSets[$setTcgdexId] ??= $this->doSyncSet($setTcgdexId);
@@ -133,6 +174,9 @@ final class CatalogSyncService
             throw CatalogIdentityMismatchException::forSetMismatch($setTcgdexId, $setSummary->tcgdexId);
         }
 
+        // A payload without counts leaves the stored ones as they were.
+        $counts = $setSummary->variantCounts === null ? [] : ['variant_counts' => $setSummary->variantCounts];
+
         return Set::updateOrCreate(
             ['tcgdex_id' => $setSummary->tcgdexId],
             [
@@ -142,6 +186,7 @@ final class CatalogSyncService
                 'released_on' => $setSummary->releasedOn,
                 'card_count' => $setSummary->cardCount,
                 'logo_url' => $setSummary->logoUrl,
+                ...$counts,
             ],
         );
     }
