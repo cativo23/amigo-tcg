@@ -27,6 +27,7 @@ final class Card extends Model
         'official_image_url',
         'raw',
         'synced_at',
+        'inferred_variants',
     ];
 
     protected function casts(): array
@@ -34,6 +35,7 @@ final class Card extends Model
         return [
             'variants' => 'array',
             'raw' => 'array',
+            'inferred_variants' => 'array',
             'synced_at' => 'datetime',
         ];
     }

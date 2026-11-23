@@ -24,7 +24,7 @@ final class VariantChips
      */
     public static function for(Card $card, Collection $items): array
     {
-        $offered = CardVariants::available($card->variants ?? [], $card->raw ?? []);
+        $offered = CardVariants::available($card->variants ?? [], $card->raw ?? [], $card->inferred_variants);
 
         $perVariant = $items
             ->groupBy(fn (CollectionItem $item): string => (string) $item->variant)

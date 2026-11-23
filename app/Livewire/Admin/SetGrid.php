@@ -133,7 +133,7 @@ final class SetGrid extends Component
 
         $variant = CollectionService::nullIfEmpty($variant);
 
-        $offered = CardVariants::available($card->variants ?? [], $card->raw ?? []);
+        $offered = CardVariants::available($card->variants ?? [], $card->raw ?? [], $card->inferred_variants);
         $held = CollectionItem::query()
             ->whereIn('collection_id', Collection::query()->pluck('id'))
             ->where('card_id', $card->id)

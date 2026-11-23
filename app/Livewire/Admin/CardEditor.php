@@ -191,7 +191,7 @@ final class CardEditor extends Component
         // Variant-sourcing priority: the card's own tcgdex print flags
         // first, synced pricing coverage only as a fallback for
         // fixtures/pre-`variants` cards.
-        $variants = CardVariants::available($card->variants ?? [], $card->raw ?? []);
+        $variants = CardVariants::available($card->variants ?? [], $card->raw ?? [], $card->inferred_variants);
         if ($variants === []) {
             $variants = array_values(array_intersect(
                 self::KNOWN_VARIANTS,

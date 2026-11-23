@@ -7,8 +7,12 @@ namespace App\Livewire\Admin;
 use App\Livewire\Concerns\PicksCustomPrint;
 use App\Livewire\Concerns\StripsUploadedPhotos;
 use App\Modules\Catalog\Contracts\CardCatalogProvider;
+use App\Modules\Catalog\Data\CardDetailData;
 use App\Modules\Catalog\Data\CardSummaryData;
+use App\Modules\Catalog\Data\PriceEntryData;
+use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Models\Set;
+use App\Modules\Catalog\Services\CatalogSyncService;
 use App\Modules\Catalog\Services\ImportBudget;
 use App\Modules\Catalog\Services\ImportBudgetResult;
 use App\Modules\Catalog\Support\CardVariants;
@@ -298,7 +302,7 @@ final class AddCollectionItem extends Component
         $this->runSearch(app(CardCatalogProvider::class));
     }
 
-    public function selectCard(string $tcgdexId, CardCatalogProvider $provider): void
+    public function selectCard(string $tcgdexId, CardCatalogProvider $provider, CatalogSyncService $sync): void
     {
         $previousTcgdexId = $this->selectedTcgdexId;
         $this->selectedTcgdexId = $tcgdexId;
@@ -317,7 +321,7 @@ final class AddCollectionItem extends Component
             // cardmarket importer names its only foil-tier price
             // 'holofoil' regardless of whether the card actually has a
             // straight holo print or only a reverse-holo one).
-            $this->availableVariants = CardVariants::available($card->variants, $card->raw);
+            $this->availableVariants = CardVariants::available($card->variants, $card->raw, $this->inferredVariantsFor($card, $sync));
 
             if ($this->availableVariants === []) {
                 $prices = collect($card->prices->items())->pluck('variant');
@@ -345,6 +349,43 @@ final class AddCollectionItem extends Component
                 $this->rows[0]['variant'] = $this->availableVariants[0];
             }
         }
+    }
+
+    /**
+     * The deduced base variants for a card tcgdex has not filled in. A stored
+     * card carries its own list, the one every other screen reads. A card not
+     * stored yet gets the same answer from its live TCGplayer price labels,
+     * after its set's variant counts are recorded, so a copy is never saved
+     * under a variant the stored card will not offer.
+     *
+     * @return array<int, string>|null
+     */
+    private function inferredVariantsFor(CardDetailData $card, CatalogSyncService $sync): ?array
+    {
+        // Only a card tcgdex has not filled in can have a deduced list, so
+        // every other card costs no query and no set request.
+        if (! CardVariants::isPlaceholderOnly($card->raw)) {
+            return null;
+        }
+
+        $stored = Card::where('tcgdex_id', $card->tcgdexId)->first();
+        if ($stored !== null) {
+            return $stored->inferred_variants;
+        }
+
+        $set = Set::where('tcgdex_id', $card->setTcgdexId)->first();
+        if ($set === null) {
+            $set = $sync->recordSetCounts($card->setTcgdexId);
+        } elseif ($set->variant_counts === null) {
+            $set = $sync->refreshCountsOncePerDay($set);
+        }
+
+        $labels = collect($card->prices->items())
+            ->filter(fn (PriceEntryData $price) => $price->source === 'tcgplayer')
+            ->pluck('variant')
+            ->all();
+
+        return CardVariants::inferUnconfirmed($card->raw, $labels, $set->variant_counts);
     }
 
     public function save(CollectionService $service): mixed

@@ -334,7 +334,7 @@ final class CardShow extends Component
         }
 
         if ($read->variant === 'default') {
-            $offered = CardVariants::available($card->variants ?? [], $card->raw ?? []);
+            $offered = CardVariants::available($card->variants ?? [], $card->raw ?? [], $card->inferred_variants);
             $home = in_array('normal', $offered, true) ? 'normal' : (in_array('holofoil', $offered, true) ? 'holofoil' : null);
 
             return $variant === $home;

@@ -97,7 +97,9 @@ Migrations are never run automatically, so the deploy job fails on purpose
 (`pending migration(s) on the new image — refusing to start it`). The old
 release keeps serving. Run the migration from the **new** image — `exec`
 would reach the old container, which doesn't have the migration file — plus
-any step the release's "Deploy notes" list, then re-run the failed job:
+any step the release's "Deploy notes" list, then re-run the failed job. Run the migration and cut the release outside
+the nightly windows (00:00-01:00, 03:00-03:15, 04:00-04:30, 20:30-21:00 and
+21:45 UTC), when the syncs hold the card rows:
 ```bash
 IMAGE_TAG=vX.Y.Z docker compose -f compose.prod.yml run --rm --no-deps app php artisan migrate --force
 # e.g. v1.7.0's note: fill the new 7-day-move table before the page uses it
@@ -291,9 +293,10 @@ mode, once a TCGplayer group is mapped.
 and sends one Discord message naming what it finds: cards of a mapped set that
 no TCGplayer link points at, sets with cards and no mapped group, prints whose
 newest TCGplayer price is over 3 days old by TCGplayer's own date (owned ones
-marked), (how old the newest price rows are is not judged here: the catalog sync is
+marked), sets whose cards use a deduced variant list (tcgdex has not confirmed their prints), and sets that stopped doing so since the last run (how old the newest price rows are is not judged here: the catalog sync is
 watched by `catalog:check-pricing-freshness`, through the share of cards synced
-in the last 26h, and the tcgcsv sync by its run record). It writes nothing but a cache key per finding it named, so the
+in the last 26h, and the tcgcsv sync by its run record). It writes nothing but a cache key per finding it named and one
+that never expires, the sets last seen with a deduced list, so a set that stops being one is said once, however long ago it was named. The
 same finding is repeated once a week, not nightly; a list longer than ten is
 named ten at a time over the following nights. A feed with no rows at all is not reported.
 Run it by hand to see the counts: `php artisan catalog:report-price-coverage`.

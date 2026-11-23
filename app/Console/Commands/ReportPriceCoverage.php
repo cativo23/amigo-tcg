@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Cache;
 /**
  * Names the holes in TCGplayer pricing before a collector meets them as a
  * price in the wrong currency: cards no link points at, sets with no mapped
- * group and prints whose TCGplayer price is old (see PriceCoverage).
+ * group, prints whose TCGplayer price is old (see PriceCoverage) and sets
+ * whose cards use deduced variant lists, with the ones that stopped.
  * Read-only; the only thing it writes is the
  * record of what it already told Discord, so a finding that stays open is
  * announced once a week, not every night (a long list is named ten at a time).
@@ -28,21 +29,28 @@ final class ReportPriceCoverage extends Command
     /** Names listed per finding in the alert; the console lists the count. */
     private const LISTED = 10;
 
+    /** The sets last seen with a deduced variant list; never expires, so a set that stops being one is announced once. */
+    private const UNCONFIRMED_SEEN_KEY = 'price-coverage:unconfirmed-seen';
+
     protected $signature = 'catalog:report-price-coverage';
 
-    protected $description = 'Report unlinked cards, unmapped sets, and stale TCGplayer prices to Discord.';
+    protected $description = 'Report unlinked cards, unmapped sets, stale TCGplayer prices and unconfirmed sets to Discord.';
 
     public function handle(PriceCoverage $coverage, DiscordAlerter $alerter): int
     {
         $unlinked = $coverage->unlinkedCards();
         $unmapped = $coverage->unmappedSets();
         $stale = $coverage->stalePrints();
+        $unconfirmed = $coverage->unconfirmedSets();
+        $stopped = $this->setsNoLongerUnconfirmed(array_keys($unconfirmed));
 
         $this->line(sprintf('Unlinked cards in mapped sets: %d; sets without a group: %d; stale prints: %d.', count($unlinked), count($unmapped), count($stale)));
+        $this->line(sprintf('Sets using deduced variants: %d; sets no longer doing so: %d.', count($unconfirmed), count($stopped)));
 
         $newUnlinked = $this->unsent('unlinked', $unlinked, fn (string $id) => $id);
         $newUnmapped = $this->unsent('unmapped', $unmapped, fn (string $id) => $id);
         $newStale = $this->unsent('stale', $stale, fn (array $p) => "{$p['card']}|{$p['variant']}");
+        $newUnconfirmed = $this->unsent('unconfirmed', array_keys($unconfirmed), fn (string $id) => $id);
 
         // What a message names is what counts as announced: the rest of a long
         // list is named on the following nights, not silenced for a week.
@@ -63,6 +71,15 @@ final class ReportPriceCoverage extends Command
             $named = [...$named, ...$this->keys('stale', array_map(fn (array $p) => "{$p['card']}|{$p['variant']}", array_slice($newStale, 0, self::LISTED)))];
         }
 
+        if ($newUnconfirmed !== []) {
+            $names = array_map(fn (string $id) => sprintf('%s (%d card(s))', $id, $unconfirmed[$id]), $newUnconfirmed);
+            $lines[] = sprintf('- %d set(s) whose cards use deduced variants, tcgdex has not confirmed their prints: %s', count($newUnconfirmed), $this->list($names));
+            $named = [...$named, ...$this->keys('unconfirmed', array_slice($newUnconfirmed, 0, self::LISTED))];
+        }
+        if ($stopped !== []) {
+            $lines[] = sprintf('- %d set(s) no longer use deduced variants (tcgdex confirmed them, or no TCGplayer price is recent enough): %s', count($stopped), $this->list($stopped));
+        }
+
         if ($lines !== []) {
             $alerter->send("⚠️ tcg-vault price coverage:\n".implode("\n", $lines));
 
@@ -74,6 +91,21 @@ final class ReportPriceCoverage extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * The sets that had a deduced variant list at the last run and no longer
+     * do. The first run only records what it sees, so it names none.
+     *
+     * @param  list<string>  $current
+     * @return list<string>
+     */
+    private function setsNoLongerUnconfirmed(array $current): array
+    {
+        $previous = Cache::get(self::UNCONFIRMED_SEEN_KEY);
+        Cache::forever(self::UNCONFIRMED_SEEN_KEY, $current);
+
+        return is_array($previous) ? array_values(array_diff($previous, $current)) : [];
     }
 
     /**

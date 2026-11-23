@@ -52,6 +52,25 @@ final class PriceCoverage
     }
 
     /**
+     * Sets whose cards use a deduced variant list (tcgdex has not filled in
+     * their prints), with how many cards do.
+     *
+     * @return array<string, int> card count by set tcgdex id
+     */
+    public function unconfirmedSets(): array
+    {
+        return DB::table('cards as c')
+            ->join('sets as s', 's.id', '=', 'c.set_id')
+            ->whereNotNull('c.inferred_variants')
+            ->groupBy('s.tcgdex_id')
+            ->orderBy('s.tcgdex_id')
+            ->selectRaw('s.tcgdex_id, COUNT(*) AS cards')
+            ->pluck('cards', 'tcgdex_id')
+            ->map(fn ($count) => (int) $count)
+            ->all();
+    }
+
+    /**
      * Prints whose newest TCGplayer price, within the recent window, was last
      * updated by TCGplayer more than STALE_AFTER_DAYS ago (or captured that
      * long ago when the row has no TCGplayer date). A print with nothing in

@@ -57,3 +57,31 @@ test('a card with no known prints gets one unlabeled chip for unspecified copies
         ['variant' => null, 'label' => '', 'count' => 2],
     ]);
 });
+
+test('a placeholder card chips its inferred variants with the usual labels and no marker', function () {
+    [$collection, $card] = chipCard(['normal' => true]);
+    $card->update([
+        'raw' => ['variants_detailed' => [['type' => 'normal', 'size' => 'standard', 'variantId' => 'generated']]],
+        'inferred_variants' => ['normal', 'reverse-holofoil'],
+    ]);
+    chipItem($collection, $card, 'normal', 2);
+
+    expect(VariantChips::for($card->fresh(), $card->collectionItems()->get()))->toBe([
+        ['variant' => 'normal', 'label' => 'Normal', 'count' => 2],
+        ['variant' => 'reverse-holofoil', 'label' => 'Reverse Holofoil', 'count' => 0],
+    ]);
+});
+
+test('a copy saved under a variant the inferred list no longer offers keeps its own chip', function () {
+    [$collection, $card] = chipCard(['normal' => true]);
+    $card->update([
+        'raw' => ['variants_detailed' => [['type' => 'normal', 'size' => 'standard', 'variantId' => 'generated']]],
+        'inferred_variants' => ['holofoil'],
+    ]);
+    chipItem($collection, $card, 'normal', 3);
+
+    expect(VariantChips::for($card->fresh(), $card->collectionItems()->get()))->toBe([
+        ['variant' => 'holofoil', 'label' => 'Holofoil', 'count' => 0],
+        ['variant' => 'normal', 'label' => 'Normal', 'count' => 3],
+    ]);
+});

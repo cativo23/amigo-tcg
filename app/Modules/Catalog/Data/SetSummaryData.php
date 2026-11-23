@@ -17,5 +17,7 @@ final class SetSummaryData extends Data
         public ?int $cardCount,
         public ?string $logoUrl,
         public ?string $abbreviation = null,
+        /** @var array{normal: int, holo: int, reverse: int, firstEd: int}|null */
+        public ?array $variantCounts = null,
     ) {}
 }

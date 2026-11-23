@@ -270,3 +270,124 @@ test('the Pokéween promo stamp can be picked for a hand-entered print', functio
         ->and(CardVariants::stampOptions())->toHaveKey('pokemon-center', 'Pokémon Center')
         ->and(CardVariants::label('reverse-holofoil+pokeween-2026'))->toBe('Reverse Holofoil · Pokéween 2026');
 });
+
+function placeholderOnlyRaw(): array
+{
+    return ['variants_detailed' => [['type' => 'normal', 'size' => 'standard', 'variantId' => 'generated']]];
+}
+
+function unconfirmedSetCounts(array $override = []): array
+{
+    return [...['normal' => 0, 'holo' => 0, 'reverse' => 0, 'firstEd' => 0], ...$override];
+}
+
+test('a card whose only print entry is the placeholder is placeholder-only', function () {
+    expect(CardVariants::isPlaceholderOnly(placeholderOnlyRaw()))->toBeTrue();
+});
+
+test('a card with real print entries, a mix, or none at all is not placeholder-only', function (array $raw) {
+    expect(CardVariants::isPlaceholderOnly($raw))->toBeFalse();
+})->with([
+    'a real print' => [['variants_detailed' => [['type' => 'holo', 'size' => 'standard', 'variantId' => 'abc123']]]],
+    'a placeholder beside a real print' => [['variants_detailed' => [
+        ['type' => 'normal', 'size' => 'standard', 'variantId' => 'generated'],
+        ['type' => 'reverse', 'size' => 'standard', 'variantId' => 'abc123'],
+    ]]],
+    'an entry with no variant id' => [['variants_detailed' => [['type' => 'normal', 'size' => 'standard']]]],
+    'an empty list' => [['variants_detailed' => []]],
+    'no list' => [[]],
+]);
+
+test('an unconfirmed card gets the recognised price labels, in the stable order', function (array $labels, array $expected) {
+    expect(CardVariants::inferUnconfirmed(placeholderOnlyRaw(), $labels, unconfirmedSetCounts()))->toBe($expected);
+})->with([
+    'normal and reverse, given out of order' => [['reverse-holofoil', 'normal'], ['normal', 'reverse-holofoil']],
+    'holofoil only' => [['holofoil'], ['holofoil']],
+    'holofoil and reverse' => [['reverse-holofoil', 'holofoil'], ['holofoil', 'reverse-holofoil']],
+    'all three' => [['holofoil', 'reverse-holofoil', 'normal'], ['normal', 'holofoil', 'reverse-holofoil']],
+    'a repeated label counts once' => [['normal', 'normal', 'normal'], ['normal']],
+]);
+
+test('labels that are not one of the three base variants are ignored', function () {
+    $labels = ['default', 'normal+pokeween-2026', 'reverse-holofoil:pokeball', 'cosmos', ''];
+
+    expect(CardVariants::inferUnconfirmed(placeholderOnlyRaw(), $labels, unconfirmedSetCounts()))->toBeNull()
+        ->and(CardVariants::inferUnconfirmed(placeholderOnlyRaw(), [...$labels, 'holofoil'], unconfirmedSetCounts()))->toBe(['holofoil']);
+});
+
+test('no recognised label means no deduced list', function () {
+    expect(CardVariants::inferUnconfirmed(placeholderOnlyRaw(), [], unconfirmedSetCounts()))->toBeNull();
+});
+
+test('a set whose counts are unknown is never treated as unconfirmed', function () {
+    expect(CardVariants::inferUnconfirmed(placeholderOnlyRaw(), ['normal', 'reverse-holofoil'], null))->toBeNull();
+});
+
+test('a set that reports any normal, holo or reverse print is confirmed', function (array $counts) {
+    expect(CardVariants::inferUnconfirmed(placeholderOnlyRaw(), ['normal', 'reverse-holofoil'], unconfirmedSetCounts($counts)))->toBeNull();
+})->with([
+    'normal' => [['normal' => 1]],
+    'holo' => [['holo' => 1]],
+    'reverse' => [['reverse' => 74]],
+]);
+
+test('a first-edition count alone does not confirm the set', function () {
+    expect(CardVariants::inferUnconfirmed(placeholderOnlyRaw(), ['holofoil'], unconfirmedSetCounts(['firstEd' => 5])))->toBe(['holofoil']);
+});
+
+test('a card with real print entries is never deduced, even in a set with zero counts', function () {
+    $raw = ['variants_detailed' => [['type' => 'holo', 'size' => 'standard', 'variantId' => 'abc123']]];
+
+    expect(CardVariants::inferUnconfirmed($raw, ['normal', 'reverse-holofoil'], unconfirmedSetCounts()))->toBeNull();
+});
+
+test('a missing or empty deduced list leaves the result exactly as it was', function (array $flags, array $raw) {
+    $today = CardVariants::available($flags, $raw);
+
+    expect(CardVariants::available($flags, $raw, null))->toBe($today)
+        ->and(CardVariants::available($flags, $raw, []))->toBe($today);
+})->with([
+    'normal and reverse' => [['normal' => true, 'reverse' => true, 'holo' => false], []],
+    'holo only' => [['normal' => false, 'reverse' => false, 'holo' => true], []],
+    'all three prints' => [['normal' => true, 'reverse' => true, 'holo' => true], []],
+    'a promo stamped as holo (mep-002)' => [
+        ['normal' => false, 'reverse' => false, 'holo' => true],
+        ['variants_detailed' => [['type' => 'holo', 'size' => 'standard', 'stamp' => ['set-logo'], 'variantId' => 'a1']]],
+    ],
+    'one stamped print flagged normal (30th-001)' => [
+        ['normal' => true, 'reverse' => false, 'holo' => false],
+        ['variants_detailed' => [['type' => 'normal', 'size' => 'standard', 'stamp' => ['30th-anniversary'], 'variantId' => 'b2']]],
+    ],
+    'a placeholder card' => [['normal' => true, 'reverse' => false, 'holo' => false], placeholderOnlyRaw()],
+]);
+
+test('a deduced list replaces the base prints of a card tcgdex has not filled in', function (array $inferred, array $expected) {
+    $flags = ['normal' => true, 'reverse' => false, 'holo' => false];
+
+    expect(CardVariants::available($flags, placeholderOnlyRaw(), $inferred))->toBe($expected);
+})->with([
+    'normal and reverse' => [['normal', 'reverse-holofoil'], ['normal', 'reverse-holofoil']],
+    'holofoil only, so no normal' => [['holofoil'], ['holofoil']],
+    'holofoil and reverse' => [['holofoil', 'reverse-holofoil'], ['holofoil', 'reverse-holofoil']],
+    'given out of order' => [['reverse-holofoil', 'normal'], ['normal', 'reverse-holofoil']],
+]);
+
+test('only base variants come out of a deduced list, never a special print or an unknown key', function () {
+    $flags = ['normal' => true];
+
+    expect(CardVariants::available($flags, placeholderOnlyRaw(), ['holofoil', 'reverse-holofoil:pokeball', 'normal+staff', 'bogus']))->toBe(['holofoil']);
+});
+
+test('a deduced list is ignored once the card carries real print entries', function () {
+    $flags = ['normal' => false, 'reverse' => false, 'holo' => true];
+    $raw = ['variants_detailed' => [['type' => 'holo', 'size' => 'standard', 'variantId' => 'abc123']]];
+
+    expect(CardVariants::available($flags, $raw, ['normal', 'reverse-holofoil']))->toBe(CardVariants::available($flags, $raw))
+        ->and(CardVariants::available($flags, $raw, ['normal', 'reverse-holofoil']))->toBe(['holofoil']);
+});
+
+test('a deduced list is ignored when the card has no print entries at all', function () {
+    $flags = ['normal' => true, 'reverse' => true];
+
+    expect(CardVariants::available($flags, [], ['holofoil']))->toBe(['normal', 'reverse-holofoil']);
+});

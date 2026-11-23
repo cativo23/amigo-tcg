@@ -12,10 +12,13 @@ use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Models\CardPriceSnapshot;
 use App\Modules\Catalog\Models\CardTcgplayerLink;
 use App\Modules\Catalog\Models\Set;
+use App\Modules\Catalog\Support\CardVariants;
 use App\Modules\Catalog\Tcgcsv\TcgcsvFallbackPrices;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 final class CatalogSyncService
 {
@@ -60,6 +63,7 @@ final class CatalogSyncService
         // from the same set.
         // `??` also covers a null $existingCard, not just a null set.
         $set = $existingCard->set ?? $this->syncSet($cardDetail->setTcgdexId);
+        $set = $this->refreshCountsOncePerDay($set);
 
         $imageUrl = $this->imageUrlFor($cardDetail, $existingCard, $set);
 
@@ -79,6 +83,7 @@ final class CatalogSyncService
             );
 
             $this->storePriceSnapshots($card, $cardDetail);
+            $this->storeInferredVariants($card, $set);
             $this->refreshWeekBaselines($card);
 
             // The row was written inside this transaction, so it exists.
@@ -120,6 +125,44 @@ final class CatalogSyncService
         return Set::where('tcgdex_id', $setTcgdexId)->first() ?? $this->syncSet($setTcgdexId);
     }
 
+    /**
+     * Fetches the set from tcgdex and stores it with the variant counts the
+     * payload carries, even when the set is already stored. For callers that
+     * need the counts right now, such as the add-copy flow.
+     */
+    public function recordSetCounts(string $setTcgdexId): Set
+    {
+        return $this->syncSet($setTcgdexId);
+    }
+
+    /**
+     * A stored set whose variant counts are unknown or all zero is asked
+     * for again, at most once per UTC day, so the nightly sync notices when
+     * tcgdex confirms it without requesting a set payload that never carries
+     * counts for every card every night. A failed request is reported and
+     * the stored set is used, so the card's prices still sync.
+     */
+    public function refreshCountsOncePerDay(Set $set): Set
+    {
+        $counts = $set->variant_counts;
+        if (is_array($counts) && array_sum($counts) > 0) {
+            return $set;
+        }
+
+        $day = CarbonImmutable::now('UTC')->format('Y-m-d');
+        if (! Cache::add("set-counts:{$set->tcgdex_id}:{$day}", true, CarbonImmutable::now()->addDay())) {
+            return $set;
+        }
+
+        try {
+            return $this->syncSet($set->tcgdex_id);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $set;
+        }
+    }
+
     private function syncSet(string $setTcgdexId): Set
     {
         return $this->syncedSets[$setTcgdexId] ??= $this->doSyncSet($setTcgdexId);
@@ -133,6 +176,9 @@ final class CatalogSyncService
             throw CatalogIdentityMismatchException::forSetMismatch($setTcgdexId, $setSummary->tcgdexId);
         }
 
+        // A payload without counts leaves the stored ones as they were.
+        $counts = $setSummary->variantCounts === null ? [] : ['variant_counts' => $setSummary->variantCounts];
+
         return Set::updateOrCreate(
             ['tcgdex_id' => $setSummary->tcgdexId],
             [
@@ -142,8 +188,33 @@ final class CatalogSyncService
                 'released_on' => $setSummary->releasedOn,
                 'card_count' => $setSummary->cardCount,
                 'logo_url' => $setSummary->logoUrl,
+                ...$counts,
             ],
         );
+    }
+
+    /**
+     * The card's deduced base variants, from the TCGplayer labels stored for
+     * it in the price window, written only while tcgdex has not filled the
+     * card's prints in and only when the list changes. Cleared to null as
+     * soon as the rule stops applying, so the real data takes over.
+     */
+    private function storeInferredVariants(Card $card, Set $set): void
+    {
+        $labels = CardPriceSnapshot::query()
+            ->where('card_id', $card->id)
+            ->where('source', 'tcgplayer')
+            ->whereIn('origin', ['tcgdex', 'tcgcsv'])
+            ->where('captured_on', '>=', CarbonImmutable::today()->subDays(CardPriceResolver::STALE_AFTER_DAYS)->toDateString())
+            ->distinct()
+            ->pluck('variant')
+            ->all();
+
+        $inferred = CardVariants::inferUnconfirmed($card->raw ?? [], $labels, $set->variant_counts);
+
+        if ($inferred !== $card->inferred_variants) {
+            $card->update(['inferred_variants' => $inferred]);
+        }
     }
 
     private function storePriceSnapshots(Card $card, CardDetailData $cardDetail): void

@@ -19,6 +19,7 @@ final class Set extends Model
         'released_on',
         'card_count',
         'logo_url',
+        'variant_counts',
     ];
 
     protected function casts(): array
@@ -26,6 +27,7 @@ final class Set extends Model
         return [
             'released_on' => 'date',
             'card_count' => 'integer',
+            'variant_counts' => 'array',
         ];
     }
 
