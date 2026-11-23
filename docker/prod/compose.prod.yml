@@ -156,7 +156,7 @@ services:
         reservations: { cpus: '0.05', memory: 64M }
 
   postgres:
-    image: postgres:17-alpine
+    image: postgres:17.12-alpine@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73
     restart: unless-stopped
     # The memory limit counts the OS page cache too, and the database (about 430 MB) no
     # longer fits in shared_buffers plus what is left of it, so some reads go to disk.
@@ -192,7 +192,7 @@ services:
   # postgres so pg_dump always matches the server version. See
   # backup/backup.sh.
   backup:
-    image: postgres:17-alpine
+    image: postgres:17.12-alpine@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73
     restart: unless-stopped
     # The script's directory is mounted, not the file: a file mount pins the
     # inode, so a redeployed script would never be seen. If the script is
@@ -219,7 +219,7 @@ services:
         reservations: { cpus: '0.05', memory: 32M }
 
   redis:
-    image: redis:7-alpine
+    image: redis:7.4.12-alpine@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe
     restart: unless-stopped
     # AOF persistence: without it, Horizon's queued jobs live only in RAM
     # and don't survive a container restart. `everysec` caps the loss

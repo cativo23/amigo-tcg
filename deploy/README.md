@@ -494,7 +494,7 @@ deleted since the backup are deleted again, so none of them can sign in.
 3. Replace the photos:
    ```bash
    docker run --rm -v tcg-vault_collection-photos-data:/restore -v "$PWD/backups:/backups:ro" \
-     postgres:17-alpine sh -c "find /restore -mindepth 1 -delete && tar -C /restore -xf /backups/photos-$DAY.tar"
+     postgres:17.12-alpine@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73 sh -c "find /restore -mindepth 1 -delete && tar -C /restore -xf /backups/photos-$DAY.tar"
    ```
 4. **Delete again every account deleted after the backup**, since members
    were promised deletion. These are the ids in the restored database but
@@ -546,6 +546,31 @@ deleted since the backup are deleted again, so none of them can sign in.
    `dcp exec -T postgres sh -c 'dropdb -U "$POSTGRES_USER" tcg_vault_before_restore'`.
    The pre-restore files are pruned on their own.
 
+## Updating postgres and redis
+
+Both images are pinned by exact version and digest in `compose.prod.yml`
+(`postgres:17.12-alpine@sha256:…`), so `compose pull` in a deploy never changes
+them. Docker's official tags are rebuilt without a version bump (a new Alpine base,
+a bundled tool), which is how a floating tag once recreated redis inside the 04:00
+window during an unrelated deploy. An update is now a reviewed change to the pin.
+
+Dependabot opens one PR a week (`.github/dependabot.yml`) when either image has a
+newer version or a rebuilt digest. Major versions are ignored: Postgres 18 needs a
+dump and restore or `pg_upgrade`, and Redis 8 is a licence and behaviour change,
+each its own project.
+
+1. Read the PR's release notes. Whether the update ships alone as a patch or rides
+   the next planned release is the owner's call; either way never inside a nightly
+   window and never on a day another release changed the host.
+2. `postgres` and `backup` always change together, to the same pin.
+3. Before the release: `cp -p compose.prod.yml compose.prod.yml.bak-pre-<tag>` on the
+   host, then a dry run over stdin that shows only the changed services recreated.
+4. After it: `docker compose … exec postgres postgres --version` and
+   `exec redis redis-server --version`, both healthy, one app tag on app, horizon and
+   scheduler.
+5. Roll back by reverting the PR and releasing a patch, or by restoring the dated
+   compose copy and running `up -d`; Docker Hub must still serve the old digest.
+
 ## Rollback
 `deploy.yml` deploys the exact release tag it just built (`IMAGE_TAG`
 exported before `pull`/`up`) — never the mutable `:latest` — so `docker
@@ -582,8 +607,10 @@ newer schema, restore the pre-release dump instead (see Backups).
 - **One app image, three roles, plus three stock services.** From the app image: `app`
   (web, port 8080 behind Traefik), `horizon` (queue supervisor — chosen over a bare
   `queue:work` since Redis is already required) and `scheduler` (`schedule:work`, every
-  job in `routes/console.php`). Stock images: `postgres` and `backup` (both
-  `postgres:17-alpine`) and `redis`.
+  job in `routes/console.php`). Stock images: `postgres` and `backup` (both the same
+  `postgres:17.12-alpine`) and `redis` (`redis:7.4.12-alpine`), each pinned by version
+  and digest (see "Updating postgres and redis"). `backup` must always match `postgres`:
+  a `pg_dump` from another build than the server is a restore surprise.
 - **`horizon` needs its own internet egress, on `tcgvault-egress`, not just
   `tcgvault-internal`.** Queued jobs (`SyncCardPricingJob`, `ImportSetJob`, the daily
   price refresh) call tcgdex's API from inside that container — `tcgvault-internal` is

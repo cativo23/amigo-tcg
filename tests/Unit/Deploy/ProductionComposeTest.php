@@ -161,6 +161,23 @@ test('app recycles each FPM worker after a bounded number of requests', function
     expect($compose['services']['app']['environment']['PHP_FPM_PM_MAX_REQUESTS'] ?? null)->toBe('500');
 });
 
+test('postgres and redis run an exact version pinned by digest', function (string $service) {
+    // A floating tag lets `compose pull` swap the image under a deploy that
+    // never meant to touch it; the digest makes an update a reviewed change.
+    $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
+
+    expect($compose['services'][$service]['image'] ?? '')
+        ->toMatch('/^(postgres|redis):\d+\.\d+(\.\d+)?-alpine@sha256:[0-9a-f]{64}$/');
+})->with(['postgres', 'backup', 'redis']);
+
+test('the backup service dumps with the same image the database runs', function () {
+    // pg_dump from another build than the server is a restore surprise.
+    $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
+
+    expect($compose['services']['backup']['image'] ?? null)
+        ->toBe($compose['services']['postgres']['image'] ?? '');
+});
+
 test('the backup service keeps the copies for the period the privacy policy states', function () {
     // The policy promises members how long a deleted account survives in the
     // nightly backups; backup.sh deletes each copy just before it is
