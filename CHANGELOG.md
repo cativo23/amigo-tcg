@@ -8,12 +8,33 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- A card from a set tcgdex has not filled in yet (it lists a placeholder print
+  and no variant counts) now offers the prints TCGplayer prices it under
+  (Normal, Holofoil, Reverse Holofoil) instead of only Normal. The set grid,
+  the card page, the variant chips, the editor and the add-copy flow show the
+  same list, and the real data takes over by itself once tcgdex confirms the
+  set. Copies already saved under another variant stay visible and editable.
+- The set's variant counts are recorded when it is synced, and the nightly
+  card sync asks for them again, at most once a day, while they are unknown or
+  all zero.
+- The daily price-coverage report on Discord also names each set whose cards
+  use a deduced variant list, and says once when a set stops being one.
+
 - Nightly backups are kept for 5 days instead of 14, so there are never
   more than five copies, and a deleted account is gone from them within 5
   days. The privacy policy says so.
 
 ### Deploy notes
 
+- Adds two nullable columns (`sets.variant_counts`, `cards.inferred_variants`),
+  so the deploy stops on the pending migration: run it from the new image as in
+  `deploy/README.md`, "A release with a migration". Release and migrate outside
+  the nightly windows (00:00-01:00, 03:00-03:15, 04:00-04:30, 20:30-21:00 and
+  21:45 UTC), when the sync holds the card rows.
+- Until the first nightly sync after the release has stored a set's counts, its
+  cards keep the lists they have today; the lists fill in by themselves that
+  night. `php artisan catalog:import-set me06` fills them at once, but syncs the
+  set's cards outside the queue's rate limiter.
 - Recreates the `backup` service. Its first pass deletes every backup older
   than about 5 days at once, which cannot be undone. Release outside the
   03:00 backup run.
