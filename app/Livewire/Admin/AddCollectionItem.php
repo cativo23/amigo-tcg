@@ -374,8 +374,10 @@ final class AddCollectionItem extends Component
         }
 
         $set = Set::where('tcgdex_id', $card->setTcgdexId)->first();
-        if ($set === null || $set->variant_counts === null) {
+        if ($set === null) {
             $set = $sync->recordSetCounts($card->setTcgdexId);
+        } elseif ($set->variant_counts === null) {
+            $set = $sync->refreshCountsOncePerDay($set);
         }
 
         $labels = collect($card->prices->items())

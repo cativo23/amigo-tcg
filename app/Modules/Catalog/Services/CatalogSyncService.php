@@ -63,7 +63,7 @@ final class CatalogSyncService
         // from the same set.
         // `??` also covers a null $existingCard, not just a null set.
         $set = $existingCard->set ?? $this->syncSet($cardDetail->setTcgdexId);
-        $set = $this->withRefreshedCounts($set);
+        $set = $this->refreshCountsOncePerDay($set);
 
         $imageUrl = $this->imageUrlFor($cardDetail, $existingCard, $set);
 
@@ -142,7 +142,7 @@ final class CatalogSyncService
      * counts for every card every night. A failed request is reported and
      * the stored set is used, so the card's prices still sync.
      */
-    private function withRefreshedCounts(Set $set): Set
+    public function refreshCountsOncePerDay(Set $set): Set
     {
         $counts = $set->variant_counts;
         if (is_array($counts) && array_sum($counts) > 0) {

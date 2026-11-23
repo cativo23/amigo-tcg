@@ -1373,3 +1373,36 @@ test('a card of a confirmed set not stored yet keeps the list its own flags give
         ->call('selectCard', 'me06-001')
         ->assertSet('availableVariants', ['normal']);
 });
+
+test('selecting a placeholder card of a stored set whose payload carries no counts asks tcgdex once a day', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    Collection::factory()->for($user)->create(['name' => 'Main', 'slug' => 'main']);
+    Set::create(['tcgdex_id' => 'me06', 'name' => 'Delta Reign']);
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me06-001')->andReturn(unconfirmedDetail('me06-001', 'me06', ['normal', 'reverse-holofoil']));
+    $provider->shouldReceive('findSet')->once()->with('me06')->andReturn(new SetSummaryData(
+        tcgdexId: 'me06', name: 'Delta Reign', series: null, releasedOn: null, cardCount: null, logoUrl: null,
+    ));
+    $this->app->instance(CardCatalogProvider::class, $provider);
+
+    Livewire::test(AddCollectionItem::class)
+        ->call('selectCard', 'me06-001')
+        ->call('selectCard', 'me06-001')
+        ->assertSet('availableVariants', ['normal']);
+});
+
+test('a failed set request for a stored set with unknown counts leaves today\'s list instead of breaking the flow', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    Collection::factory()->for($user)->create(['name' => 'Main', 'slug' => 'main']);
+    Set::create(['tcgdex_id' => 'me06', 'name' => 'Delta Reign']);
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me06-001')->andReturn(unconfirmedDetail('me06-001', 'me06', ['normal', 'reverse-holofoil']));
+    $provider->shouldReceive('findSet')->once()->with('me06')->andThrow(new RuntimeException('tcgdex is down'));
+    $this->app->instance(CardCatalogProvider::class, $provider);
+
+    Livewire::test(AddCollectionItem::class)
+        ->call('selectCard', 'me06-001')
+        ->assertSet('availableVariants', ['normal']);
+});
