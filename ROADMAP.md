@@ -53,23 +53,6 @@ fails its deploy on purpose until the migration is run by hand
 
 ---
 
-## Unconfirmed variants — release ahead of Phase B
-
-`S · high` · not a phase of its own: one release between phases, because a
-migration must be live before the lists can fill in. Remove this block in the
-release PR.
-
-1. **Cards of a set tcgdex has not filled in offer their real prints.** `M` —
-   the cards of a set whose prints tcgdex lists only as a placeholder offer
-   the variants TCGplayer prices them under, the same on every screen, and
-   the real data takes over by itself once tcgdex confirms the set. Two
-   nullable columns (`sets.variant_counts`, `cards.inferred_variants`), the
-   report on Discord names such sets. 🚀 **Minor** (a collector sees changed
-   variants). ✋ Release and migrate outside the nightly windows
-   (`deploy/README.md`, "A release with a migration"), then read-only checks
-   in production. Correcting the copies already saved under the wrong
-   variant (Delta Reign) is a separate step with the owner's list and yes.
-
 ## Phase B — Host tuning
 
 `M · med` · spec: `phase-11-host-redis-postgres-backups.md`. One part per
