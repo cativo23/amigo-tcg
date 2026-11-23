@@ -12,6 +12,7 @@ use App\Modules\Catalog\Data\PriceEntryData;
 use App\Modules\Catalog\Data\SetSummaryData;
 use App\Modules\Catalog\Exceptions\CardNotFoundException;
 use App\Modules\Catalog\Exceptions\MalformedCatalogResponseException;
+use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Models\Set;
 use App\Modules\Catalog\Services\ImportBudget;
 use App\Modules\Collection\Models\Collection;
@@ -1265,4 +1266,110 @@ test('saving too often in a minute is refused before any catalog lookup', functi
         ->assertNoRedirect();
 
     expect(CollectionItem::count())->toBe(0);
+});
+
+/** @param  list<string>  $tcgplayerLabels */
+function unconfirmedDetail(string $id, string $setId, array $tcgplayerLabels = []): CardDetailData
+{
+    return new CardDetailData(
+        tcgdexId: $id, setTcgdexId: $setId, localId: substr($id, -3), name: 'Growlithe',
+        rarity: null, variants: ['normal' => true, 'holo' => false, 'reverse' => false], officialImageUrl: null,
+        prices: new DataCollection(PriceEntryData::class, array_map(
+            fn (string $label) => new PriceEntryData(source: 'tcgplayer', variant: $label, currency: 'USD', marketMinor: 100, lowMinor: null, trendMinor: null, sourceUpdatedAt: null, raw: []),
+            $tcgplayerLabels,
+        )),
+        raw: ['variants_detailed' => [['type' => 'normal', 'size' => 'standard', 'variantId' => 'generated']]],
+    );
+}
+
+function unconfirmedStoredCard(?array $inferred): Card
+{
+    $set = Set::create(['tcgdex_id' => 'me06', 'name' => 'Delta Reign', 'variant_counts' => ['normal' => 0, 'holo' => 0, 'reverse' => 0, 'firstEd' => 0]]);
+
+    return Card::create([
+        'tcgdex_id' => 'me06-106', 'set_id' => $set->id, 'local_id' => '106', 'name' => 'Growlithe',
+        'raw' => ['variants_detailed' => [['type' => 'normal', 'size' => 'standard', 'variantId' => 'generated']]],
+        'inferred_variants' => $inferred,
+    ]);
+}
+
+test('a stored unconfirmed card offers its inferred variants and does not pre-select among several', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    Collection::factory()->for($user)->create(['name' => 'Main', 'slug' => 'main']);
+    unconfirmedStoredCard(['normal', 'reverse-holofoil']);
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me06-106')->andReturn(unconfirmedDetail('me06-106', 'me06'));
+    $this->app->instance(CardCatalogProvider::class, $provider);
+
+    Livewire::test(AddCollectionItem::class)
+        ->call('selectCard', 'me06-106')
+        ->assertSet('availableVariants', ['normal', 'reverse-holofoil'])
+        ->assertSet('rows.0.variant', null);
+});
+
+test('a stored unconfirmed card with a single inferred variant offers it and pre-selects it', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    Collection::factory()->for($user)->create(['name' => 'Main', 'slug' => 'main']);
+    unconfirmedStoredCard(['holofoil']);
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me06-106')->andReturn(unconfirmedDetail('me06-106', 'me06'));
+    $this->app->instance(CardCatalogProvider::class, $provider);
+
+    Livewire::test(AddCollectionItem::class)
+        ->call('selectCard', 'me06-106')
+        ->assertSet('availableVariants', ['holofoil'])
+        ->assertSet('rows.0.variant', 'holofoil');
+});
+
+test('an unconfirmed card without prices keeps today\'s list', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    Collection::factory()->for($user)->create(['name' => 'Main', 'slug' => 'main']);
+    unconfirmedStoredCard(null);
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me06-106')->andReturn(unconfirmedDetail('me06-106', 'me06'));
+    $this->app->instance(CardCatalogProvider::class, $provider);
+
+    Livewire::test(AddCollectionItem::class)
+        ->call('selectCard', 'me06-106')
+        ->assertSet('availableVariants', ['normal']);
+});
+
+test('a card of a set not stored yet records the set counts first and then offers the inferred list', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    Collection::factory()->for($user)->create(['name' => 'Main', 'slug' => 'main']);
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me06-001')->andReturn(unconfirmedDetail('me06-001', 'me06', ['normal', 'reverse-holofoil']));
+    $provider->shouldReceive('findSet')->once()->with('me06')->andReturn(new SetSummaryData(
+        tcgdexId: 'me06', name: 'Delta Reign', series: null, releasedOn: null, cardCount: null, logoUrl: null,
+        variantCounts: ['normal' => 0, 'holo' => 0, 'reverse' => 0, 'firstEd' => 0],
+    ));
+    $this->app->instance(CardCatalogProvider::class, $provider);
+
+    Livewire::test(AddCollectionItem::class)
+        ->call('selectCard', 'me06-001')
+        ->assertSet('availableVariants', ['normal', 'reverse-holofoil'])
+        ->assertSet('rows.0.variant', null);
+
+    expect(Set::where('tcgdex_id', 'me06')->sole()->variant_counts)->toEqual(['normal' => 0, 'holo' => 0, 'reverse' => 0, 'firstEd' => 0]);
+});
+
+test('a card of a confirmed set not stored yet keeps the list its own flags give', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+    Collection::factory()->for($user)->create(['name' => 'Main', 'slug' => 'main']);
+    $provider = Mockery::mock(CardCatalogProvider::class);
+    $provider->shouldReceive('findCard')->with('me06-001')->andReturn(unconfirmedDetail('me06-001', 'me06', ['holofoil']));
+    $provider->shouldReceive('findSet')->once()->with('me06')->andReturn(new SetSummaryData(
+        tcgdexId: 'me06', name: 'Delta Reign', series: null, releasedOn: null, cardCount: null, logoUrl: null,
+        variantCounts: ['normal' => 80, 'holo' => 60, 'reverse' => 70, 'firstEd' => 0],
+    ));
+    $this->app->instance(CardCatalogProvider::class, $provider);
+
+    Livewire::test(AddCollectionItem::class)
+        ->call('selectCard', 'me06-001')
+        ->assertSet('availableVariants', ['normal']);
 });

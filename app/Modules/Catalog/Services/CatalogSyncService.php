@@ -12,6 +12,7 @@ use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Models\CardPriceSnapshot;
 use App\Modules\Catalog\Models\CardTcgplayerLink;
 use App\Modules\Catalog\Models\Set;
+use App\Modules\Catalog\Support\CardVariants;
 use App\Modules\Catalog\Tcgcsv\TcgcsvFallbackPrices;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
@@ -82,6 +83,7 @@ final class CatalogSyncService
             );
 
             $this->storePriceSnapshots($card, $cardDetail);
+            $this->storeInferredVariants($card, $set);
             $this->refreshWeekBaselines($card);
 
             // The row was written inside this transaction, so it exists.
@@ -189,6 +191,30 @@ final class CatalogSyncService
                 ...$counts,
             ],
         );
+    }
+
+    /**
+     * The card's deduced base variants, from the TCGplayer labels stored for
+     * it in the price window, written only while tcgdex has not filled the
+     * card's prints in and only when the list changes. Cleared to null as
+     * soon as the rule stops applying, so the real data takes over.
+     */
+    private function storeInferredVariants(Card $card, Set $set): void
+    {
+        $labels = CardPriceSnapshot::query()
+            ->where('card_id', $card->id)
+            ->where('source', 'tcgplayer')
+            ->whereIn('origin', ['tcgdex', 'tcgcsv'])
+            ->where('captured_on', '>=', CarbonImmutable::today()->subDays(CardPriceResolver::STALE_AFTER_DAYS)->toDateString())
+            ->distinct()
+            ->pluck('variant')
+            ->all();
+
+        $inferred = CardVariants::inferUnconfirmed($card->raw ?? [], $labels, $set->variant_counts);
+
+        if ($inferred !== $card->inferred_variants) {
+            $card->update(['inferred_variants' => $inferred]);
+        }
     }
 
     private function storePriceSnapshots(Card $card, CardDetailData $cardDetail): void
