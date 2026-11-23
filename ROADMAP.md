@@ -74,11 +74,9 @@ compose file on the host.
 5. **Compose tidy-up.** `S` — recreate `backup` on deploy instead of
    restarting it; postgres/redis health checks every 30 s with a
    `start_interval`; re-measure CPU throttling on scheduler, horizon and
-   backup before changing any limit; pin `postgres` and `redis` by digest
-   so they change only in a planned release (the v1.8.0 deploy's
-   `compose pull` took new `postgres:17-alpine` and `redis:7-alpine` builds
-   and recreated both inside the 04:00 window, with a few seconds of failed
-   redis lookups). 🚀 **Patch** (can ride with part 4).
+   backup before changing any limit. 🚀 **Patch** (can ride with part 4;
+   it also ships the merged postgres and redis pin, which recreates `postgres`,
+   `redis` and `backup`).
 
 ## Phase C — TCGplayer links and price-link integrity
 

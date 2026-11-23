@@ -6,6 +6,22 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- `postgres` and `redis` in production are pinned to an exact version and
+  digest, so a deploy no longer pulls a rebuilt image and recreates them
+  unannounced. A weekly Dependabot PR proposes each update; major versions are
+  ignored.
+
+### Deploy notes
+
+- The pinned digests are the ones already running, but compose compares the
+  image string, which changes: the deploy recreates `postgres`, `redis` and
+  `backup` (a dry run on the host shows exactly those three). It is a
+  host-changing release: outside the nightly windows, with an idle queue, a
+  dated copy of the compose file first, and not on a day another release
+  changed the host or ran a migration.
+
 ## [1.11.0] - 2026-11-23
 
 ### Changed
