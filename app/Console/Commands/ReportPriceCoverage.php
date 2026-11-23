@@ -77,7 +77,7 @@ final class ReportPriceCoverage extends Command
             $named = [...$named, ...$this->keys('unconfirmed', array_slice($newUnconfirmed, 0, self::LISTED))];
         }
         if ($stopped !== []) {
-            $lines[] = sprintf('- %d set(s) no longer use deduced variants, tcgdex confirmed them: %s', count($stopped), $this->list($stopped));
+            $lines[] = sprintf('- %d set(s) no longer use deduced variants (tcgdex confirmed them, or no TCGplayer price is recent enough): %s', count($stopped), $this->list($stopped));
         }
 
         if ($lines !== []) {
