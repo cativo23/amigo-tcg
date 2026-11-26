@@ -13,6 +13,13 @@ All notable changes to this project are documented here. Format follows
   nothing changed. The green dot beside a rise is gone and a fall now has its
   own colour, so direction no longer depends on colour alone.
 
+### Security
+
+- Symfony components updated to 8.1.12, which fixes the advisories reported
+  against `symfony/routing` (CVE-2026-133746, CVE-2026-133754),
+  `symfony/mailer` (CVE-2026-133751, CVE-2026-133755) and
+  `symfony/http-kernel` (CVE-2026-133743).
+
 ## [1.12.0] - 2026-11-26
 
 ### Changed
