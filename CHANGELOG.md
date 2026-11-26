@@ -8,6 +8,17 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The product is now AMIGO TCG, at `amigotcg.cativo.dev`. The name and the
+  wordmark (AMIGO in full weight, TCG lighter) come from one place,
+  `config/brand.php`, and show on every page, email, alert and legal page.
+  `tcgvault.cativo.dev` redirects permanently to the same path and query on
+  the new host, so shared collection links keep working.
+- The theme and the real-size calibration are stored under new keys
+  (`amigo-tcg-theme`, `amigo-tcg-cal`). Browser storage belongs to one host, so
+  visitors choose their theme again and set the calibration again once. Members
+  sign in again once on the new host.
+- The CSV export file is named `amigo-tcg-<username>-<date>.csv`, the config file
+  is `config/amigotcg.php` and the image is `cativo23/amigo-tcg`.
 - `postgres` and `redis` in production are pinned to an exact version and
   digest, so a deploy no longer pulls a rebuilt image and recreates them
   unannounced. A weekly Dependabot PR proposes each update; major versions are
@@ -15,6 +26,19 @@ All notable changes to this project are documented here. Format follows
 
 ### Deploy notes
 
+- **AMIGO TCG rename (host-changing, no migration).** In this order, each step
+  by hand: (1) back up the server `.env` with a date, then add the four pins
+  (`SESSION_COOKIE=tcg-vault-session`, `CACHE_PREFIX=tcg-vault-cache-`,
+  `REDIS_PREFIX=tcg-vault-database-`, `HORIZON_PREFIX=tcg_vault_horizon:`);
+  Laravel derives all four from `APP_NAME`, and without them the change logs
+  everyone out and strands queued jobs; (2) set `APP_NAME="AMIGO TCG"`,
+  `APP_URL`, `SESSION_DOMAIN` and `TCGCSV_USER_AGENT` as in
+  `docker/prod/.env.production.example`; (3) keep `~/deploy/tcg-vault` and the
+  compose project name `tcg-vault`: renaming either starts Postgres on an empty
+  volume; (4) the release recreates `app`, `horizon`, `scheduler` and the two
+  networks, and Traefik issues a certificate for the new host on its first
+  request. Verify with `curl -sI` that the old host answers `301` to the same
+  path and query.
 - The pinned digests are the ones already running, but compose compares the
   image string, which changes: the deploy recreates `postgres`, `redis` and
   `backup` (a dry run on the host shows exactly those three). It is a
