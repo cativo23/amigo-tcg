@@ -6,8 +6,8 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 test('seeding creates the core permissions and roles', function () {
-    config(['tcgvault.admin_email' => 'cativo23.kt@gmail.com']);
-    config(['tcgvault.admin_password' => 'a-real-password']);
+    config(['amigotcg.admin_email' => 'cativo23.kt@gmail.com']);
+    config(['amigotcg.admin_password' => 'a-real-password']);
 
     $this->seed();
 
@@ -20,8 +20,8 @@ test('seeding creates the core permissions and roles', function () {
 });
 
 test('the user role carries the use-collection permission', function () {
-    config(['tcgvault.admin_email' => 'cativo23.kt@gmail.com']);
-    config(['tcgvault.admin_password' => 'a-real-password']);
+    config(['amigotcg.admin_email' => 'cativo23.kt@gmail.com']);
+    config(['amigotcg.admin_password' => 'a-real-password']);
 
     $this->seed();
 
@@ -30,8 +30,8 @@ test('the user role carries the use-collection permission', function () {
 });
 
 test('re-seeding does not duplicate permissions or roles', function () {
-    config(['tcgvault.admin_email' => 'cativo23.kt@gmail.com']);
-    config(['tcgvault.admin_password' => 'a-real-password']);
+    config(['amigotcg.admin_email' => 'cativo23.kt@gmail.com']);
+    config(['amigotcg.admin_password' => 'a-real-password']);
 
     $this->seed();
     $this->seed();

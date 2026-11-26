@@ -6,7 +6,7 @@ import {
     parseCalibration, plateLayout, plateNoteKind, pointOnCard, tiltFor,
 } from './plate-helpers.js';
 
-const CAL_KEY = 'tcg-vault-cal';
+const CAL_KEY = 'amigo-tcg-cal';
 /** The card's move between sizes: --dur-slow, the page's motion cap. */
 const MOVE_MS = 520;
 const still = () => document.documentElement.classList.contains('still');

@@ -43,7 +43,7 @@ final class InviteSent extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'You’re invited to tcg-vault');
+        return new Envelope(subject: 'You’re invited to '.config('brand.name').'');
     }
 
     public function content(): Content

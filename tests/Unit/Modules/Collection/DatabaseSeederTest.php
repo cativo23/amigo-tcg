@@ -7,8 +7,8 @@ use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Scopes\TenantScope;
 
 test('seeding generates a username from the admin email and a public default collection', function () {
-    config(['tcgvault.admin_email' => 'cativo23.kt@gmail.com']);
-    config(['tcgvault.admin_password' => 'a-real-password']);
+    config(['amigotcg.admin_email' => 'cativo23.kt@gmail.com']);
+    config(['amigotcg.admin_password' => 'a-real-password']);
 
     $this->seed();
 
@@ -21,9 +21,9 @@ test('seeding generates a username from the admin email and a public default col
 });
 
 test('an explicit admin_username config overrides the email-derived default', function () {
-    config(['tcgvault.admin_email' => 'cativo23.kt@gmail.com']);
-    config(['tcgvault.admin_password' => 'a-real-password']);
-    config(['tcgvault.admin_username' => 'cativo23']);
+    config(['amigotcg.admin_email' => 'cativo23.kt@gmail.com']);
+    config(['amigotcg.admin_password' => 'a-real-password']);
+    config(['amigotcg.admin_username' => 'cativo23']);
 
     $this->seed();
 
@@ -32,8 +32,8 @@ test('an explicit admin_username config overrides the email-derived default', fu
 });
 
 test('the seeded bootstrap admin gets the super-admin role', function () {
-    config(['tcgvault.admin_email' => 'cativo23.kt@gmail.com']);
-    config(['tcgvault.admin_password' => 'a-real-password']);
+    config(['amigotcg.admin_email' => 'cativo23.kt@gmail.com']);
+    config(['amigotcg.admin_password' => 'a-real-password']);
 
     $this->seed();
 
@@ -42,8 +42,8 @@ test('the seeded bootstrap admin gets the super-admin role', function () {
 });
 
 test('re-seeding does not duplicate the bootstrap admins super-admin role assignment', function () {
-    config(['tcgvault.admin_email' => 'cativo23.kt@gmail.com']);
-    config(['tcgvault.admin_password' => 'a-real-password']);
+    config(['amigotcg.admin_email' => 'cativo23.kt@gmail.com']);
+    config(['amigotcg.admin_password' => 'a-real-password']);
 
     $this->seed();
     $this->seed();

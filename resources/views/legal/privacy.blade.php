@@ -1,10 +1,10 @@
-@component('layouts.public', ['title' => 'Privacy policy', 'description' => 'What tcg-vault collects, why, where it lives, and how to get it out or delete it.'])
+@component('layouts.public', ['title' => 'Privacy policy', 'description' => 'What '.config('brand.name').' collects, why, where it lives, and how to get it out or delete it.'])
 <article class="nw-wrap nw-legal py-10">
-    <p class="nw-eyebrow">tcg-vault · legal</p>
+    <p class="nw-eyebrow">{{ config('brand.name') }} · legal</p>
     <h1 class="nw-display nw-h1 nw-h1--sm">Privacy policy</h1>
     <p class="nw-legal-meta">Last updated November 2026</p>
 
-    <p>tcg-vault is a small, independent Pokémon TCG collection tracker run by one person, Carlos Cativo (“I”), from El Salvador. I am the controller of the data described here. This page explains what the app stores about you, why, and what you can do about it. It is written to meet the EU General Data Protection Regulation (GDPR) as well as Salvadoran law, since anyone can visit the public galleries.</p>
+    <p>{{ config('brand.name') }} is a small, independent Pokémon TCG collection tracker run by one person, Carlos Cativo (“I”), from El Salvador. I am the controller of the data described here. This page explains what the app stores about you, why, and what you can do about it. It is written to meet the EU General Data Protection Regulation (GDPR) as well as Salvadoran law, since anyone can visit the public galleries.</p>
 
     <h2>What I collect</h2>
     <ul>

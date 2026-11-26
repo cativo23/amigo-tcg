@@ -79,7 +79,7 @@ window.addEventListener('resize', markScrollableNav);
 // "follow the OS", which app.css's prefers-color-scheme block already
 // does on its own — this never writes a value until the user actually
 // clicks the toggle.
-const THEME_KEY = 'tcg-vault-theme';
+const THEME_KEY = 'amigo-tcg-theme';
 
 // An explicit ?theme= on the first load (captures, shared links) beats the stored choice until the toggle is clicked.
 let themeOverride = themeFromSearch(window.location.search);

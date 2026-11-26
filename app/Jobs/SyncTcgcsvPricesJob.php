@@ -233,10 +233,10 @@ final class SyncTcgcsvPricesJob implements ShouldQueue
 
         Log::channel('tcgcsv')->info('tcgcsv sync', $summary);
         if ($implausibleCount > 0) {
-            app(DiscordAlerter::class)->send("⚠️ tcg-vault: tcgcsv held back {$implausibleCount} implausible TCGplayer price(s) — check their links: ".implode(', ', $summary['gaps_implausible']));
+            app(DiscordAlerter::class)->send('⚠️ '.config('brand.name').": tcgcsv held back {$implausibleCount} implausible TCGplayer price(s) — check their links: ".implode(', ', $summary['gaps_implausible']));
         }
         if ($acceptedAfterHold !== []) {
-            app(DiscordAlerter::class)->send('ℹ️ tcg-vault: tcgcsv wrote '.count($acceptedAfterHold).' TCGplayer price(s) after a hold expired — check their links if nobody did: '.implode(', ', $summary['gaps_accepted_after_hold']));
+            app(DiscordAlerter::class)->send('ℹ️ '.config('brand.name').': tcgcsv wrote '.count($acceptedAfterHold).' TCGplayer price(s) after a hold expired — check their links if nobody did: '.implode(', ', $summary['gaps_accepted_after_hold']));
         }
         // Kept for reviewing tcgcsv against tcgdex even after logs rotate.
         $day = 'tcgcsv:shadow:'.now()->toDateString();

@@ -40,7 +40,7 @@ test('a guest sees invite-only copy and no sign-up link when registration is clo
 
 function publicDemo(string $email = 'demo@tcg-vault.invalid', bool $withItem = true): void
 {
-    config(['tcgvault.demo.username' => 'demo', 'tcgvault.demo.email' => 'demo@tcg-vault.invalid']);
+    config(['amigotcg.demo.username' => 'demo', 'amigotcg.demo.email' => 'demo@tcg-vault.invalid']);
     $demo = User::factory()->create(['username' => 'demo', 'email' => $email]);
     $collection = Collection::factory()->for($demo)->create(['is_public' => true]);
 
@@ -63,7 +63,7 @@ test('the home page links to the example collection once it is public', function
 });
 
 test('the home page hides the example link while there is no public demo collection', function () {
-    config(['tcgvault.demo.username' => 'demo']);
+    config(['amigotcg.demo.username' => 'demo']);
     $demo = User::factory()->create(['username' => 'demo']);
     Collection::factory()->for($demo)->create(['is_public' => false]);
 

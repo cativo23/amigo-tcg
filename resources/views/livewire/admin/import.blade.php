@@ -70,7 +70,7 @@
                         <ul class="text-sm space-y-1">
                             @foreach ($unmatched as $line)
                                 @php
-                                    // 'unknown_set' deliberately doesn't mention config/tcgvault.php or
+                                    // 'unknown_set' deliberately doesn't mention config/amigotcg.php or
                                     // tcgplayer_set_map — those are implementation details an admin can't
                                     // act on. tcgdex has no TCGplayer-code field to look this set up by, so
                                     // there's no self-service fix here yet; the honest message is just that

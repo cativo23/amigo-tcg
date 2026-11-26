@@ -17,7 +17,7 @@ use Throwable;
 
 /**
  * Creates or tops up the public example collection described by
- * config('tcgvault.demo'). Idempotent: re-running adds any newly listed
+ * config('amigotcg.demo'). Idempotent: re-running adds any newly listed
  * card and changes nothing else. Cards missing from the Catalog are
  * pulled from tcgdex, which also puts them on the daily price refresh.
  */
@@ -29,8 +29,8 @@ final class SeedDemoGallery extends Command
 
     public function handle(CatalogSyncService $sync): int
     {
-        $username = config('tcgvault.demo.username');
-        $email = config('tcgvault.demo.email');
+        $username = config('amigotcg.demo.username');
+        $email = config('amigotcg.demo.email');
 
         // The email is the demo account's identity, so changing
         // TCGVAULT_DEMO_USERNAME renames it rather than creating a second.
@@ -68,7 +68,7 @@ final class SeedDemoGallery extends Command
 
         $failed = [];
 
-        foreach (config('tcgvault.demo.cards', []) as $tcgdexId) {
+        foreach (config('amigotcg.demo.cards', []) as $tcgdexId) {
             try {
                 $card = Card::where('tcgdex_id', $tcgdexId)->first() ?? $sync->syncCard($tcgdexId);
             } catch (Throwable $e) {

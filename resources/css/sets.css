@@ -1,4 +1,4 @@
-/* tcg-vault · public sets list (/{username}/sets). Loaded only by livewire/gallery/sets.blade.php, after revamp.css.
+/* public sets list (/{username}/sets). Loaded only by livewire/gallery/sets.blade.php, after revamp.css.
    Every selector is prefixed .sts- so nothing collides with revamp.css (.sheet, .strip, .copy, .btn, .bar ...).
    The page bar and footer come from revamp.css, so none of their rules live here. */
 

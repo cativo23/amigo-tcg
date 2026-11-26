@@ -18,7 +18,7 @@ function setRegistration(bool $open): void
 
 function landingDemo(string $email = 'demo@tcg-vault.invalid'): void
 {
-    config(['tcgvault.demo.username' => 'demo', 'tcgvault.demo.email' => 'demo@tcg-vault.invalid']);
+    config(['amigotcg.demo.username' => 'demo', 'amigotcg.demo.email' => 'demo@tcg-vault.invalid']);
     $demo = User::factory()->create(['username' => 'demo', 'email' => $email]);
     $collection = Collection::factory()->for($demo)->create(['is_public' => true]);
     $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
@@ -52,7 +52,7 @@ test('the landing is indexable, describes itself and uses no client-side navigat
 
 test('the landing keeps the site title and does not call a third-party font host', function () {
     $this->get('/')->assertOk()
-        ->assertSee('<title>tcg-vault</title>', escape: false)
+        ->assertSee('<title>AMIGO TCG</title>', escape: false)
         ->assertDontSee('fonts.googleapis.com')
         ->assertDontSee('fonts.gstatic.com');
 });
@@ -60,10 +60,10 @@ test('the landing keeps the site title and does not call a third-party font host
 test('the landing shows every approved copy block verbatim', function () {
     $this->get('/')->assertOk()->assertSeeInOrder([
         'Every card you&nbsp;own, on one page.',
-        'Make a list of your Pokémon cards, from the chase card to the bulk commons. tcg-vault shows each one with its picture and today\'s price, and gives your whole collection a link you can send to anyone.',
+        'Make a list of your Pokémon cards, from the chase card to the bulk commons. AMIGO TCG shows each one with its picture and today\'s price, and gives your whole collection a link you can send to anyone.',
         'Send a link instead of a spreadsheet.',
         'Your page lives at',
-        'tcgvault.cativo.dev/yourname',
+        'amigotcg.cativo.dev/yourname',
         'Anyone who opens it sees your cards set by set and what they\'re worth. They don\'t need an account.',
         'See each card at its printed size.',
         'Every card has its own page, and the official art can be shown there at 63 × 88 mm. On a new screen the size is approximate until you hold a real card against it and match the two once.',

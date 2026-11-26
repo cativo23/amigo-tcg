@@ -29,7 +29,7 @@
         <form x-show="! sent" wire:submit="send" class="p-6">
             <h2 class="text-lg font-medium" style="color: var(--ink)">{{ __('Send feedback') }}</h2>
             <p class="mt-1 text-sm" style="color: var(--muted)">
-                {{ __('Goes straight to the person building tcg-vault. Your username and the page you’re on are included, so you don’t need to describe where you were.') }}
+                {{ __('Goes straight to the person building :app. Your username and the page you’re on are included, so you don’t need to describe where you were.', ['app' => config('brand.name')]) }}
             </p>
 
             <div class="mt-5">

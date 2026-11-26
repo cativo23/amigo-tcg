@@ -238,7 +238,7 @@ test('the page carries its own title and Open Graph image', function () {
     $response = $this->get('/carlos');
 
     $response->assertSee('<title>', false);
-    $response->assertSee("Carlos's collection · tcg-vault"); // escaped like the view does
+    $response->assertSee("Carlos's collection · AMIGO TCG"); // escaped like the view does
     $response->assertSee('property="og:title"', false);
 });
 

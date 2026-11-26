@@ -1,4 +1,4 @@
-/* tcg-vault · public set page (/{username}/{set}). Loaded only by livewire/gallery/show.blade.php, after revamp.css
+/* public set page (/{username}/{set}). Loaded only by livewire/gallery/show.blade.php, after revamp.css
    and collection.css: the tiles, toolbar, grid, summary, note, sheet padding and empty state are the collection's
    .col- rules and variables, reused unchanged inside .col-page. Everything set-only is prefixed .set-; the bar and
    footer come from revamp.css. Not sets.css (.sts-): that is the Sets list. A change to collection.css restyles

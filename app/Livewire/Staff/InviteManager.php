@@ -115,7 +115,7 @@ final class InviteManager extends Component
         $attributes = [
             'email' => $email,
             'created_by' => auth()->id(),
-            'expires_at' => now()->addDays(config('tcgvault.invite_ttl_days', 7)),
+            'expires_at' => now()->addDays(config('amigotcg.invite_ttl_days', 7)),
         ];
 
         try {

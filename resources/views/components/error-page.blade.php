@@ -28,12 +28,12 @@
 
         <script>
             (function () {
-                var t = localStorage.getItem('tcg-vault-theme');
+                var t = localStorage.getItem('amigo-tcg-theme');
                 if (t) document.documentElement.setAttribute('data-theme', t);
             })();
         </script>
 
-        <title>{{ $code }} — {{ config('app.name', 'tcg-vault') }}</title>
+        <title>{{ $code }} — {{ config('brand.name') }}</title>
 
         <link rel="icon" href="data:image/svg+xml,{{ rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="1" y="1" width="30" height="30" rx="7" fill="#141412"/><path d="M2 22 L14 24 L26 10" fill="none" stroke="#f2efe6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="26" cy="10" r="3" fill="#37d17f"/></svg>') }}">
 

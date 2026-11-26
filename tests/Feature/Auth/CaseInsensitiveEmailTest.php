@@ -122,9 +122,9 @@ test('the migration drops reset links stored under a capitalised address instead
 test('the admin seeder stores the admin email in lowercase and finds it again on a re-seed', function () {
     Role::findOrCreate('super-admin');
     config([
-        'tcgvault.admin_email' => 'Carlos@Example.com',
-        'tcgvault.admin_password' => 'a-real-password',
-        'tcgvault.admin_username' => 'carlos',
+        'amigotcg.admin_email' => 'Carlos@Example.com',
+        'amigotcg.admin_password' => 'a-real-password',
+        'amigotcg.admin_username' => 'carlos',
     ]);
 
     $this->seed();

@@ -1,4 +1,4 @@
-/* tcg-vault · public activity (/{username}/activity). Loaded only by livewire/gallery/activity.blade.php, after revamp.css.
+/* public activity (/{username}/activity). Loaded only by livewire/gallery/activity.blade.php, after revamp.css.
    Every selector is prefixed .act- so nothing collides with revamp.css (.sheet, .chart, .copy, .btn ...) or collection.css.
    The bar and footer come from revamp.css. Font sizes come from the --text-* scale only, apart from the heading's --act-who. */
 

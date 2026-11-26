@@ -11,7 +11,7 @@ use Sentry\Stacktrace;
 test('a password in the request body of an error report is masked before it is sent', function () {
     $event = Event::createEvent();
     $event->setRequest([
-        'url' => 'https://tcgvault.cativo.dev/livewire/update',
+        'url' => 'https://amigotcg.cativo.dev/livewire/update',
         'method' => 'POST',
         'data' => [
             'components' => [[
@@ -26,7 +26,7 @@ test('a password in the request body of an error report is masked before it is s
     expect(json_encode($sent->getRequest()))->not->toContain('hunter2')
         ->and($sent->getRequest()['data']['components'][0]['updates']['form.password'])->toBe(SensitiveInput::MASK)
         ->and($sent->getRequest()['data']['components'][0]['updates']['form.email'])->toBe('ash@example.com')
-        ->and($sent->getRequest()['url'])->toBe('https://tcgvault.cativo.dev/livewire/update');
+        ->and($sent->getRequest()['url'])->toBe('https://amigotcg.cativo.dev/livewire/update');
 });
 
 test('a password in a Livewire breadcrumb is masked before the report is sent', function () {

@@ -124,7 +124,7 @@ test('an unrecognized set code shows an admin-facing message, not a hint to edit
         ->set('text', '1 Something Weird [ZZZ] 001/100')
         ->call('preview')
         ->assertSee('unrecognized set — not yet supported for import', escape: false)
-        ->assertDontSee('tcgvault.php', escape: false)
+        ->assertDontSee('amigotcg.php', escape: false)
         ->assertDontSee('tcgplayer_set_map', escape: false);
 });
 
@@ -215,7 +215,7 @@ test('an import spanning more new sets than the daily budget adds every card but
         $map["S{$i}"] = "s{$i}";
         $lines[] = "1 Card {$i} [S{$i}] 001/100";
     }
-    config(['tcgvault.tcgplayer_set_map' => $map]);
+    config(['amigotcg.tcgplayer_set_map' => $map]);
 
     $component = Livewire::test(Import::class)
         ->set('text', implode("\n", $lines))

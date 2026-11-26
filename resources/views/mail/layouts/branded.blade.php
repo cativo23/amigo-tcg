@@ -16,7 +16,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
     <meta name="supported-color-schemes" content="light">
-    <title>tcg-vault</title>
+    <title>{{ config('brand.name') }}</title>
 </head>
 <body style="margin:0; padding:0; background:#f2efe6; color:#141412; font-family:-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; -webkit-text-size-adjust:100%;">
     @isset($preheader)
@@ -28,7 +28,7 @@
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
                     <tr>
                         <td style="padding:0 4px 14px; font-size:15px; font-weight:800; letter-spacing:.14em; color:#141412;">
-                            <a href="{{ url('/') }}" style="color:#141412; text-decoration:none;">TCG-VAULT</a>
+                            <a href="{{ url('/') }}" style="color:#141412; text-decoration:none;">{{ config('brand.name') }}</a>
                         </td>
                     </tr>
                     <tr>
@@ -55,7 +55,7 @@
                     </tr>
                     <tr>
                         <td style="padding:18px 4px 0; font-size:12px; line-height:1.5; color:#6d6c62;">
-                            {{ $footer ?? 'You’re getting this because of your tcg-vault account.' }}<br>
+                            {{ $footer ?? 'You’re getting this because of your '.config('brand.name').' account.' }}<br>
                             <a href="{{ url('/') }}" style="color:#6d6c62;">{{ parse_url(url('/'), PHP_URL_HOST) }}</a>
                             &nbsp;·&nbsp;
                             <a href="{{ route('privacy') }}" style="color:#6d6c62;">Privacy</a>

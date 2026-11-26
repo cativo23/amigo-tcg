@@ -1,10 +1,10 @@
-@component('layouts.public', ['title' => 'Terms of use', 'description' => 'The rules for using tcg-vault during its private beta.'])
+@component('layouts.public', ['title' => 'Terms of use', 'description' => 'The rules for using '.config('brand.name').' during its private beta.'])
 <article class="nw-wrap nw-legal py-10">
-    <p class="nw-eyebrow">tcg-vault · legal</p>
+    <p class="nw-eyebrow">{{ config('brand.name') }} · legal</p>
     <h1 class="nw-display nw-h1 nw-h1--sm">Terms of use</h1>
     <p class="nw-legal-meta">Last updated September 2026</p>
 
-    <p>tcg-vault is a small, independent collection tracker run by one person, Carlos Cativo (“I”). By creating an account you agree to these terms. How your data is handled is covered separately in the <a href="{{ route('privacy') }}">privacy policy</a>.</p>
+    <p>{{ config('brand.name') }} is a small, independent collection tracker run by one person, Carlos Cativo (“I”). By creating an account you agree to these terms. How your data is handled is covered separately in the <a href="{{ route('privacy') }}">privacy policy</a>.</p>
 
     <h2>A private beta</h2>
     <p>The app is currently in an invite-only beta. It is free, it will change, and features may be added, altered or removed. I may also pause or end the service; if I do, I’ll email members at least 30 days before so you can download your collection (CSV export; photos are not included).</p>
@@ -28,7 +28,7 @@
     <p>Don’t try to break, overload or scrape the service, access other people’s accounts, or use it to send spam or abuse. I may suspend or delete accounts that break these rules. Except for serious or illegal abuse, I’ll email you first, explain why, and give you a chance to respond and export your data.</p>
 
     <h2>Ownership and card images</h2>
-    <p>The app’s code, design and name belong to me. Pokémon and all related names and artwork belong to Nintendo, Creatures, GAME FREAK and The Pokémon Company; tcg-vault is not affiliated with or endorsed by any of them. Card images are shown only to identify cards; rights holders can contact me to have them removed.</p>
+    <p>The app’s code, design and name belong to me. Pokémon and all related names and artwork belong to Nintendo, Creatures, GAME FREAK and The Pokémon Company; {{ config('brand.name') }} is not affiliated with or endorsed by any of them. Card images are shown only to identify cards; rights holders can contact me to have them removed.</p>
 
     <h2>No guarantees, and limits on liability</h2>
     <p>The service is provided free and “as is”, without guarantees that it will be available, error-free or keep your data. There are currently no off-site backups, so keep your own copy (the CSV export) of anything that matters to you.</p>

@@ -35,7 +35,7 @@ final class TcgplayerImportParser
 
     public function parse(string $text): ParsedImport
     {
-        $setMap = config('tcgvault.tcgplayer_set_map', []);
+        $setMap = config('amigotcg.tcgplayer_set_map', []);
 
         /** @var array<string, array{qty: int, rawLine: string}> $candidates keyed by "{tcgdexSetId}-{localId}" */
         $candidates = [];

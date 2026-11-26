@@ -24,14 +24,14 @@ test('a 403 (e.g. a revoked invite link) renders the branded error page', functi
     $this->get($url)
         ->assertForbidden()
         ->assertSee('This invite is no longer valid.')
-        ->assertSee('tcg-vault', escape: false);
+        ->assertSee('AMIGO TCG', escape: false);
 });
 
 test('a 404 renders the branded error page', function () {
     $this->get('/this-route-does-not-exist')
         ->assertNotFound()
         ->assertSee('Page not found')
-        ->assertSee('tcg-vault', escape: false);
+        ->assertSee('AMIGO TCG', escape: false);
 });
 
 test('a guest hitting a 404 is sent home, not asked to log in', function () {
@@ -75,11 +75,11 @@ test('an authenticated user without use-collection hitting a 404 is still sent h
 test('the 419 error view is branded', function () {
     $this->view('errors.419')
         ->assertSee('Page expired')
-        ->assertSee('tcg-vault', escape: false);
+        ->assertSee('AMIGO TCG', escape: false);
 });
 
 test('the 500 error view is branded', function () {
     $this->view('errors.500')
         ->assertSee('Something went wrong')
-        ->assertSee('tcg-vault', escape: false);
+        ->assertSee('AMIGO TCG', escape: false);
 });

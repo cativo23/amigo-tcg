@@ -32,23 +32,23 @@ function brandedMailables(): array
 test('every mailable uses the branded layout', function (Closure $make) {
     $mail = $make();
 
-    $mail->assertSeeInHtml('TCG-VAULT');
+    $mail->assertSeeInHtml('AMIGO TCG');
     $mail->assertSeeInHtml(route('privacy'), false);
-    $mail->assertSeeInText('tcg-vault');
+    $mail->assertSeeInText('AMIGO TCG');
     $mail->assertDontSeeInText('<table');
 })->with(brandedMailables());
 
 test('the password reset email uses the branded layout', function () {
     $html = (string) resetMail(User::factory()->create())->render();
 
-    expect($html)->toContain('TCG-VAULT')->toContain(route('privacy'));
+    expect($html)->toContain('AMIGO TCG')->toContain(route('privacy'));
 });
 
 test('the password reset email links to the reset form with its token and says when it expires', function () {
     $user = User::factory()->create(['email' => 'ash@example.com']);
     $message = resetMail($user);
 
-    expect($message->subject)->toBe('Reset your tcg-vault password');
+    expect($message->subject)->toBe('Reset your AMIGO TCG password');
 
     $url = route('password.reset', ['token' => 'reset-token-123', 'email' => 'ash@example.com']);
     $html = (string) $message->render();

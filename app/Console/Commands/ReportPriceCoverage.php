@@ -81,7 +81,7 @@ final class ReportPriceCoverage extends Command
         }
 
         if ($lines !== []) {
-            $alerter->send("⚠️ tcg-vault price coverage:\n".implode("\n", $lines));
+            $alerter->send('⚠️ '.config('brand.name')." price coverage:\n".implode("\n", $lines));
 
             // DiscordAlerter logs a failed post instead of throwing, so a
             // delivery failure cannot be told apart from a sent message here.

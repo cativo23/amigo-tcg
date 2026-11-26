@@ -1,5 +1,5 @@
 @php
-    $siteName = 'tcg-vault'; // the brand, not APP_NAME — the spec names the product
+    $siteName = config('brand.name'); // the brand, not APP_NAME: the cookie and cache prefixes derive from that
     $pageTitle = isset($title) && $title !== '' ? "{$title} · {$siteName}" : $siteName;
     $pageDescription = $description ?? 'Every card you own, on one page.';
     // A collector's pages carry the nav; the landing has no {username} and keeps the bare bar.
@@ -17,7 +17,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         {{-- Runs before first paint: motion mode (js + moving/still), the
-             ?progress= capture switch, and the stored theme (tcg-vault-theme).
+             ?progress= capture switch, and the stored theme (amigo-tcg-theme).
              ?theme= overrides the stored choice for captures. --}}
         <script>
             (function () {
@@ -27,7 +27,7 @@
                 h.classList.add(reduce ? 'still' : 'moving');
                 if (!reduce && q.get('progress') != null) h.classList.add('dbg');
                 var t = q.get('theme');
-                if (!t) { try { t = localStorage.getItem('tcg-vault-theme'); } catch (e) {} }
+                if (!t) { try { t = localStorage.getItem('amigo-tcg-theme'); } catch (e) {} }
                 if (t === 'dark' || t === 'light') h.setAttribute('data-theme', t);
             })();
         </script>
@@ -59,7 +59,7 @@
         <a class="skip" href="#main">Skip to content</a>
 
         <header class="bar{{ $username ? ' bar--nav' : '' }}">
-            <a class="mark" href="{{ $username ? route('gallery.index', ['username' => $username]) : url('/') }}">tcg-vault</a>
+            <a class="mark" href="{{ $username ? route('gallery.index', ['username' => $username]) : url('/') }}"><x-brand.wordmark /></a>
             @if ($username)
                 <nav class="bar-nav" aria-label="Gallery">
                     <a href="{{ route('gallery.index', ['username' => $username]) }}" @if ($isActive('gallery.index', 'gallery.card')) aria-current="page" @endif>Collection</a>
@@ -85,7 +85,7 @@
 
         <footer class="foot">
             <div>
-                <span class="fbrand">tcg-vault</span>
+                <span class="fbrand"><x-brand.wordmark /></span>
                 Card data and artwork from <a href="https://tcgdex.dev" rel="noopener">tcgdex.dev</a>.
                 Prices are approximate TCGplayer market values, updated daily from <a href="https://tcgdex.dev" rel="noopener">tcgdex.dev</a> and <a href="https://tcgcsv.com" rel="noopener">tcgcsv.com</a>. They are not appraisals.
             </div>

@@ -123,7 +123,7 @@ final class WarmValueSeriesJob implements ShouldBeUniqueUntilProcessing, ShouldQ
         Log::error('gallery:warm-value-series failed for a user', ['user_id' => $this->userId, 'exception' => $e]);
 
         if (Cache::add("gallery:warm-value-series:alerted:{$this->userId}:".now()->toDateString(), true, now()->addDay())) {
-            app(DiscordAlerter::class)->send('⚠️ tcg-vault: the Activity chart for user '.$this->userId.' was not warmed ('.class_basename($e).'); see the log.');
+            app(DiscordAlerter::class)->send('⚠️ '.config('brand.name').': the Activity chart for user '.$this->userId.' was not warmed ('.class_basename($e).'); see the log.');
         }
     }
 }

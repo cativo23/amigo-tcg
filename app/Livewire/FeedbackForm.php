@@ -39,9 +39,9 @@ final class FeedbackForm extends Component
 
         // Queueing with no recipient would show "Thanks" while the job
         // fails in the worker, so the report would vanish unseen.
-        $recipient = config('tcgvault.feedback_email');
+        $recipient = config('amigotcg.feedback_email');
         if (! filled($recipient)) {
-            Log::error('Feedback form submitted but tcgvault.feedback_email is not configured.');
+            Log::error('Feedback form submitted but amigotcg.feedback_email is not configured.');
             $this->addError('message', 'Feedback can’t be sent right now. Please try again later.');
 
             return;

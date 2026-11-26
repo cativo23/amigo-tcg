@@ -9,7 +9,7 @@
         <section class="act act--hero" data-act="hero" aria-labelledby="h-hero">
             <div class="copy">
                 <h1 id="h-hero" class="display">Every card you&nbsp;own, on one page.</h1>
-                <p class="lede">Make a list of your Pokémon cards, from the chase card to the bulk commons. tcg-vault shows each one with its picture and today's price, and gives your whole collection a link you can send to anyone.</p>
+                <p class="lede">Make a list of your Pokémon cards, from the chase card to the bulk commons. {{ config('brand.name') }} shows each one with its picture and today's price, and gives your whole collection a link you can send to anyone.</p>
                 <div class="cta">
                     @if ($registrationOpen)
                         <a class="btn" href="{{ route('register') }}">Create your account</a>
@@ -26,7 +26,7 @@
         <section class="act act--gallery" data-act="gallery" aria-labelledby="h-gallery">
             <div class="copy">
                 <h2 id="h-gallery" class="h2">Send a link instead of a spreadsheet.</h2>
-                <p>Your page lives at <span class="url">tcgvault.cativo.dev/yourname</span>. Anyone who opens it sees your cards set by set and what they're worth. They don't need an account.</p>
+                <p>Your page lives at <span class="url">amigotcg.cativo.dev/yourname</span>. Anyone who opens it sees your cards set by set and what they're worth. They don't need an account.</p>
             </div>
             <div class="still-fig" aria-hidden="true" data-pose="sets"></div>
         </section>

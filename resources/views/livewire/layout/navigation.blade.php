@@ -28,7 +28,7 @@ new class extends Component
                             <polyline points="4,22 16,27 28,15 40,19 52,7" fill="none" stroke="#f2efe6" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
                             <circle cx="52" cy="7" r="4.5" fill="#37d17f"/>
                         </svg>
-                        tcg-vault
+                        {{ config('brand.name') }}
                     </a>
                 </div>
 

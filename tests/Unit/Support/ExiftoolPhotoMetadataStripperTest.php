@@ -11,7 +11,7 @@ use Symfony\Component\Process\Process;
 
 function exiftoolBinary(): string
 {
-    return (string) config('tcgvault.exiftool_path');
+    return (string) config('amigotcg.exiftool_path');
 }
 
 beforeEach(function () {
