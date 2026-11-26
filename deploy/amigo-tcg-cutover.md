@@ -16,9 +16,10 @@ changed the host. The release has no migration.
 | Browser storage keys (`amigo-tcg-theme`, `amigo-tcg-cal`) | `demo@tcg-vault.invalid` (existing rows are matched against it) |
 
 DNS needs no change: a wildcard under `cativo.dev` already resolves both names to the
-same address. Traefik issues the certificate for the new host on its first request
-(`letsencryptresolver`); confirm the challenge type it uses on the host before the
-release.
+same address. Traefik issues the certificate for the new host on its first request.
+Verified 2026-11-25 on the host: `letsencryptresolver` uses `tlsChallenge` (TLS-ALPN-01
+on port 443), so no DNS API or port 80 is involved and the wildcard record is enough.
+The first request to `https://amigotcg.cativo.dev` waits a few seconds for the issue.
 
 ## Steps, in order, with how to undo each
 
