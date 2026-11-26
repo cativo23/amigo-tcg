@@ -21,3 +21,9 @@ test('a move carries a true minus sign, and a plus-minus when nothing changed', 
         ->and(Money::move(-100, 'USD'))->toBe("\u{2212}\$1.00")
         ->and(Money::move(0, 'EUR'))->toBe("\u{00B1}€0.00");
 });
+
+test('a glyph names the direction of a move, and a flat move has none', function () {
+    expect(Money::glyph(240))->toBe("\u{25B2}")
+        ->and(Money::glyph(-1))->toBe("\u{25BC}")
+        ->and(Money::glyph(0))->toBe('');
+});

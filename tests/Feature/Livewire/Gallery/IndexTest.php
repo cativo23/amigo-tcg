@@ -744,9 +744,9 @@ test('a tile shows its 7-day move and only a rise is green', function () {
 
     $html = $this->get('/carlos')->getContent();
 
-    expect($html)->toContain('<span class="col-delta col-delta--up">+$2.40 · 7d</span>')
-        ->and($html)->toContain('<span class="col-delta">−$1.00 · 7d</span>')
-        ->and(substr_count($html, 'col-delta--up'))->toBe(1);
+    expect($html)->toContain("<span class=\"col-delta price-move price-move--up\">\u{25B2} +\$2.40 · 7d</span>")
+        ->and($html)->toContain("<span class=\"col-delta price-move price-move--down\">\u{25BC} \u{2212}\$1.00 · 7d</span>")
+        ->and(substr_count($html, 'price-move--up'))->toBe(1);
 });
 
 test('slab and stamp survive on the new tile, which shows the official art over the collector\'s photo', function () {

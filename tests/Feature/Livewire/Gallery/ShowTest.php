@@ -634,7 +634,7 @@ test('owned cards are the collection\'s tiles, numbered within the set, with the
     $html = $this->get('/demo/sv03.5')->getContent();
 
     expect($html)->toContain('<span class="col-mono">#003</span>')
-        ->and($html)->toContain('<span class="col-delta col-delta--up">+$1.00 · 7d</span>')
+        ->and($html)->toContain("<span class=\"col-delta price-move price-move--up\">\u{25B2} +\$1.00 · 7d</span>")
         ->and($html)->toContain('aria-label="Venusaur ex, #003, $24.99, up $1.00 in 7 days"')
         ->and($html)->toContain('<a href="'.route('gallery.card', ['username' => 'demo', 'setTcgdexId' => 'sv03.5', 'localId' => '003']).'" class="col-card col-tier-silver"');
 });

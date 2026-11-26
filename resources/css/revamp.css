@@ -208,6 +208,12 @@ img { display: block; }
 .skip { position: absolute; left: var(--space-md); top: -100px; z-index: 50; background: var(--color-ink); color: var(--color-stock); padding: var(--space-xs) var(--space-md); border-radius: var(--radius-pill); text-decoration: none; }
 .skip:focus-visible { top: var(--space-sm); }
 
+/* A price move's colour says direction only; the glyph and sign in the text are the cue that survives without colour.
+   Text colour only: never a fill, frame or background. */
+.price-move--up { color: var(--color-accent-deep); }
+.price-move--down { color: var(--color-drop); }
+.price-move--flat { color: var(--color-flat); }
+
 /* ---------- top bar ---------- */
 .bar {
   position: fixed; inset: 0 0 auto 0; z-index: 20; height: var(--bar-h);

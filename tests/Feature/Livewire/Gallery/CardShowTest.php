@@ -1202,7 +1202,7 @@ test('the related strip is the collection tile: own-print price, 7-day move, a p
         ->and($html)->toContain('href="'.route('gallery.card', ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '003']).'"')
         ->and($html)->toContain('aria-label="Fomantis, Pitch Black 003, $9.00, down $1.00 in 7 days"')
         ->and($html)->toContain('<span class="col-price">$9.00</span>')
-        ->and($html)->toContain("<span class=\"col-delta\">\u{2212}\$1.00 · 7d</span>");
+        ->and($html)->toContain("<span class=\"col-delta price-move price-move--down\">\u{25BC} \u{2212}\$1.00 · 7d</span>");
 });
 
 test('a pill the collector holds no copies of says so, naming who holds the others', function () {
