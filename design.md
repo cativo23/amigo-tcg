@@ -38,7 +38,7 @@ page-scoped values.
   --color-muted:      oklch(46% 0.010 85);
   --color-stock:      oklch(98.2% 0.007 90); /* raised card-stock: sheets, tags, slips */
   --color-flat:       oklch(52% 0.008 85);   /* neutral price text (flat); dark enough for 11px type to pass AA on stock */
-  --color-drop:       oklch(52% 0.16 22);    /* price FALL text and chart line only; never a fill or frame; not --danger. Starting value: the final one is recorded here when the token lands */
+  --color-drop:       oklch(50% 0.16 8);     /* price FALL text and chart line only; never a fill or frame; not --danger. 6.2:1 on stock; hue 8 is about 21 degrees off --danger (hue 29) */
   --color-rule:       oklch(18% 0.006 85 / .14); /* hairline dividers only */
   --color-rule-2:     oklch(18% 0.006 85 / .32); /* stronger rule: tabs, tag outlines */
   --color-accent:     oklch(70% 0.16 155);   /* the ONE accent: price up (fills, dots) */
@@ -74,7 +74,7 @@ page-scoped values.
   --color-muted: oklch(65% .012 85);  --color-flat: oklch(74% .012 85);
   --color-rule: oklch(95% .012 85 / .14);  --color-rule-2: oklch(95% .012 85 / .30);
   --color-accent-deep: oklch(82% .17 155);  --color-focus: oklch(82% .17 155);
-  --color-drop: oklch(76% .13 22);   /* starting value, as in light */
+  --color-drop: oklch(76% .13 8);    /* 6.6:1 on dark stock; about 20 degrees off dark --danger */
   --color-binder-page: oklch(23.5% .006 85);   /* plus the plastic and shadow tokens, retuned for dark */
 }
 ```
