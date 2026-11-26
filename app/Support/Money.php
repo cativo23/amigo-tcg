@@ -33,6 +33,16 @@ final class Money
         };
     }
 
+    /** "▲" for a rise, "▼" for a fall, "" for no change: the cue that survives without colour, paired with the move's sign. */
+    public static function glyph(int $minor): string
+    {
+        return match (true) {
+            $minor > 0 => "\u{25B2}",
+            $minor < 0 => "\u{25BC}",
+            default => '',
+        };
+    }
+
     /** "+$2.40" / "−$1.00" / "±$0.00": a price move on the revamp pages, with a true minus sign and ± for no change. */
     public static function move(int $minor, string $currency): string
     {

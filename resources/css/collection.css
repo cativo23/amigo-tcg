@@ -73,9 +73,7 @@
 .col-tag-face { display: block; background: var(--color-stock); padding: 5px 10px 6px 21px; clip-path: polygon(11px 0, 100% 0, 100% 100%, 11px 100%, 0 50%); }
 .col-tag-hole { position: absolute; left: 7px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--color-paper-3); box-shadow: inset 0 1px 1px var(--shadow-contact); }
 .col-price { display: block; font: 600 var(--text-sm)/1.25 var(--font-mono); font-variation-settings: "wdth" 87.5; font-variant-numeric: tabular-nums; letter-spacing: -.02em; white-space: nowrap; }
-.col-delta { display: block; font: 400 var(--text-2xs)/1.3 var(--font-mono); font-variation-settings: "wdth" 87.5; font-variant-numeric: tabular-nums; color: var(--color-flat); white-space: nowrap; }
-.col-delta--up { color: var(--color-accent-deep); }
-.col-delta--up::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: var(--color-accent); vertical-align: 1px; }
+.col-delta { display: block; font: 400 var(--text-2xs)/1.3 var(--font-mono); font-variation-settings: "wdth" 87.5; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .col-meta { display: block; padding: 8px 2px 0; }
 .col-nm { display: block; font-weight: 600; font-size: var(--text-sm); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

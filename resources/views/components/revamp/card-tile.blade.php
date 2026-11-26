@@ -35,8 +35,8 @@
     if ($priced && $weekDelta !== null) {
         $d = $weekDelta->deltaMinor;
         $move = [
-            'up' => $d > 0,
-            'text' => Money::move($d, $currency).' · 7d',
+            'direction' => $d > 0 ? 'up' : ($d < 0 ? 'down' : 'flat'),
+            'text' => trim(Money::glyph($d).' '.Money::move($d, $currency)).' · 7d',
             'spoken' => $d > 0 ? 'up '.Money::format($d, $currency).' in 7 days'
                 : ($d < 0 ? 'down '.Money::format(-$d, $currency).' in 7 days' : 'unchanged in 7 days'),
         ];
@@ -83,7 +83,7 @@
                 @if ($priced)
                     <span class="col-price">{{ Money::format($snapshot->market_minor, $currency) }}</span>
                     @if ($move)
-                        <span class="col-delta{{ $move['up'] ? ' col-delta--up' : '' }}">{{ $move['text'] }}</span>
+                        <span class="col-delta price-move price-move--{{ $move['direction'] }}">{{ $move['text'] }}</span>
                     @endif
                 @else
                     <span class="col-price">No price</span>

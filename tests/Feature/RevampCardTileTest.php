@@ -40,26 +40,41 @@ function renderTile(array $with = [], string $attributes = ''): string
     );
 }
 
-test('a rising 7-day move is green and says so in words for assistive tech', function () {
+test('a rising 7-day move gets an up glyph, the green text class, no dot, and says so in words for assistive tech', function () {
     $price = tilePrice(19468);
     $html = renderTile(['snapshot' => $price, 'week' => tileMove($price, 240)]);
 
     expect($html)->toContain('<span class="col-price">$194.68</span>')
-        ->and($html)->toContain('<span class="col-delta col-delta--up">+$2.40 · 7d</span>')
-        ->and($html)->toContain('aria-label="Mega Darkrai ex, Pitch Black 116, $194.68, up $2.40 in 7 days"');
+        ->and($html)->toContain("<span class=\"col-delta price-move price-move--up\">\u{25B2} +\$2.40 · 7d</span>")
+        ->and($html)->toContain('aria-label="Mega Darkrai ex, Pitch Black 116, $194.68, up $2.40 in 7 days"')
+        ->and($html)->not->toContain('col-delta--up');
 });
 
-test('a falling or flat move is neutral: no green class, a real minus sign', function () {
+test('a falling 7-day move gets a down glyph, a real minus sign and the drop class', function () {
     $price = tilePrice(19468);
 
-    $down = renderTile(['snapshot' => $price, 'week' => tileMove($price, -100)]);
-    expect($down)->toContain('<span class="col-delta">−$1.00 · 7d</span>')
-        ->and($down)->not->toContain('col-delta--up')
-        ->and($down)->toContain('down $1.00 in 7 days');
+    $html = renderTile(['snapshot' => $price, 'week' => tileMove($price, -100)]);
+
+    expect($html)->toContain("<span class=\"col-delta price-move price-move--down\">\u{25BC} \u{2212}\$1.00 · 7d</span>")
+        ->and($html)->toContain('down $1.00 in 7 days');
+});
+
+test('a flat 7-day move stays neutral with no glyph', function () {
+    $price = tilePrice(19468);
 
     $flat = renderTile(['snapshot' => $price, 'week' => tileMove($price, 0)]);
-    expect($flat)->toContain('<span class="col-delta">±$0.00 · 7d</span>')
+
+    expect($flat)->toContain("<span class=\"col-delta price-move price-move--flat\">\u{00B1}\$0.00 · 7d</span>")
+        ->and($flat)->not->toContain("\u{25B2}")
+        ->and($flat)->not->toContain("\u{25BC}")
         ->and($flat)->toContain('unchanged in 7 days');
+});
+
+test('the hang tag draws no green dot: the glyph is the cue, not a pseudo-element', function () {
+    $css = (string) file_get_contents(resource_path('css/collection.css'));
+
+    expect($css)->not->toContain('.col-delta--up')
+        ->and($css)->not->toContain('.col-delta::before');
 });
 
 test('an unknown move shows the price alone; an unknown price says so', function () {
