@@ -32,7 +32,6 @@
 :where(.crd-page) h1, :where(.crd-page) h2, :where(.crd-page) p { margin: 0; }
 :where(.crd-page) button, :where(.crd-page) input { font: inherit; color: inherit; }
 .crd-mono { font-family: var(--font-mono); font-variation-settings: "wdth" 87.5; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-.crd-up { color: var(--color-accent-deep); font-weight: 600; }
 
 /* ---------- breadcrumb ---------- */
 .crd-crumbs { padding: clamp(18px, 3vw, 32px) var(--gutter) 0; }
@@ -182,8 +181,8 @@ html:not(.js) .crd-views { display: none; }
 .crd-ch-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-md); }
 .crd-ch-k { font-size: var(--text-sm); font-weight: 600; color: var(--color-muted); }
 .crd-ch-v { margin-top: 4px; font: 600 var(--crd-text-chart)/1.2 var(--font-mono); font-variation-settings: "wdth" 87.5; letter-spacing: -.04em; }
-.crd-ch-v small { display: inline-block; margin-left: 8px; font-size: var(--text-2xs); font-weight: 400; letter-spacing: -.02em; color: var(--color-flat); }
-.crd-ch-v small.crd-up { color: var(--color-accent-deep); font-weight: 600; }
+.crd-ch-v small { display: inline-block; margin-left: 8px; font-size: var(--text-2xs); font-weight: 400; letter-spacing: -.02em; }
+.crd-ch-v small.price-move--up, .crd-ch-v small.price-move--down { font-weight: 600; }
 .crd-ch-read { min-height: 1.4em; padding-top: 4px; font-size: var(--text-xs); color: var(--color-ink-2); text-align: right; white-space: nowrap; }
 .crd-chart { position: relative; height: 210px; margin-top: var(--space-sm); padding: 0 64px 22px 0; touch-action: pan-y; }
 .crd-chart:focus-visible { outline-offset: 6px; }
@@ -197,6 +196,9 @@ html:not(.js) .crd-views { display: none; }
 .crd-dot { width: 4px; height: 4px; background: var(--color-ink); }
 .crd-end { width: 9px; height: 9px; background: var(--color-ink); }
 .crd-end--up { background: var(--color-accent); }
+.crd-line.chart--down { stroke: var(--color-drop); }
+.crd-area.chart--down { fill: var(--color-drop); }
+.crd-end.chart--down { background: var(--color-drop); }
 .crd-cross { position: absolute; top: 0; bottom: 0; width: 1px; margin-left: -.5px; background: var(--color-ink); opacity: 0; pointer-events: none; }
 .crd-hover-dot { width: 9px; height: 9px; background: var(--color-stock); box-shadow: 0 0 0 2px var(--color-ink); opacity: 0; }
 .crd-chart.is-reading .crd-cross { opacity: .5; }
@@ -255,8 +257,7 @@ html:not(.js) .crd-chart-cover, .still .crd-chart-cover, .crd-settled .crd-chart
 .crd-tline { display: flex; flex-wrap: wrap; gap: 0 14px; }
 /* one segment of a tag's note line (a move, a low, a trend): its own class, so no other control restyles it */
 .crd-seg { white-space: nowrap; }
-.crd-move--up { color: var(--color-accent-deep); font-weight: 600; }
-.crd-move--up::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: var(--color-accent); vertical-align: 1px; }
+.crd-tsub .price-move--up, .crd-tsub .price-move--down { font-weight: 600; }
 .crd-mv-empty { padding: var(--space-lg) 0 0; color: var(--color-muted); font-size: var(--text-sm); }
 @media (max-width: 679px) {
   .crd-rail { padding: 0; }

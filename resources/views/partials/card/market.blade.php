@@ -39,33 +39,33 @@
                     $frozenBefore = $isResolved
                         ? CarbonImmutable::parse($newestMarketDay ?? 'today')->subDays(CardPriceResolver::STALE_AFTER_DAYS)->toDateString()
                         : $newestMarketDay;
-                    // Lines of segments: [text, is a rise, tooltip]. A move is green only when it is a rise.
+                    // Lines of segments: [text, direction (up, down, flat or null for a plain fact), tooltip]. A move's colour says direction only.
                     $lines = [];
                     if ($read->source === 'manual') {
                         // A hand-entered value has no market low, trend or move.
-                        $lines[] = [['entered '.DayLabel::of($read->captured_on), false, 'Price entered by hand']];
+                        $lines[] = [['entered '.DayLabel::of($read->captured_on), null, 'Price entered by hand']];
                     } elseif ($newestMarketDay && $read->capturedOnKey() < $frozenBefore) {
-                        $lines[] = [['as of '.DayLabel::of($read->captured_on), false, 'This source has not updated since']];
+                        $lines[] = [['as of '.DayLabel::of($read->captured_on), null, 'This source has not updated since']];
                     } elseif ($isResolved && ($delta || $weekDelta)) {
                         $moves = [];
                         if ($delta) {
                             $gap = (int) abs($delta->latest->captured_on->diffInDays($delta->previous->captured_on));
-                            $moves[] = [Money::move($delta->deltaMinor, $read->currency).' · '.$gap.'d', $delta->isUp(), 'Since '.DayLabel::of($delta->previous->captured_on)];
+                            $moves[] = [trim(Money::glyph($delta->deltaMinor).' '.Money::move($delta->deltaMinor, $read->currency)).' · '.$gap.'d', $delta->isUp() ? 'up' : ($delta->isDown() ? 'down' : 'flat'), 'Since '.DayLabel::of($delta->previous->captured_on)];
                         }
                         if ($weekDelta) {
-                            $moves[] = [Money::move($weekDelta->deltaMinor, $read->currency).' · 7d', $weekDelta->isUp(), 'Since '.DayLabel::of($weekDelta->previous->captured_on)];
+                            $moves[] = [trim(Money::glyph($weekDelta->deltaMinor).' '.Money::move($weekDelta->deltaMinor, $read->currency)).' · 7d', $weekDelta->isUp() ? 'up' : ($weekDelta->isDown() ? 'down' : 'flat'), 'Since '.DayLabel::of($weekDelta->previous->captured_on)];
                         }
                         $lines[] = $moves;
                         if ($read->low_minor !== null) {
-                            $lines[] = [['low '.Money::format($read->low_minor, $read->currency), false, 'Lowest current listing']];
+                            $lines[] = [['low '.Money::format($read->low_minor, $read->currency), null, 'Lowest current listing']];
                         }
                     } elseif ($read->low_minor !== null) {
-                        $lines[] = [['low '.Money::format($read->low_minor, $read->currency), false, 'Lowest current listing']];
+                        $lines[] = [['low '.Money::format($read->low_minor, $read->currency), null, 'Lowest current listing']];
                         if ($read->trend_minor) {
-                            $lines[] = [['trend '.Money::format($read->trend_minor, $read->currency), false, 'Price trend']];
+                            $lines[] = [['trend '.Money::format($read->trend_minor, $read->currency), null, 'Price trend']];
                         }
                     } else {
-                        $lines[] = [[$read->currency, false, 'Currency']];
+                        $lines[] = [[$read->currency, null, 'Currency']];
                     }
                 @endphp
                 <div class="crd-htag{{ $isResolved ? ' crd-htag--lead' : '' }}" style="--i: {{ $loop->index }}" wire:key="read-{{ $read->source }}-{{ $read->variant }}" title="{{ $read->provenanceLabel() }}, {{ $read->captured_on->format('j M Y') }}">
@@ -77,8 +77,8 @@
                             <span class="crd-tsub">
                                 @foreach ($lines as $segments)
                                     <span class="crd-tline">
-                                        @foreach ($segments as [$text, $up, $tip])
-                                            <span @class(['crd-seg', 'crd-move--up' => $up]) title="{{ $tip }}">{{ $text }}</span>
+                                        @foreach ($segments as [$text, $direction, $tip])
+                                            <span @class(['crd-seg', 'price-move price-move--'.$direction => $direction !== null]) title="{{ $tip }}">{{ $text }}</span>
                                         @endforeach
                                     </span>
                                 @endforeach

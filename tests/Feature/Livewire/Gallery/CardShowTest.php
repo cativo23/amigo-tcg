@@ -246,7 +246,7 @@ test('a manual price copied from a feed says so, is never shown as a move, and d
     $response->assertOk();
     $response->assertSee('copied by hand from TCGplayer (tcgcsv)');
     $response->assertSee('entered '.today()->subYear()->addDay()->format('j M Y'));
-    $response->assertDontSee('crd-move--up', false);
+    $response->assertDontSee('price-move--up', false);
 });
 
 function seedVariantCard(): array
@@ -1003,7 +1003,7 @@ test('a market day with no price breaks the chart line and is drawn as a dotted 
 
     $html = $this->get('/carlos/me05/116')->getContent();
 
-    expect(substr_count($html, '<path class="crd-line"'))->toBe(2)
+    expect(preg_match_all('/<path class="crd-line(?: chart--down)?"/', $html))->toBe(2)
         ->and(substr_count($html, '<line class="crd-gap"'))->toBe(1);
 });
 
@@ -1012,7 +1012,7 @@ test('consecutive days draw one line and no gap', function () {
 
     $html = $this->get('/carlos/me05/116')->getContent();
 
-    expect(substr_count($html, '<path class="crd-line"'))->toBe(1)
+    expect(preg_match_all('/<path class="crd-line(?: chart--down)?"/', $html))->toBe(1)
         ->and($html)->not->toContain('<line class="crd-gap"');
 });
 
@@ -1031,20 +1031,23 @@ test('a manual price is one continuous step line, with no gaps and no dots', fun
         ->and($html)->toContain('<path class="crd-line" d="M0.0 ');
 });
 
-test('the end of the line and the range move are green only when the range ended higher', function () {
+test('the end of the line and the range move are green when the range ended higher and in the drop colour when it ended lower', function () {
     rangedCardPage([0, 1, 2]); // 1002 -> 1001 -> 1000: down
 
     $down = $this->get('/carlos/me05/116')->getContent();
-    expect($down)->toContain('<span class="crd-end"')
+    expect($down)->toContain('<span class="crd-end chart--down"')
         ->and($down)->not->toContain('crd-end--up')
-        ->and($down)->toContain("\u{2212}\$0.02 since ".DayLabel::of(today()->subDays(2)));
+        ->and($down)->toContain('<path class="crd-line chart--down"')
+        ->and($down)->toContain('<path class="crd-area chart--down"')
+        ->and($down)->toContain("<small class=\"crd-ch-move price-move price-move--down\">▼ \u{2212}\$0.02 since ".DayLabel::of(today()->subDays(2)).'</small>');
 
     $card = Card::where('tcgdex_id', 'me05-116')->firstOrFail();
     CardPriceSnapshot::where('card_id', $card->id)->where('variant', 'normal')->whereDate('captured_on', today())->update(['market_minor' => 1100]);
 
     $up = $this->get('/carlos/me05/116')->getContent();
     expect($up)->toContain('<span class="crd-end crd-end--up"')
-        ->and($up)->toContain('<small class="crd-up">+$0.98 since '.DayLabel::of(today()->subDays(2)).'</small>');
+        ->and($up)->not->toContain('chart--down')
+        ->and($up)->toContain('<small class="crd-ch-move price-move price-move--up">▲ +$0.98 since '.DayLabel::of(today()->subDays(2)).'</small>');
 });
 
 test('the chart hands its readings to the page script as data, and is a keyboard slider resting on the newest day', function () {
@@ -1085,28 +1088,28 @@ test('the headline tag shows its 1-day and 7-day moves and its low, and each mov
     $html = $this->get('/carlos/me05/116')->getContent();
 
     expect(substr_count($html, 'class="crd-htag crd-htag--lead"'))->toBe(1)
-        ->and($html)->toContain('<span class="crd-seg crd-move--up" title="Since '.$day.'">+$8.00 · 1d</span>')
-        ->and($html)->toContain('<span class="crd-seg crd-move--up" title="Since '.$week.'">+$32.00 · 7d</span>')
+        ->and($html)->toContain('<span class="crd-seg price-move price-move--up" title="Since '.$day.'">▲ +$8.00 · 1d</span>')
+        ->and($html)->toContain('<span class="crd-seg price-move price-move--up" title="Since '.$week.'">▲ +$32.00 · 7d</span>')
         ->and($html)->toContain('<span class="crd-seg" title="Lowest current listing">low $35.00</span>');
 });
 
-test('a fall on the day and a rise on the week colour only the rise', function () {
+test('a fall on the day is in the drop colour and a rise on the week is green, each with its glyph', function () {
     seedMovedHeadline(today: 3000);
     $day = DayLabel::of(today()->subDay());
     $week = DayLabel::of(today()->subDays(7));
 
     expect($this->get('/carlos/me05/116')->getContent())
-        ->toContain("<span class=\"crd-seg\" title=\"Since {$day}\">\u{2212}\$2.00 · 1d</span>")
-        ->toContain('<span class="crd-seg crd-move--up" title="Since '.$week.'">+$22.00 · 7d</span>');
+        ->toContain("<span class=\"crd-seg price-move price-move--down\" title=\"Since {$day}\">▼ \u{2212}\$2.00 · 1d</span>")
+        ->toContain('<span class="crd-seg price-move price-move--up" title="Since '.$week.'">▲ +$22.00 · 7d</span>');
 });
 
-test('when both moves are falls nothing on the tag is green', function () {
+test('when both moves are falls nothing on the tag is green and both carry the down glyph', function () {
     seedMovedHeadline(today: 500);
 
     expect($this->get('/carlos/me05/116')->getContent())
-        ->toContain("\u{2212}\$27.00 · 1d</span>")
-        ->toContain("\u{2212}\$3.00 · 7d</span>")
-        ->not->toContain('crd-move--up');
+        ->toContain("▼ \u{2212}\$27.00 · 1d</span>")
+        ->toContain("▼ \u{2212}\$3.00 · 7d</span>")
+        ->not->toContain('price-move--up');
 });
 
 test('the first move says how many days back its comparison price is, and a card with no stored baseline shows only that move', function () {
@@ -1202,7 +1205,7 @@ test('the related strip is the collection tile: own-print price, 7-day move, a p
         ->and($html)->toContain('href="'.route('gallery.card', ['username' => 'carlos', 'setTcgdexId' => 'me05', 'localId' => '003']).'"')
         ->and($html)->toContain('aria-label="Fomantis, Pitch Black 003, $9.00, down $1.00 in 7 days"')
         ->and($html)->toContain('<span class="col-price">$9.00</span>')
-        ->and($html)->toContain("<span class=\"col-delta price-move price-move--down\">\u{25BC} \u{2212}\$1.00 · 7d</span>");
+        ->and($html)->toContain("<span class=\"col-delta price-move price-move--down\">▼ \u{2212}\$1.00 · 7d</span>");
 });
 
 test('a pill the collector holds no copies of says so, naming who holds the others', function () {
@@ -1271,4 +1274,16 @@ test('the card page shows a placeholder card\'s inferred variants and files the 
 
     expect($component->viewData('pills')->pluck('key')->all())->toBe(['holofoil', 'reverse-holofoil'])
         ->and($component->viewData('marketReads')->pluck('variant')->all())->toContain('default');
+});
+
+test('a flat 1-day and 7-day move on the tag stay neutral with no glyph', function () {
+    seedMovedHeadline(today: 1000, yesterday: 1000, week: 1000);
+    $day = DayLabel::of(today()->subDay());
+    $week = DayLabel::of(today()->subDays(7));
+
+    expect($this->get('/carlos/me05/116')->getContent())
+        ->toContain('<span class="crd-seg price-move price-move--flat" title="Since '.$day."\">\u{00B1}\$0.00 · 1d</span>")
+        ->toContain('<span class="crd-seg price-move price-move--flat" title="Since '.$week."\">\u{00B1}\$0.00 · 7d</span>")
+        ->not->toContain('price-move--down')
+        ->not->toContain('price-move--up');
 });
