@@ -6,6 +6,8 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-11-26
+
 ### Changed
 
 - The product is now AMIGO TCG, at `amigotcg.cativo.dev`. The name and the
