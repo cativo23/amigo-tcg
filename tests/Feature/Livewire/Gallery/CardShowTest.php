@@ -1003,7 +1003,7 @@ test('a market day with no price breaks the chart line and is drawn as a dotted 
 
     $html = $this->get('/carlos/me05/116')->getContent();
 
-    expect(substr_count($html, '<path class="crd-line'))->toBe(2)
+    expect(preg_match_all('/<path class="crd-line(?: chart--down)?"/', $html))->toBe(2)
         ->and(substr_count($html, '<line class="crd-gap"'))->toBe(1);
 });
 
@@ -1012,7 +1012,7 @@ test('consecutive days draw one line and no gap', function () {
 
     $html = $this->get('/carlos/me05/116')->getContent();
 
-    expect(substr_count($html, '<path class="crd-line'))->toBe(1)
+    expect(preg_match_all('/<path class="crd-line(?: chart--down)?"/', $html))->toBe(1)
         ->and($html)->not->toContain('<line class="crd-gap"');
 });
 
@@ -1274,4 +1274,16 @@ test('the card page shows a placeholder card\'s inferred variants and files the 
 
     expect($component->viewData('pills')->pluck('key')->all())->toBe(['holofoil', 'reverse-holofoil'])
         ->and($component->viewData('marketReads')->pluck('variant')->all())->toContain('default');
+});
+
+test('a flat 1-day and 7-day move on the tag stay neutral with no glyph', function () {
+    seedMovedHeadline(today: 1000, yesterday: 1000, week: 1000);
+    $day = DayLabel::of(today()->subDay());
+    $week = DayLabel::of(today()->subDays(7));
+
+    expect($this->get('/carlos/me05/116')->getContent())
+        ->toContain('<span class="crd-seg price-move price-move--flat" title="Since '.$day."\">\u{00B1}\$0.00 · 1d</span>")
+        ->toContain('<span class="crd-seg price-move price-move--flat" title="Since '.$week."\">\u{00B1}\$0.00 · 7d</span>")
+        ->not->toContain('price-move--down')
+        ->not->toContain('price-move--up');
 });

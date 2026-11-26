@@ -965,5 +965,7 @@ test('the feed draws no green dot and colours a fall in the drop token, not the 
 
     expect($css)->not->toContain('.act-amt--up::before')
         ->and($css)->toMatch('/\.act-amt--down\s*\{\s*color:\s*var\(--color-drop\)/')
-        ->and($css)->toMatch('/\.chart--down\b[^{]*\{[^}]*var\(--color-drop\)/');
+        ->and($css)->toMatch('/\.act-line\.chart--down\s*\{[^}]*stroke:\s*var\(--color-drop\)/')
+        ->and($css)->toMatch('/\.act-area\.chart--down\s*\{[^}]*fill:\s*var\(--color-drop\)/')
+        ->and($css)->toMatch('/\.act-end\.chart--down\s*\{[^}]*background:\s*var\(--color-drop\)/');
 });

@@ -35,7 +35,9 @@ it('does not reuse the drop token as a fill, frame or background', function (): 
 
     // The one exception is a chart's end marker: a 9px dot at the end of the line, drawn as a background,
     // which follows the line's colour. Everything else (tiles, panels, tags, rows) never takes the token.
-    $css = (string) preg_replace('/\.(?:act|crd)-end\.chart--down\s*\{[^}]*\}/', '', $css);
+    // Anchored to a rule start and to a body that is only that one declaration, so a selector list or an extra
+    // declaration in the same rule is still caught.
+    $css = (string) preg_replace('/(?:^|\})\s*\.(?:act|crd)-end\.chart--down\s*\{\s*background:\s*var\(--color-drop\);?\s*\}/', '}', $css);
 
     expect(preg_match('/(background|border|outline|box-shadow)[a-z-]*:[^;{}]*var\(--color-drop\)/', $css))->toBe(0);
 });
