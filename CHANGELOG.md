@@ -10,8 +10,8 @@ All notable changes to this project are documented here. Format follows
 
 - A card's 7-day move on its hang tag now carries a direction glyph with the
   sign: `▲ +$2.40 · 7d`, `▼ −$1.00 · 7d`, and `±$0.00 · 7d` with no glyph when
-  nothing changed. The green dot beside a rise is gone, so direction no longer
-  depends on colour alone.
+  nothing changed. The green dot beside a rise is gone and a fall now has its
+  own colour, so direction no longer depends on colour alone.
 
 ## [1.12.0] - 2026-11-26
 
