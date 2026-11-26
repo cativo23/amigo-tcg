@@ -33,7 +33,7 @@ it('retires the page-scoped name sizes everywhere', function (): void {
 it('sets every page name at the masthead size, not as the hero', function (string $file, string $selector): void {
     $css = cssSource($file);
 
-    expect($css)->toMatch('/'.preg_quote($selector, '/').'\s*\{[^}]*font:\s*820\s+var\(--text-masthead\)/s');
+    expect($css)->toMatch('/'.preg_quote($selector, '/').'\s*\{[^}]*font:\s*820\s+var\(--text-masthead\)\/\.95\s/s');
 })->with([
     'collection name' => ['collection.css', '.col-who'],
     'sets heading' => ['sets.css', '.sts-title'],

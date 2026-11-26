@@ -19,7 +19,7 @@ All notable changes to this project are documented here. Format follows
   `▼ −$1.50` and a rise `▲ +$2.00`; on the card page the 1-day and 7-day moves
   carry the same glyphs. The green dots beside a rise are gone there too.
 - A page's name (the collector, the set, the Sets and Activity headings) is now
-  a masthead label, about 45 px at desktop and 32 px on a phone, instead of the
+  a masthead label, 32 px on a phone and up to 44 px on a wide screen, instead of the
   4.2 to 11 rem display size. The page-scoped `--col-who`, `--sts-who` and
   `--act-who` sizes are gone; a new `--text-figure` size (72 to 120 px) is ready
   for the headline value the collection cover brings next.

@@ -62,8 +62,8 @@ page-scoped values.
   --space-2xs..2xl: 4 / 8 / 12 / 16 / 24 / 40 / 64px;  --gutter: clamp(16px, 4vw, 56px);  --bar-h: 56px;
   --text-2xs..lg: .6875 / .75 / .875 / 1.0625rem / min(1.333rem, .9rem + 1.2svh);
   --text-display / -h2 / -close: fluid, capped by viewport height
-  --text-figure: min(clamp(4.5rem, 2rem + 8vw, 7.5rem), 15svh)   /* the page's one headline figure: 72–120 px, display face; "$1,234,567.89" is 4.5em at wdth 62 and fits a 360px phone at 72px */
-  --text-masthead: clamp(2rem, 1.4rem + 1.6vw, 2.75rem)          /* a page's name as a label: 32 px on a phone, about 45 px at 1440 */
+  --text-figure: min(clamp(4.5rem, 2rem + 8vw, 7.5rem), 15svh)   /* the page's one headline figure: 72–120 px (less on a very short viewport), display face; "$1,234,567.89" is 4.5em at wdth 62 and fits a 360px phone at 72px */
+  --text-masthead: clamp(2rem, 1.4rem + 1.6vw, 2.75rem)          /* a page's name as a label: 32 px on a phone, 44 px from about 1350 px wide */
 }
 
 /* Dark theme: surfaces near-black, never pure black. Cards stay the colour. */
