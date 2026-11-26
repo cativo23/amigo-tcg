@@ -10,7 +10,6 @@
   --col-foil-3: oklch(88% 0.07 20);
   --col-foil-4: oklch(90% 0.07 95);
   --col-chip-ink: oklch(22% 0.006 85);
-  --col-who: clamp(4.2rem, 1.6rem + 11vw, 11rem);
   --col-w: clamp(150px, 11.2vw, 224px);
   --col-gap-x: clamp(12px, 1.9vw, 30px);
   --col-gap-y: clamp(26px, 2.6vw, 40px);
@@ -104,12 +103,12 @@
   .col-search-busy { animation: none; }
 }
 
-/* ---------- head: the collector's name, big, and one summary line ---------- */
+/* ---------- head: the collector's name as a masthead label, and one summary line ---------- */
 .col-head { padding: clamp(28px, 6vw, 72px) var(--gutter) clamp(20px, 3vw, 36px); }
 .col-who-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-sm) clamp(16px, 3vw, 40px); }
 .col-who {
   margin: 0; min-width: 0; overflow-wrap: anywhere;
-  font: 820 var(--col-who)/.8 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em;
+  font: 820 var(--text-masthead)/.95 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em;
   /* the display face's descender space would push the copy button off the baseline */
   margin-bottom: -.04em;
 }

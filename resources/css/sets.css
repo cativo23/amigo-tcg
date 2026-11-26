@@ -3,17 +3,15 @@
    The page bar and footer come from revamp.css, so none of their rules live here. */
 
 .sts-page {
-  /* the page heading matches the collector's name on the collection page (--col-who in collection.css) */
-  --sts-who: clamp(4.2rem, 1.6rem + 11vw, 11rem);
   --sts-logo-h: 168px;
   --sts-radius-card: 4.762% / 3.409%;
 }
 
 .sts-mono { font-family: var(--font-mono); font-variation-settings: "wdth" 87.5; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 
-/* ---------- head: the word, big, and one summary line ---------- */
+/* ---------- head: the page's name as a masthead label, and one summary line ---------- */
 .sts-head { padding: clamp(28px, 6vw, 72px) var(--gutter) clamp(28px, 4vw, 52px); }
-.sts-title { margin: 0; font: 820 var(--sts-who)/.8 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em; }
+.sts-title { margin: 0; font: 820 var(--text-masthead)/.95 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em; }
 .sts-summary { margin: var(--space-md) 0 0; font-size: var(--text-lg); color: var(--color-ink-2); }
 .sts-note { margin: var(--space-2xs) 0 0; max-width: 60ch; font-size: var(--text-sm); color: var(--color-muted); }
 .sts-summary .sts-mono { font-size: var(--text-md); font-weight: 600; color: var(--color-ink); }
