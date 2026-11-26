@@ -37,7 +37,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
-          images: ${{ vars.DOCKER_USERNAME }}/tcg-vault
+          images: ${{ vars.DOCKER_USERNAME }}/amigo-tcg
           tags: |
             type=raw,value=${{ github.event.release.tag_name }}
             type=raw,value=latest,enable=${{ !github.event.release.prerelease }}
@@ -51,8 +51,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ vars.DOCKER_USERNAME }}/tcg-vault:buildcache
-          cache-to: type=registry,ref=${{ vars.DOCKER_USERNAME }}/tcg-vault:buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.DOCKER_USERNAME }}/amigo-tcg:buildcache
+          cache-to: type=registry,ref=${{ vars.DOCKER_USERNAME }}/amigo-tcg:buildcache,mode=max
 
   deploy:
     name: Deploy to polaris2

@@ -1,6 +1,12 @@
+# The compose project name is pinned to the directory the host has always used.
+# Volumes (pgdata, redis-data, collection-photos-data, app-logs) are prefixed
+# with it: renaming the directory or this line would start Postgres on an empty
+# volume. The product is AMIGO TCG; this internal name stays.
+name: tcg-vault
+
 services:
   app:
-    image: ${DOCKER_USERNAME:-cativo23}/tcg-vault:${IMAGE_TAG:-latest}
+    image: ${DOCKER_USERNAME:-cativo23}/amigo-tcg:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: [.env]
     # Overrides any REDIS_CLIENT in .env: the image ships the phpredis extension.
@@ -31,22 +37,31 @@ services:
     volumes:
       - collection-photos-data:/var/www/html/storage/app/public/collection-photos
       - app-logs:/var/www/html/storage/logs
-    networks: [space-server_web, tcgvault-internal]
+    networks: [space-server_web, amigotcg-internal]
     deploy:
       resources:
         limits: { cpus: '2.0', memory: 384M }
         reservations: { cpus: '0.1', memory: 96M }
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.tcgvault.rule=Host(`tcgvault.cativo.dev`)"
-      - "traefik.http.routers.tcgvault.entrypoints=websecure"
-      - "traefik.http.routers.tcgvault.tls.certresolver=letsencryptresolver"
-      - "traefik.http.routers.tcgvault.middlewares=security-headers@file"
-      - "traefik.http.services.tcgvault.loadbalancer.server.port=8080"
+      - "traefik.http.routers.amigotcg.rule=Host(`amigotcg.cativo.dev`)"
+      - "traefik.http.routers.amigotcg.entrypoints=websecure"
+      - "traefik.http.routers.amigotcg.tls.certresolver=letsencryptresolver"
+      - "traefik.http.routers.amigotcg.middlewares=security-headers@file"
+      - "traefik.http.services.amigotcg.loadbalancer.server.port=8080"
+      # The old host answers with a permanent redirect to the same path and
+      # query on the new one, so every link already shared keeps working.
+      - "traefik.http.routers.tcgvault-legacy.rule=Host(`tcgvault.cativo.dev`)"
+      - "traefik.http.routers.tcgvault-legacy.entrypoints=websecure"
+      - "traefik.http.routers.tcgvault-legacy.tls.certresolver=letsencryptresolver"
+      - "traefik.http.routers.tcgvault-legacy.middlewares=amigotcg-redirect"
+      - "traefik.http.middlewares.amigotcg-redirect.redirectregex.regex=^https?://tcgvault\\.cativo\\.dev/(.*)"
+      - "traefik.http.middlewares.amigotcg-redirect.redirectregex.replacement=https://amigotcg.cativo.dev/$${1}"
+      - "traefik.http.middlewares.amigotcg-redirect.redirectregex.permanent=true"
       - "traefik.docker.network=space-server_web"
 
   horizon:
-    image: ${DOCKER_USERNAME:-cativo23}/tcg-vault:${IMAGE_TAG:-latest}
+    image: ${DOCKER_USERNAME:-cativo23}/amigo-tcg:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: [.env]
     # Overrides any REDIS_CLIENT in .env, as on app.
@@ -86,14 +101,14 @@ services:
       - app-logs:/var/www/html/storage/logs
     # Queued jobs (SyncCardPricingJob, ImportSetJob) call tcgdex's API from
     # inside this container — needs real internet egress, not just
-    # tcgvault-internal (which Docker blocks from routing out). Uses its
-    # own tcgvault-egress bridge for that rather than relying on
+    # amigotcg-internal (which Docker blocks from routing out). Uses its
+    # own amigotcg-egress bridge for that rather than relying on
     # space-server_web for it.
     #
     # Also on space-server_web to reach http://bugsink:8000 directly — a
     # queued job's unhandled exception is exactly the kind of failure this
     # exists to catch.
-    networks: [tcgvault-egress, tcgvault-internal, space-server_web]
+    networks: [amigotcg-egress, amigotcg-internal, space-server_web]
     deploy:
       resources:
         # 128M was too tight: verified live post-deploy that the master
@@ -122,7 +137,7 @@ services:
         reservations: { cpus: '0.1', memory: 96M }
 
   scheduler:
-    image: ${DOCKER_USERNAME:-cativo23}/tcg-vault:${IMAGE_TAG:-latest}
+    image: ${DOCKER_USERNAME:-cativo23}/amigo-tcg:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: [.env]
     command: ["php", "artisan", "schedule:work"]
@@ -143,7 +158,7 @@ services:
     # Also on space-server_web to reach http://bugsink:8000 — an uncaught
     # exception in a scheduled command should get reported same as any
     # other.
-    networks: [tcgvault-internal, space-server_web]
+    networks: [amigotcg-internal, space-server_web]
     deploy:
       resources:
         # 64M was too tight: dispatching the daily catalog:refresh-prices
@@ -175,7 +190,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes: [pgdata:/var/lib/postgresql/data]
-    networks: [tcgvault-internal]
+    networks: [amigotcg-internal]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -212,7 +227,7 @@ services:
       - ./backup:/opt/backup:ro
       - ./backups:/backups
       - collection-photos-data:/photos:ro
-    networks: [tcgvault-internal]
+    networks: [amigotcg-internal]
     deploy:
       resources:
         limits: { cpus: '0.25', memory: 128M }
@@ -226,7 +241,7 @@ services:
     # window at ~1s instead of everything since the last RDB snapshot.
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD?Missing REDIS_PASSWORD}", "--appendonly", "yes", "--appendfsync", "everysec"]
     volumes: [redis-data:/data]
-    networks: [tcgvault-internal]
+    networks: [amigotcg-internal]
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
@@ -262,13 +277,13 @@ services:
 networks:
   space-server_web:
     external: true
-  tcgvault-internal:
+  amigotcg-internal:
     driver: bridge
     internal: true
   # Not internal: true, so it gets Docker's normal NAT'd outbound route —
   # egress only, no other container on the host shares this network and
   # nothing on it accepts inbound connections.
-  tcgvault-egress:
+  amigotcg-egress:
     driver: bridge
 
 volumes:

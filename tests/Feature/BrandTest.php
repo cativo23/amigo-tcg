@@ -83,14 +83,15 @@ test('the brand defaults are AMIGO TCG', function () {
 test('the old product name is gone from code, config and deploy files', function () {
     // Lines that must keep the old name on purpose: the host directory and
     // compose project (renaming them would start Postgres on an empty
-    // volume), the legacy host that now redirects, the three pins that keep
-    // the session cookie, cache prefix and Horizon prefix stable, and the
-    // demo account's address, which existing rows are matched against.
+    // volume), the legacy host that now redirects, the four pins that keep
+    // the session cookie, cache prefix, Redis key prefix and Horizon prefix stable, and the
+    // `TCGVAULT_*` variable names the server's .env already carries, the project-prefixed
+    // volume names, and the demo account's address, which existing rows are matched against.
     $allowedLine = '#(~/deploy/tcg-vault|^\s*name:\s*tcg-vault\b'
-        .'|SESSION_COOKIE=|CACHE_PREFIX=|HORIZON_PREFIX=|demo@tcg-vault\.invalid)#';
-    // The old host may be named only where the redirect lives.
-    $legacyHostFiles = ['docker/prod/compose.prod.yml'];
-    $allowedFile = ['deploy/amigo-tcg-cutover.md'];
+        .'|MAIL_FROM_ADDRESS=|SESSION_COOKIE=|CACHE_PREFIX=|REDIS_PREFIX=|HORIZON_PREFIX=|TCGVAULT_|tcg-vault_|demo@tcg-vault\.invalid)#';
+    // The old host may be named only where the redirect lives (its router and its regex).
+    $legacyHostFiles = ['docker/prod/compose.prod.yml', 'deploy/README.md'];
+    $allowedFile = ['deploy/amigo-tcg-cutover.md', 'resources/js/storage-keys.test.mjs'];
     $offenders = [];
 
     foreach (['app', 'config', 'resources', 'routes', 'database', 'docker', 'deploy', '.github'] as $dir) {
@@ -109,7 +110,7 @@ test('the old product name is gone from code, config and deploy files', function
             }
 
             foreach (file($file->getPathname()) ?: [] as $n => $line) {
-                $legacyHost = in_array($relative, $legacyHostFiles, true) && preg_match('~tcgvault\.cativo\.dev~', $line);
+                $legacyHost = in_array($relative, $legacyHostFiles, true) && preg_match('~tcgvault(-legacy|\\\\*\.cativo\\\\*\.dev)~', $line);
 
                 if (preg_match('~tcg-vault|tcgvault|tcg vault~i', $line) && ! $legacyHost && ! preg_match($allowedLine, $line)) {
                     $offenders[] = $relative.':'.($n + 1);
@@ -128,7 +129,7 @@ test('the old host redirects permanently to the new one, keeping path and query'
         ->toContain('Host(`amigotcg.cativo.dev`)')
         ->toContain('redirectregex')
         ->toContain('permanent=true')
-        ->toContain('https://amigotcg.cativo.dev/${1}');
+        ->toContain('https://amigotcg.cativo.dev/$${1}'); // `$$` is compose's escape for a literal `$`
 });
 
 test('the compose project name is pinned so volumes keep their names', function () {
@@ -136,12 +137,13 @@ test('the compose project name is pinned so volumes keep their names', function 
         ->toMatch('/^name:\s*tcg-vault\s*$/m');
 });
 
-test('the production env template pins the session, cache and Horizon names', function () {
+test('the production env template pins the session, cache, Redis and Horizon names', function () {
     $env = file_get_contents(base_path('docker/prod/.env.production.example'));
 
     expect($env)
         ->toContain('SESSION_COOKIE=tcg-vault-session')
         ->toContain('CACHE_PREFIX=tcg-vault-cache-')
+        ->toContain('REDIS_PREFIX=tcg-vault-database-')
         ->toContain('HORIZON_PREFIX=tcg_vault_horizon:')
         ->toContain('APP_NAME="AMIGO TCG"')
         ->toContain('APP_URL=https://amigotcg.cativo.dev');
