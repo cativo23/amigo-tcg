@@ -798,15 +798,13 @@ test('every row carries its card thumbnail, only additions the plus, a rise carr
         ->and(substr_count($html, 'src="https://assets.tcgdex.net/en/me/me05/037/low.webp"'))->toBe(2)
         ->and(substr_count($html, 'class="act-plus"'))->toBe(2)
         ->and(activityAmounts($html))->toBe([
-            ['act-amt act-amt--up', '+$2.00 now $12.00'],
-            ['act-amt act-amt--down', '−$1.50 now $8.50'],
+            ['act-amt act-amt--up', '▲ +$2.00 now $12.00'],
+            ['act-amt act-amt--down', '▼ −$1.50 now $8.50'],
             ['act-amt', '$12.00'],
             ['act-amt', '$8.50'],
         ])
         ->and($html)->toContain('went up')
-        ->and($html)->toContain('went down')
-        ->and($html)->not->toContain('&#9660;')
-        ->and($html)->not->toContain('▼');
+        ->and($html)->toContain('went down');
 });
 
 test('a row owns its thumbnail: the picture is not optional, a morph leaves it alone, and every row is keyed', function () {
@@ -855,7 +853,7 @@ test('a card without an image still gets its rows: name and amount, and no empty
     expect($rows[1])->toHaveCount(2)
         ->and(array_filter($rows[1], fn (string $row) => str_contains($row, '<img')))->toBe([])
         ->and(array_filter($rows[1], fn (string $row) => str_contains($row, 'Imageless Mew')))->toHaveCount(2)
-        ->and(array_column(activityAmounts($html), 1))->toContain('+$2.00 now $12.00')
+        ->and(array_column(activityAmounts($html), 1))->toContain('▲ +$2.00 now $12.00')
         ->and(array_filter(array_column(activityAmounts($html), 1), fn (string $amount) => str_contains($amount, '$12.00')))->toHaveCount(2);
 });
 
@@ -893,8 +891,9 @@ test('the chart is drawn on the server, and a rise over the range is green', fun
     $points = json_decode($m[1] ?? '[]', true);
     preg_match('#<div class="act-chart"[^>]*>#', $html, $slider);
 
-    expect($html)->toContain('<small class="act-move act-move--up">+$1.00 · 1 month</small>')
+    expect($html)->toContain('<small class="act-move price-move price-move--up">▲ +$1.00 · 1 month</small>')
         ->and($html)->toContain('class="act-end act-end--up"')
+        ->and($html)->not->toContain('chart--down')
         ->and($html)->toContain('preserveAspectRatio="none" aria-hidden="true">')
         ->and($html)->toContain('<h2 class="act-k" id="act-cv-h">Collection value · 1 month</h2>')
         ->and($slider[0] ?? '')->toContain('role="slider"')
@@ -909,15 +908,27 @@ test('the chart is drawn on the server, and a rise over the range is green', fun
         ->and(end($points)['v'])->toBe('$3.00');
 });
 
-test('a fall over the range is neutral', function () {
+test('a range that ended lower draws the line, area, end dot and move in the drop colour', function () {
     ownedCardPricedDaysAgo([0 => 200, 2 => 300]);
 
     $html = $this->get('/carlos/activity')->getContent();
 
-    expect($html)->toContain('<small class="act-move">−$1.00 · 1 month</small>')
-        ->and($html)->toContain('class="act-end"')
+    expect($html)->toContain("<small class=\"act-move price-move price-move--down\">▼ \u{2212}\$1.00 · 1 month</small>")
+        ->and($html)->toContain('<path class="act-area chart--down"')
+        ->and($html)->toContain('<path class="act-line chart--down"')
+        ->and($html)->toContain('class="act-end chart--down"')
         ->and($html)->not->toContain('act-move--up')
         ->and($html)->not->toContain('act-end--up');
+});
+
+test('a range that ended flat stays neutral with no glyph and no drop class', function () {
+    ownedCardPricedDaysAgo([0 => 300, 2 => 300]);
+
+    $html = $this->get('/carlos/activity')->getContent();
+
+    expect($html)->toContain("<small class=\"act-move price-move price-move--flat\">\u{00B1}\$0.00 · 1 month</small>")
+        ->and($html)->not->toContain('chart--down')
+        ->and($html)->not->toContain('price-move--down');
 });
 
 test('the page ships its own script, and neither the landing nor the collection loads it', function () {
@@ -947,4 +958,12 @@ test('the chart carries the hooks its script reads', function () {
         ->and($html)->toContain('class="act-dot"')
         ->and($html)->toContain('class="act-cover"')
         ->and(array_keys($points[0] ?? []))->toEqualCanonicalizing(['x', 'y', 'd', 'v']);
+});
+
+test('the feed draws no green dot and colours a fall in the drop token, not the neutral grey', function () {
+    $css = (string) file_get_contents(resource_path('css/activity.css'));
+
+    expect($css)->not->toContain('.act-amt--up::before')
+        ->and($css)->toMatch('/\.act-amt--down\s*\{\s*color:\s*var\(--color-drop\)/')
+        ->and($css)->toMatch('/\.chart--down\b[^{]*\{[^}]*var\(--color-drop\)/');
 });

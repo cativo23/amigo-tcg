@@ -37,7 +37,7 @@
                     <h2 class="act-k" id="act-cv-h">Collection value · {{ $chartRange->label() }}</h2>
                     @if ($chart)
                         @php $first = $series->first()['minor']; $last = $series->last()['minor']; @endphp
-                        <p class="act-v">{{ Money::format($last, $primaryCurrency) }} <small class="act-move{{ $chart->up ? ' act-move--up' : '' }}">{{ Money::move($last - $first, $primaryCurrency) }} · {{ $chartRange->label() }}</small></p>
+                        <p class="act-v">{{ Money::format($last, $primaryCurrency) }} <small class="act-move price-move price-move--{{ $chart->up ? 'up' : ($chart->down ? 'down' : 'flat') }}">{{ trim(Money::glyph($last - $first).' '.Money::move($last - $first, $primaryCurrency)) }} · {{ $chartRange->label() }}</small></p>
                         <p class="act-span act-mono">{{ DayLabel::of($series->first()['date']) }} – {{ DayLabel::of($series->last()['date']) }}</p>
                     @else
                         <p class="act-v">{{ $headCurrency ? Money::format($totals[$headCurrency], $headCurrency) : 'No prices yet' }}</p>
@@ -61,14 +61,14 @@
                         <svg class="act-svg" viewBox="0 0 {{ ValueChart::WIDTH }} {{ ValueChart::HEIGHT }}" preserveAspectRatio="none" aria-hidden="true">
                             <line class="act-grid" x1="0" x2="{{ ValueChart::WIDTH }}" y1="{{ $highLineY }}" y2="{{ $highLineY }}"/>
                             <line class="act-grid" x1="0" x2="{{ ValueChart::WIDTH }}" y1="{{ $lowLineY }}" y2="{{ $lowLineY }}"/>
-                            <path class="act-area" d="{{ $chart->area }}"/>
-                            <path class="act-line" d="{{ $chart->line }}"/>
+                            <path class="act-area{{ $chart->down ? ' chart--down' : '' }}" d="{{ $chart->area }}"/>
+                            <path class="act-line{{ $chart->down ? ' chart--down' : '' }}" d="{{ $chart->line }}"/>
                         </svg>
                         <span class="act-ylab act-mono" style="top: {{ $chart->highY }}%" aria-hidden="true">{{ $chart->high }}</span>
                         <span class="act-ylab act-mono" style="top: {{ $chart->lowY }}%" aria-hidden="true">{{ $chart->low }}</span>
                         <span class="act-cross" aria-hidden="true"></span>
                         <span class="act-dot" aria-hidden="true"></span>
-                        <span class="act-end{{ $chart->up ? ' act-end--up' : '' }}" style="left: 100%; top: {{ $chart->endY }}%" aria-hidden="true"></span>
+                        <span class="act-end{{ $chart->up ? ' act-end--up' : '' }}{{ $chart->down ? ' chart--down' : '' }}" style="left: 100%; top: {{ $chart->endY }}%" aria-hidden="true"></span>
                         <span class="act-cover" aria-hidden="true"></span>
                     </div>
                     <p class="act-xlabs act-mono" aria-hidden="true"><span>{{ DayLabel::of($series->first()['date']) }}</span><span>{{ DayLabel::of($series->last()['date']) }}</span></p>
@@ -113,7 +113,7 @@
                                     <p class="act-rt">@if ($href)<a href="{{ $href }}">{{ $card->name }} <span class="act-mono">#{{ $card->local_id }}</span></a>@else{{ $card->name }} <span class="act-mono">#{{ $card->local_id }}</span>@endif <span class="act-verb">{{ $up ? 'went up' : 'went down' }}</span></p>
                                     <p class="act-rs">{{ Rarity::label($card->rarity) ?: 'Card' }} · {{ $card->set?->name }} · {{ $delta->latest->sourceLabel() }}</p>
                                 </div>
-                                <p class="act-amt {{ $up ? 'act-amt--up' : 'act-amt--down' }}">{{ Money::move($delta->deltaMinor, $delta->latest->currency) }} <small>now {{ Money::format($delta->latest->market_minor, $delta->latest->currency) }}</small></p>
+                                <p class="act-amt {{ $up ? 'act-amt--up' : 'act-amt--down' }}">{{ trim(Money::glyph($delta->deltaMinor).' '.Money::move($delta->deltaMinor, $delta->latest->currency)) }} <small>now {{ Money::format($delta->latest->market_minor, $delta->latest->currency) }}</small></p>
                             @else
                                 @php $item = $entry['item']; $snapshot = $entry['snapshot']; @endphp
                                 <div class="act-body">

@@ -35,7 +35,7 @@
                 <div>
                     <h2 class="crd-ch-k" id="crd-ph-h">Price history · {{ $chartRange->label() }}</h2>
                     @if ($chart !== null)
-                        <p class="crd-ch-v">{{ Money::format($last->market_minor, $last->currency) }} <small @class(['crd-up' => $rangeMove > 0])>{{ Money::move($rangeMove, $last->currency) }} since {{ DayLabel::of($first->captured_on) }}</small></p>
+                        <p class="crd-ch-v">{{ Money::format($last->market_minor, $last->currency) }} <small class="crd-ch-move price-move price-move--{{ $rangeMove > 0 ? 'up' : ($rangeMove < 0 ? 'down' : 'flat') }}">{{ trim(Money::glyph($rangeMove).' '.Money::move($rangeMove, $last->currency)) }} since {{ DayLabel::of($first->captured_on) }}</small></p>
                     @endif
                 </div>
                 <p class="crd-ch-read crd-mono" data-crd-chart-read aria-hidden="true"></p>
@@ -57,20 +57,20 @@
                             <line class="crd-grid" x1="0" x2="{{ PriceChart::WIDTH }}" y1="{{ $chart->highY }}" y2="{{ $chart->highY }}"/>
                             <line class="crd-grid" x1="0" x2="{{ PriceChart::WIDTH }}" y1="{{ $chart->lowY }}" y2="{{ $chart->lowY }}"/>
                             @foreach ($chart->areas as $d)
-                                <path class="crd-area" d="{{ $d }}"/>
+                                <path @class(['crd-area', 'chart--down' => $rangeMove < 0]) d="{{ $d }}"/>
                             @endforeach
                             @foreach ($chart->gaps as $gap)
                                 <line class="crd-gap" x1="{{ $gap['x1'] }}" y1="{{ $gap['y1'] }}" x2="{{ $gap['x2'] }}" y2="{{ $gap['y2'] }}"/>
                             @endforeach
                             @foreach ($chart->lines as $d)
-                                <path class="crd-line" d="{{ $d }}"/>
+                                <path @class(['crd-line', 'chart--down' => $rangeMove < 0]) d="{{ $d }}"/>
                             @endforeach
                             <rect class="crd-chart-cover" x="0" y="0" width="{{ PriceChart::WIDTH }}" height="{{ PriceChart::HEIGHT }}"/>
                         </svg>
                         @foreach ($chart->dots as $dot)
                             <span class="crd-dot" style="left: {{ $pct($dot['x'], PriceChart::WIDTH) }}; top: {{ $pct($dot['y'], PriceChart::HEIGHT) }}" aria-hidden="true"></span>
                         @endforeach
-                        <span @class(['crd-end', 'crd-end--up' => $rangeMove > 0]) style="left: {{ $pct($end['x'], PriceChart::WIDTH) }}; top: {{ $pct($end['y'], PriceChart::HEIGHT) }}" aria-hidden="true"></span>
+                        <span @class(['crd-end', 'crd-end--up' => $rangeMove > 0, 'chart--down' => $rangeMove < 0]) style="left: {{ $pct($end['x'], PriceChart::WIDTH) }}; top: {{ $pct($end['y'], PriceChart::HEIGHT) }}" aria-hidden="true"></span>
                         <span class="crd-cross" data-crd-cross aria-hidden="true"></span>
                         <span class="crd-hover-dot" data-crd-hover-dot aria-hidden="true"></span>
                         <span class="crd-ylab crd-mono" style="top: {{ $pct($chart->highY, PriceChart::HEIGHT) }}" aria-hidden="true">{{ Money::format($chart->high, $last->currency) }}</span>

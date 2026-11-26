@@ -12,6 +12,12 @@ All notable changes to this project are documented here. Format follows
   sign: `▲ +$2.40 · 7d`, `▼ −$1.00 · 7d`, and `±$0.00 · 7d` with no glyph when
   nothing changed. The green dot beside a rise is gone and a fall now has its
   own colour, so direction no longer depends on colour alone.
+- Falling prices now have their own colour everywhere a price move shows, not
+  only on hang tags. On the Activity and card-page charts a range that ended
+  lower draws its line, area, end dot and move in that colour, and the range
+  move reads `▼ −$1.00 · 1 month`. In the Activity feed a fall reads
+  `▼ −$1.50` and a rise `▲ +$2.00`; on the card page the 1-day and 7-day moves
+  carry the same glyphs. The green dots beside a rise are gone there too.
 
 ### Security
 

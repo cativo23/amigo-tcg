@@ -42,6 +42,7 @@ final readonly class ValueChart
         public string $high,
         public string $low,
         public bool $up,
+        public bool $down,
     ) {}
 
     /**
@@ -89,6 +90,7 @@ final readonly class ValueChart
             high: Money::format($high, $currency),
             low: Money::format($low, $currency),
             up: $last['minor'] > $first['minor'],
+            down: $last['minor'] < $first['minor'],
         );
     }
 }
