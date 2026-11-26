@@ -1,4 +1,4 @@
-# tcg-vault — agent notes
+# AMIGO TCG — agent notes
 
 Laravel 13 + Livewire 4 (plain class components, no Volt) on PHP 8.4, with
 Postgres 17, Redis and Horizon; Sail locally. `README.md` has the overview;

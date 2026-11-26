@@ -1,12 +1,12 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/logo-dark.svg">
-    <img src=".github/logo-light.svg" alt="tcg-vault" width="420">
+    <img src=".github/logo-light.svg" alt="AMIGO TCG" width="420">
   </picture>
 </p>
 
 <p align="center">
-  <a href="https://tcgvault.cativo.dev"><img alt="Live" src="https://img.shields.io/badge/live-tcgvault.cativo.dev-37d17f"></a>
+  <a href="https://amigotcg.cativo.dev"><img alt="Live" src="https://img.shields.io/badge/live-amigotcg.cativo.dev-37d17f"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="PHP" src="https://img.shields.io/badge/PHP-8.4-777bb4">
   <img alt="Laravel" src="https://img.shields.io/badge/Laravel-13-ff2d20">
@@ -19,11 +19,11 @@ a public page with every card, its daily market price, set completion and
 the collection's value over time. The catalog comes from
 [tcgdex](https://tcgdex.dev/).
 
-**Live at [tcgvault.cativo.dev](https://tcgvault.cativo.dev)** — see the
-[demo collection](https://tcgvault.cativo.dev/demo).
+**Live at [amigotcg.cativo.dev](https://amigotcg.cativo.dev)** — see the
+[demo collection](https://amigotcg.cativo.dev/demo).
 
 <p align="center">
-  <img src=".github/screenshots/landing.jpg" alt="tcg-vault landing page" width="100%">
+  <img src=".github/screenshots/landing.jpg" alt="AMIGO TCG landing page" width="100%">
 </p>
 
 <p align="center">
