@@ -12,9 +12,14 @@ gold, auction-ledger layouts without images, per-card-type accent colours as a
 blanket rule, a hue per rarity string, a price-driven accent, a busy
 rainbow-holo ring, top-loaders and penny sleeves, other font pairings.
 
+"A price-driven accent" means colour that varies with the size or level of a
+price (a hotter colour for a pricier card). It does not forbid `--color-drop`,
+which marks the direction of a price move only, on every fall and with no
+threshold (see Colour meaning).
+
 ## System
 - Genre · modern-minimal (restrained, data-forward, one accent)
-- Macrostructure · collector's binder: one summary line, set divider tabs, and cards on a stock sheet with hang tags
+- Macrostructure · collector's binder: a value cover (headline figure, range move, value line, "This week" strip), set divider tabs, and cards on a stock sheet with hang tags
 - Theme · custom (vibe: "bone-paper trading floor, one signal green, cards do the talking")
 - Axes · paper-band: light (bone, not stark white) / display-style: grotesk-variable-width (Anybody display + Hanken Grotesk body + Martian Mono numerals) / accent-hue: warm-neutral base + one cool-green signal
 
@@ -32,7 +37,8 @@ page-scoped values.
   --color-ink-2:      oklch(24% 0.006 85);
   --color-muted:      oklch(46% 0.010 85);
   --color-stock:      oklch(98.2% 0.007 90); /* raised card-stock: sheets, tags, slips */
-  --color-flat:       oklch(52% 0.008 85);   /* neutral price text (down/flat); dark enough for 11px type to pass AA on stock */
+  --color-flat:       oklch(52% 0.008 85);   /* neutral price text (flat); dark enough for 11px type to pass AA on stock */
+  --color-drop:       oklch(52% 0.16 22);    /* price FALL text and chart line only; never a fill or frame; not --danger. Starting value: the final one is recorded here when the token lands */
   --color-rule:       oklch(18% 0.006 85 / .14); /* hairline dividers only */
   --color-rule-2:     oklch(18% 0.006 85 / .32); /* stronger rule: tabs, tag outlines */
   --color-accent:     oklch(70% 0.16 155);   /* the ONE accent: price up (fills, dots) */
@@ -56,6 +62,8 @@ page-scoped values.
   --space-2xs..2xl: 4 / 8 / 12 / 16 / 24 / 40 / 64px;  --gutter: clamp(16px, 4vw, 56px);  --bar-h: 56px;
   --text-2xs..lg: .6875 / .75 / .875 / 1.0625rem / min(1.333rem, .9rem + 1.2svh);
   --text-display / -h2 / -close: fluid, capped by viewport height
+  --text-figure: the page's one headline figure (72–120 px, fluid, capped by viewport height; display face)
+  --text-masthead: a page's name as a label (about 44–48 px at desktop, fluid)
 }
 
 /* Dark theme: surfaces near-black, never pure black. Cards stay the colour. */
@@ -66,14 +74,18 @@ page-scoped values.
   --color-muted: oklch(65% .012 85);  --color-flat: oklch(74% .012 85);
   --color-rule: oklch(95% .012 85 / .14);  --color-rule-2: oklch(95% .012 85 / .30);
   --color-accent-deep: oklch(82% .17 155);  --color-focus: oklch(82% .17 155);
+  --color-drop: oklch(76% .13 22);   /* starting value, as in light */
   --color-binder-page: oklch(23.5% .006 85);   /* plus the plastic and shadow tokens, retuned for dark */
 }
 ```
 
-Page-scoped values (not global tokens): `--col-who` (`clamp(4.2rem, 1.6rem + 11vw, 11rem)`,
-on `.col-page`) sizes the collector's name on the collection page and the set's
-name on the set page; the Sets heading (`--sts-who`) and Activity heading
-(`--act-who`) use the same value. `--col-foil-1..4`, `--col-silver(-hi)`,
+A page's name (the collector's name, the set's name, the Sets and Activity
+headings) is a masthead label at `--text-masthead`; the page's headline figure
+(collection total, set value, card price, Activity value) is `--text-figure`.
+The page-scoped `--col-who`, `--sts-who` and `--act-who` are retired: the name
+is no longer the hero.
+
+Page-scoped values (not global tokens): `--col-foil-1..4`, `--col-silver(-hi)`,
 `--col-chip-ink` (collection) and `--crd-foil-1..4` (card page) tune the rarity
 chips; `--set-pencil` (set page) is the pencilled number on a missing pocket, a
 cool grey (oklch 42% L light / 76% dark, chroma .01, hue 260).
@@ -83,14 +95,18 @@ cool grey (oklch 42% L light / 76% dark, chroma .01, hue 260).
 (named below); never loosen one wholesale.**
 
 ### Type
-- **Two families plus mono.** Anybody is display only (headings, brand, card names), driven by its *width* axis (`font-variation-settings: 'wdth' N`) for condensed-vs-normal voices; Hanken Grotesk is body and UI text. `font-stretch` does **not** map this axis in Chrome — always set width via `font-variation-settings`, never `font-stretch`. Archivo is only the display fallback.
-- **Martian Mono is reserved for numerals** (prices, card IDs, dates) — never body text, never headings. That is the whole "outlier" budget. The one exception is a few words on the card page (`.crd-tsub`, `.crd-vo` "owned", `.crd-ch-read`).
+- **Two families plus mono.** Anybody is display only (headings, brand, card names, and the page's one headline figure), driven by its *width* axis (`font-variation-settings: 'wdth' N`) for condensed-vs-normal voices; Hanken Grotesk is body and UI text. `font-stretch` does **not** map this axis in Chrome — always set width via `font-variation-settings`, never `font-stretch`. Archivo is only the display fallback.
+- **Martian Mono is reserved for numerals** (prices, card IDs, dates) — never body text, never headings. That is the whole "outlier" budget. The one narrow exception runs the other way: the page's single **headline figure** (collection total, set value, card price, Activity value) is set in the display face at `--text-figure`; every other numeral stays Martian Mono. The one exception is a few words on the card page (`.crd-tsub`, `.crd-vo` "owned", `.crd-ch-read`).
 
 ### Colour meaning
-- **One accent, for price semantics.** `--color-accent` (green) means "price trending up" — fills and dots; `--color-accent-deep` is the same green as text (the pure accent fails contrast as type). A price that falls or stays flat renders in `--color-flat`, no arrow colour, never a second colour: direction is the only thing colour says about a price. No comparable price → show nothing.
+- **One accent, for price semantics.** `--color-accent` (green) means "price trending up" — fills and dots; `--color-accent-deep` is the same green as text (the pure accent fails contrast as type). A rise gets `▲`, a fall gets `▼` and a flat price (`±$0.00`) stays in `--color-flat` with no glyph. Direction is the only thing colour says about a price. No comparable price → show nothing.
+- **`--color-drop` is the one token for a falling price**, under four limits: (1) it colours movement figures, the movers block and the chart line and area when the range ended lower; never a fill, tile frame or background. (2) It always comes with `▼` and the minus sign, so colour is never the only cue. (3) It is a token distinct from the destructive and validation red (`--danger`, legacy), so delete and error keep their own meaning; it needs AA contrast at 11 px on `--color-stock` in both themes. (4) **Every** fall gets it, with no size threshold: size is the movers block's job. This is not a price-driven accent (see the rejected list): it says which way a price moved, never how big or how expensive it is.
 - **Bounded non-price uses of green**, and no others: the focus ring (`--color-focus`), the underline on the current nav item (`--color-accent`), the 2px hairline under the wordmark in emails, and the dot in the brand mark.
-- **Red (danger) is a separate, narrow exception:** destructive actions (delete) and validation errors only — never price direction, never decorative, never a second accent. "This number went down" is `--color-flat`, not red. The binder sheet defines no red token yet; owner pages use legacy `--danger`.
+- **Red (danger) is a separate, narrow exception:** destructive actions (delete) and validation errors only — never price direction, never decorative, never a second accent. "This number went down" is `--color-drop`, not red. The binder sheet defines no red token yet; owner pages use legacy `--danger`.
 - **Amber (warning) is a third, equally narrow exception:** "this needs a look" states only (the needs-variant-review flag). It is not "destructive" or "failed" — sharing red with Delete blurred that difference. Never for destructive actions, price direction, or per-category colour (that reintroduces the rejected per-type accents). Owner pages use legacy `--warning`.
+
+### Brand
+**Wordmark** (brand AMIGO TCG, text only, no asset). Display face (Anybody, `wdth` about 78, weight 800, capitals, tracking +0.015em): **AMIGO** at full weight in ink, **TCG** lighter in `--color-muted`, then the green dot. No descriptor line. The text comes from `config('brand.name')` and `<x-brand.wordmark>`. Never put a game's name in the wordmark. The email layout keeps a text wordmark with hex values and its 2px green hairline.
 
 ### Rarity
 - A tile shows the collector shorthand (`Rarity::abbreviate`: SIR, MHR, RR…); the full name lives on the detail page. tcgdex's literal `"None"` renders nothing, not "N".
@@ -133,24 +149,30 @@ absence is what gets the treatment (an empty pocket).
 - **Stock sheet** — `--color-stock` surface with `--shadow-sheet` and paper grain; the cards sit on it. `--shadow-sheet` draws nothing along the sheet's top edge (no inset highlight, no shadow reaching above it), so a selected divider tab runs straight into its sheet.
 - **Collection tile** (`.col-*`, shared by the collection page, the set page and the card page's related strip) — `.col-slot` (entrance) › `.col-card` (hover) › the card frame, with a hang tag under it. Meta: name, `#N` (set abbreviation + number outside a set), rarity chip or slab, `×N` for several copies. A stamped print (Prize Pack and the rest of `CardVariants::STAMPS`) shows the plain print's catalogue art, so its stamp is set on the card: a straight `--color-stock` band across the foot of the art (`.col-seal`, `--color-rule-2` hairlines above and below, ink text in the body face, one line, ellipsis), carrying the stamp's name as collectors write it (`Poké Ball`, `Pokémon Center`), the first two then `+N`. No official stamp logos, no new colour. Every tile takes one pocket of the same size, in any order: the grid is uniform and no card is enlarged, the priciest included; Value order already puts the best cards first.
 - **Divider tabs** — on the collection page they are the set filter (`setsQuery()` + `$setFilter`; no chip rail, no dropdown); the selected set links to its page.
-- **Hang tag** — a `--radius-tag` stock tag under a card carrying its price. The move reads `+$2.40 · 7d` / `−$1.00 · 7d` / `±$0.00 · 7d` in `.col-mono` (`Money::move()`), against the same print seven days earlier (`CardPriceResolver::weekDeltaFor`); green dot only for a rise; nothing when there is no comparable price a week old. No price reads "No price".
+- **Hang tag** — a `--radius-tag` stock tag under a card carrying its price. The move reads `▲ +$2.40 · 7d` / `▼ −$1.00 · 7d` / `±$0.00 · 7d` in `.col-mono` (`Money::move()` with `Money::glyph()`), against the same print seven days earlier (`CardPriceResolver::weekDeltaFor`); a rise is `--color-accent-deep`, a fall `--color-drop` on the figure only, a flat move `--color-flat` with no glyph; there is no green dot; nothing when there is no comparable price a week old. No price reads "No price".
 - **Binder page + pockets** — `--color-binder-page` with clear pockets (`--color-sleeve-*`); a missing card is an empty pocket with its number pencilled in. On the set page missing cards are opt-in (`Show the N missing`, N = imported cards minus owned, off by default, hidden when none is missing); each `<x-revamp.missing-pocket>` links to the card page, shows the card's art greyed behind the plastic, its number in `--set-pencil` at `--text-lg`, and its price on a stock slip; no hang tag, no move.
 - **What the rest of the set costs** — on the set page, a second `.col-summary` line right under the summary gives the missing cards' price together, toggle on or off: `The rest of the set: $1,303.09 for the 107 missing cards, one of each.` (the label in `--color-muted`, figures in `.col-mono`; one missing card reads `for the 1 missing card.`). It is one copy of every card number the collector does not own, each at its pocket's slip price (`Valuation::missingTotals()`), over the whole set, never the searched or filtered grid. When some missing cards have no price it reads `$X for one of each missing card. N of M missing cards priced.`, N counting the cards the figure covers (one priced only in another currency is not one of them) and M every strip slot not owned, imported or not. Another currency follows the owned total's footnote in the same `col-note`, as its own sentence (`Also €12.40 for missing cards priced in EUR, not added to the total.`), and the page's one `Approx. TCGplayer market prices.` shows when either total has a figure. Hidden when nothing is missing or no missing card is priced. No buy, cart or shop words: a fact about the set, not a quote. Not on the Sets list.
 - **Printed strip** — set progress as a one-line strip with hollow slots for missing cards; it replaces a progress bar on public set screens. One slot rule everywhere (`PrintedStrip::slots()`): a card whose number is plain digits within the set total sits at its number; lettered numbers (TG, GG, SV…) and numbers outside the total are grouped after the numbered run; a number the catalogue has not imported is a grey, unnumbered slot; an imported card you do not own is hollow (numbered on the set page). On the set page (`.set-strip`) it carries the never-round-to-zero % mark and scale marks (`StripScale`) at the first slot, every 50th and the last. On the Sets list the slots compress to a 10 px track: owned runs filled, missing runs hollow, unimported slots left as the grey track.
-- **Sets list** — each set is a card under its own divider tab (set code, year): the set logo straight on the sheet (no tray or frame of its own), name, series, the printed strip, "Completed N / M %" and "Owned value".
+- **Sets list** — default sort **By value** (Newest and Completion remain). The sets that hold most of the value are cards, each under its own divider tab (set code, year): the set logo straight on the sheet (no tray or frame of its own), name, series, owned value as the figure, `N%` of the collection's value, the printed strip and "Completed N / M %". The long tail is a compact set table (name, code · year, mini completion bar, owned value). Shares are computed within one currency only.
+- **Value cover** — the head of the collection page: the headline figure (`--text-figure`), the range move labelled as collection value, the date, a value line, and the "This week" strip. It replaces the old one-line summary. The page's name is a masthead label above it.
+- **"This week" chip strip** — one biggest drop and one biggest rise as chips, with a link to Activity.
+- **Top cards shelf** — the priciest cards as ordinary collection tiles in the same pocket size; no card is enlarged.
+- **Movers block** — Biggest drops and Biggest rises as tables with card art, name, set · number · rarity, `▼`/`▲` with the percent and the dollars side by side, and the current price; each row links to the card page. A card with no comparable price a week old is not listed.
+- **Fact callout** — one sentence stating a fact, set off by an ink rule (`Pitch Black holds 42% of the value.`).
 
 ### Price charts (Activity, card page)
-A stock sheet behind divider tabs `1M · 3M · 6M · 1Y`, selection in `?range=` (absent = 1M). The range move and end dot are green only when the range ended higher (a fall is `--color-flat`). A muted "History since 15 Sep" sits under the chart when the data starts after the range start. Days read `4 Nov`, with the year only when it is not this year (`4 Nov 2025`; `DayLabel::of()`), on every date. The chart is a keyboard `slider` (←/→/Home/End/Esc; value = the day read, value text = the readout); a pointer reading never reaches the screen reader.
+A stock sheet behind divider tabs `1M · 3M · 6M · 1Y`, selection in `?range=` (absent = 1M). The range move and end dot are green only when the range ended higher; a range that ended lower draws its line, area, end dot and move text in `--color-drop` (with `▼` and the minus sign), and a flat range stays `--color-flat`. A muted "History since 15 Sep" sits under the chart when the data starts after the range start. Days read `4 Nov`, with the year only when it is not this year (`4 Nov 2025`; `DayLabel::of()`), on every date. The chart is a keyboard `slider` (←/→/Home/End/Esc; value = the day read, value text = the readout); a pointer reading never reaches the screen reader.
 
 ### Activity page
-- The collection value sits on a stock sheet whose head reads "Collection value · 3 months", the last value and the range move (`+$12.40 · 3 months`). The series has a value on every sampled day, so the chart is one continuous line, nothing dotted. The heading is the collection's name size (`--act-who`).
-- The feed is one stock sheet per calendar day (UTC) under a divider tab (`4 Nov` · `N updates`). In a row a rise is `--color-accent-deep` with a green dot, a fall is `--color-flat`, an addition's price is ink, and a price move under 1.00 of its own currency is not listed.
+- Activity is "over time": the collection page is now. The headline figure (`--text-figure`) leads with the range move, then the chart on a stock sheet whose head reads "Collection value · 3 months" (`+$12.40 · 3 months`), then the feed. The series has a value on every sampled day, so the chart is one continuous line, nothing dotted. The heading is a masthead label (`--text-masthead`).
+- The feed is one stock sheet per calendar day (UTC) under a divider tab (`4 Nov` · `N updates`). In a row a rise is `--color-accent-deep` with `▲`, a fall is `--color-drop` with `▼` and the minus sign, an addition's price is ink, and a price move under 1.00 of its own currency is not listed. Bulk additions under a threshold collapse into one group row per day (`28 small additions · Delta Reign · each under $0.30`, with "Show all"); notable additions and price moves stay individual.
 
 ### Card page (`/{user}/{set}/{number}`)
 Classes `.crd-*` in `resources/css/card.css`, behaviour in `resources/js/card.js` (pure parts in `card-helpers.js`, covered by `npm run test:js`).
 - **Plate with crop marks** — the card on a `--color-binder-page` sheet with a 10 mm grid, crop ticks and `63 mm` / `88 mm`. *Fitted* scales it into the plate; *Actual size* draws it at 63 x 88 mm times the calibration factor (`localStorage['amigo-tcg-cal']`, 0.6 to 1.6, default 1; "Match a real card" opens the slider, Reset removes the key). The **loupe** shows one image pixel per device pixel (`naturalWidth / devicePixelRatio`) and is offered only when that is at least 1.15x what the plate shows (capped at scan resolution); arrows move it (Shift for big steps), Esc puts it away. The plate opens on the official art; a collector's photo is the second view. A photo is shown whole (`object-fit: contain`) with no marks, no ring and no Actual size, under "Your photo of this copy. The printed size applies to the official art."; the loupe works on it. The column is `wire:ignore`. A fine pointer tilts the card a few degrees; reduced motion turns that off. The card moves between sizes in `--dur-slow`.
 - **Variant pills** `.crd-vpill` — little tickets: label, price in `.crd-mono` (`—` when unpriced), muted `×N owned` when held; `aria-pressed`; selection in `?variant=` (`unspecified` for copies with no variant); opens on the collector's priciest copy's variant (owned but unpriced: the print of the collector's first copy; unowned: the priciest). Hidden for one variant or none.
-- **Hang tags** `.crd-htag` — one per market read, the headline read edged in ink. The headline shows two moves, `+$8.00 · 1d   +$32.00 · 7d` (`1d` is the real gap in days to the previous price day; `7d` comes from the week-baseline read model), then its low; others show low and trend; `entered D` (manual) and `as of D` (a source that stopped updating) stand alone. Only a rise is green, on the move, never the amount. One short settle on entry.
+- **Hang tags** `.crd-htag` — one per market read, the headline read edged in ink. The headline shows two moves, `▲ +$8.00 · 1d   ▲ +$32.00 · 7d` (`1d` is the real gap in days to the previous price day; `7d` comes from the week-baseline read model), then its low; others show low and trend; `entered D` (manual) and `as of D` (a source that stopped updating) stand alone. A rise is `--color-accent-deep` with `▲` and a fall is `--color-drop` with `▼`, on the move, never the amount. One short settle on entry.
+- **Market value block** — the headline price in the display face with `1 day`, `7 days` and `1 month` moves (`▼ −$15.55 (−11%)` for the month, `±$0.00` flat), the low, and `about N% of the collection` in the same currency only; another currency's price (Cardmarket) stays a separate small figure. The collector's own note is set as a quote above the chart.
 - **Price history** — the chart above, drawn server-side from `PriceChart` with x by date: a market day with no price breaks the line and is bridged by a dotted segment, a lone day is a dot; a manual price is one continuous step line from its first to its last entry in the range (it holds until changed; it is not carried out to the range edges). The slider also takes ↑/↓ and rests on the newest day; the draw-in plays on the first load only. Day labels on the chart, "History since", tag notes and move titles all follow the day-label rule.
 - **Ticket stubs** — one per owned copy: quantity on the stub; condition name and code, or `PSA 10 graded`; variant, `Added D`, `own photo`, notes. **Catalogue label** — the card's facts (set, number, rarity, artist, HP, Pokédex, Catalog ID) set as a library label with dotted leaders; HP, Pokédex and Catalog ID in mono.
 - **More from {set}** — a divider tab over a stock sheet with up to eight owned cards in number order, each the collection tile (own-print price, `· 7d`, stamps, slab, `×N`), hover sweep included.
@@ -177,7 +199,7 @@ Every email renders through `resources/views/mail/layouts/branded.blade.php` (pl
 - `/{u}/sets` — the Sets list. `/{u}/activity` — the history.
 - `/{u}/{set}` — the set page: owned cards, plus opt-in missing pockets. `/{u}/{set}/{number}` — the card page.
 - Two permanent redirects (301): `/{u}/gallery` → `/{u}`, and `/{u}/movimientos` → `/{u}/activity`.
-- Nav is Collection · Sets · Activity, always all three linked on a collector's pages; the landing has the bare bar. The owner also sees "Manage collection" (`/admin`).
+- Nav is the wordmark, then Collection · Sets · Activity, always all three linked on a collector's pages, with the theme toggle at the right; **Decks** joins them when the first deck page ships (Phase 4), not before. The landing has the bare bar. The owner also sees "Manage collection" (`/admin`).
 - Owner and platform screens (`/admin…`, `/staff…`, `/profile`), auth and the legal pages (`/privacy`, `/terms`) are the Legacy surface.
 
 ## Language
