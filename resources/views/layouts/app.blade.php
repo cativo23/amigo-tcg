@@ -10,12 +10,12 @@
              means the prefers-color-scheme block in app.css decides. --}}
         <script>
             (function () {
-                var t = localStorage.getItem('tcg-vault-theme');
+                var t = localStorage.getItem('amigo-tcg-theme');
                 if (t) document.documentElement.setAttribute('data-theme', t);
             })();
         </script>
 
-        <title>{{ config('app.name', 'tcg-vault') }}</title>
+        <title>{{ config('brand.name') }}</title>
 
         {{-- Brand mark as favicon: the Vault Line — a rising sparkline running off
              the ink square's edge into a signal-green node, echoing the app's own

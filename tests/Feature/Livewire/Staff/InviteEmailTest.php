@@ -213,7 +213,7 @@ test('the invite email carries the working signed link, who sent it and when it 
 
     $mail = new InviteSent($invite);
 
-    $mail->assertHasSubject('You’re invited to tcg-vault');
+    $mail->assertHasSubject('You’re invited to AMIGO TCG');
     $mail->assertSeeInHtml($invite->signedUrl());
     $mail->assertSeeInText($invite->signedUrl());
     $mail->assertSeeInHtml('carlos');

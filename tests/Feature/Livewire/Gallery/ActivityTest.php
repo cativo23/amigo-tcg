@@ -736,7 +736,7 @@ test('the page sits on the revamp shell: Activity marked in the nav, its own sty
         ->and($html)->not->toContain($manifest['resources/css/app.css']['file'])
         ->and($html)->not->toContain('wire:navigate')
         ->and($html)->not->toContain('noindex')
-        ->and($html)->toContain('<title>Activity · Carlos&#039;s collection · tcg-vault</title>')
+        ->and($html)->toContain('<title>Activity · Carlos&#039;s collection · AMIGO TCG</title>')
         ->and($html)->toContain('<meta name="description" content="Price movements and recent additions in Carlos&#039;s Pokémon TCG collection.">');
 });
 

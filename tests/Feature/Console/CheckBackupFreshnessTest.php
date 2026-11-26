@@ -10,7 +10,7 @@ beforeEach(function () {
 
     $this->backupDir = storage_path('framework/testing/backups-'.bin2hex(random_bytes(4)));
     File::ensureDirectoryExists($this->backupDir);
-    config(['tcgvault.backups.path' => $this->backupDir, 'tcgvault.backups.min_free_bytes' => 0]);
+    config(['amigotcg.backups.path' => $this->backupDir, 'amigotcg.backups.min_free_bytes' => 0]);
 });
 
 afterEach(function () {
@@ -70,7 +70,7 @@ test('sends one alert per stale kind when both are stale', function () {
 
 test('alerts when the disk holding the backups is running out of space', function () {
     Http::fake();
-    config(['tcgvault.backups.min_free_bytes' => PHP_INT_MAX]);
+    config(['amigotcg.backups.min_free_bytes' => PHP_INT_MAX]);
     makeBackupAt($this->backupDir, 'db-2026-09-28.dump', 5);
     makeBackupAt($this->backupDir, 'photos-2026-09-28.tar', 5);
 
@@ -111,7 +111,7 @@ test('does not count a copy taken before a restore as a nightly backup', functio
 
 test('alerts when the backup directory is missing', function () {
     Http::fake();
-    config(['tcgvault.backups.path' => $this->backupDir.'/nope']);
+    config(['amigotcg.backups.path' => $this->backupDir.'/nope']);
 
     $this->artisan('backups:check-freshness')->assertSuccessful();
 
@@ -120,7 +120,7 @@ test('alerts when the backup directory is missing', function () {
 
 test('does nothing when no backup directory is configured', function () {
     Http::fake();
-    config(['tcgvault.backups.path' => null]);
+    config(['amigotcg.backups.path' => null]);
 
     $this->artisan('backups:check-freshness')->assertSuccessful();
 

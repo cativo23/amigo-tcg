@@ -17,8 +17,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(PermissionSeeder::class);
 
-        $email = config('tcgvault.admin_email');
-        $password = config('tcgvault.admin_password');
+        $email = config('amigotcg.admin_email');
+        $password = config('amigotcg.admin_password');
 
         if (! $email || ! $password) {
             throw new \RuntimeException(
@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
         // env value can't make a re-seed miss the row and create another.
         $email = Str::lower($email);
 
-        $username = config('tcgvault.admin_username') ?: Str::of(explode('@', $email)[0])
+        $username = config('amigotcg.admin_username') ?: Str::of(explode('@', $email)[0])
             ->lower()
             ->replaceMatches('/[^a-z0-9]/', '')
             ->toString();

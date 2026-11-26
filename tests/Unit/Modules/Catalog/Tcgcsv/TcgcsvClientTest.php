@@ -16,8 +16,8 @@ test('reads the build time tcgcsv publishes, identifying itself as tcgcsv asks',
     $built = app(TcgcsvClient::class)->lastUpdated();
 
     expect($built->toIso8601String())->toBe('2026-10-05T20:05:57+00:00');
-    Http::assertSent(fn ($request) => str_starts_with($request->header('User-Agent')[0] ?? '', 'tcg-vault/')
-        && str_contains($request->header('User-Agent')[0], 'tcgvault.cativo.dev'));
+    Http::assertSent(fn ($request) => str_starts_with($request->header('User-Agent')[0] ?? '', 'amigo-tcg/')
+        && str_contains($request->header('User-Agent')[0], 'amigotcg.cativo.dev'));
 });
 
 test('fetches and parses one group\'s prices', function () {
@@ -90,7 +90,7 @@ test('a body that stalls past the read deadline is a connection failure', functi
         'read' => fn () => '',
     ]);
     Http::fake(['tcgcsv.com/tcgplayer/3/24688/prices' => Http::response($stalled, 200)]);
-    $client = new TcgcsvClient('https://tcgcsv.com', 'tcg-vault/1', new TcgcsvPriceParser, bodyDeadlineSeconds: 0.0);
+    $client = new TcgcsvClient('https://tcgcsv.com', 'amigo-tcg/1', new TcgcsvPriceParser, bodyDeadlineSeconds: 0.0);
 
     expect(fn () => $client->prices(24688))->toThrow(ConnectionException::class);
 });

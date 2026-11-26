@@ -90,7 +90,7 @@ test('in shadow mode it links prints and compares prices, writing no price at al
         && $context['groups_ok'] === 2 && $context['groups_failed'] === 0 && $context['partial_retry'] === false
         && $context['compared'] === 1 && $context['within_2_percent'] === 1
         && $context['linked_without_tcgdex_price'] === 1 && $context['groups_fetched'] === [24688, 24722]);
-    Http::assertSent(fn ($request) => str_starts_with($request->header('User-Agent')[0] ?? '', 'tcg-vault/'));
+    Http::assertSent(fn ($request) => str_starts_with($request->header('User-Agent')[0] ?? '', 'amigo-tcg/'));
 });
 
 test('a group that fails does not stop the others', function () {

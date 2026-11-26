@@ -8,8 +8,8 @@ use Database\Seeders\PermissionSeeder;
 use Livewire\Livewire;
 
 // This is a single-admin personal vault: /register is gated behind
-// config('tcgvault.allow_registration'), off by default (see
-// config/tcgvault.php and routes/auth.php). Routes are registered once,
+// config('amigotcg.allow_registration'), off by default (see
+// config/amigotcg.php and routes/auth.php). Routes are registered once,
 // at application boot, from env() — so the "on" state used by these two
 // tests comes from phpunit.xml's TCGVAULT_ALLOW_REGISTRATION=true, which
 // makes registration enabled for the test environment by default. The
@@ -125,7 +125,7 @@ test('the registration_settings migration seeds registration.open from the env-c
     // fallback — spatie/laravel-settings always has a real row after
     // migrating, unlike the hand-rolled store this replaced.
     expect(app(RegistrationSettings::class)->open)
-        ->toBe((bool) config('tcgvault.allow_registration'));
+        ->toBe((bool) config('amigotcg.allow_registration'));
 });
 
 test('registration reflects whatever an admin last set it to, independent of the env default', function () {

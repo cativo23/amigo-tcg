@@ -32,7 +32,7 @@ final class CheckBackupFreshness extends Command
 
     public function handle(DiscordAlerter $alerter): int
     {
-        $dir = config('tcgvault.backups.path');
+        $dir = config('amigotcg.backups.path');
 
         if (! is_string($dir) || $dir === '') {
             $this->info('No backup directory configured; nothing to check.');
@@ -41,7 +41,7 @@ final class CheckBackupFreshness extends Command
         }
 
         if (! is_dir($dir)) {
-            $alerter->send("⚠️ tcg-vault: the backup directory {$dir} is missing — nightly backups are not being written where expected.");
+            $alerter->send('⚠️ '.config('brand.name').": the backup directory {$dir} is missing — nightly backups are not being written where expected.");
             $this->warn("Backup directory {$dir} is missing.");
 
             return self::SUCCESS;
@@ -63,11 +63,11 @@ final class CheckBackupFreshness extends Command
      */
     private function checkFreeSpace(DiscordAlerter $alerter, string $dir): void
     {
-        $minFree = (int) config('tcgvault.backups.min_free_bytes');
+        $minFree = (int) config('amigotcg.backups.min_free_bytes');
         $free = disk_free_space($dir);
 
         if ($free === false) {
-            $alerter->send('⚠️ tcg-vault: could not read the free space on the backup disk.');
+            $alerter->send('⚠️ '.config('brand.name').': could not read the free space on the backup disk.');
             $this->warn('Could not read the free space on the backup disk.');
 
             return;
@@ -78,7 +78,7 @@ final class CheckBackupFreshness extends Command
         }
 
         $freeGb = round($free / 1024 ** 3, 1);
-        $alerter->send("⚠️ tcg-vault: only {$freeGb} GB free on the backup disk, which also holds the live database.");
+        $alerter->send('⚠️ '.config('brand.name').": only {$freeGb} GB free on the backup disk, which also holds the live database.");
         $this->warn("Only {$freeGb} GB free on the backup disk.");
     }
 
@@ -99,7 +99,7 @@ final class CheckBackupFreshness extends Command
         }
 
         if ($newest === null) {
-            $alerter->send("⚠️ tcg-vault: no {$label} backup exists at all — the nightly backup may have never run.");
+            $alerter->send('⚠️ '.config('brand.name').": no {$label} backup exists at all — the nightly backup may have never run.");
             $this->warn("No {$label} backup found.");
 
             return;
@@ -108,7 +108,7 @@ final class CheckBackupFreshness extends Command
         $hours = (int) now()->diffInHours(now()->setTimestamp($newest), absolute: true);
 
         if ($hours >= self::STALE_AFTER_HOURS) {
-            $alerter->send("⚠️ tcg-vault: the newest {$label} backup is {$hours}h old — the nightly backup looks stuck.");
+            $alerter->send('⚠️ '.config('brand.name').": the newest {$label} backup is {$hours}h old — the nightly backup looks stuck.");
             $this->warn("Newest {$label} backup is {$hours}h old.");
 
             return;

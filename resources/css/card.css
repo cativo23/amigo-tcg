@@ -1,4 +1,4 @@
-/* tcg-vault · public card page (/{username}/{set}/{number}). Loaded only by livewire/gallery/card.blade.php, after revamp.css and collection.css.
+/* public card page (/{username}/{set}/{number}). Loaded only by livewire/gallery/card.blade.php, after revamp.css and collection.css.
    Every selector is prefixed .crd- so nothing collides with revamp.css (.sheet, .chart, .htag, .strip, .src, .copy, .bar ...) or collection.css (.col-*).
    The page bar and footer come from revamp.css. Every animation stays within --dur-slow, delay included. */
 

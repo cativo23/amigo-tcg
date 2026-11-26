@@ -551,7 +551,7 @@ test('title, description and share image stay as they were', function () {
     seedSetPage();
 
     $this->get('/demo/sv03.5')
-        ->assertSee("151 · Demo's collection · tcg-vault")
+        ->assertSee("151 · Demo's collection · AMIGO TCG")
         ->assertSee('content="3 of 5 cards from 151 (Scarlet &amp; Violet) in Demo&#039;s Pokémon TCG collection."', false)
         ->assertSee('content="https://assets.tcgdex.net/en/sv/sv03.5/003/high.webp"', false);
 });

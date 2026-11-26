@@ -1,4 +1,4 @@
-/* tcg-vault landing v5 · one stage, six acts, one set of card pictures.
+/* landing v5 · one stage, six acts, one set of card pictures.
  *
  * The same card objects (one picture each) are laid out once per pose: stack → grid (shared page) → sets (divider tabs) → mat (the
  * hero's first card at 63 × 88 mm) → prices (slip + hang tags) → set (binder page) → close.
@@ -18,7 +18,7 @@ if (document.getElementById('stage')) {
   var POSES = ['stack', 'grid', 'sets', 'mat', 'prices', 'set', 'close'];
   var MAT = POSES.indexOf('mat'), LOUPE_ZOOM = 2.4;
   /* the calibration a card page stored on this device; the landing only reads it */
-  var storedCal = function () { try { return localStorage.getItem('tcg-vault-cal'); } catch (e) { return null; } };
+  var storedCal = function () { try { return localStorage.getItem('amigo-tcg-cal'); } catch (e) { return null; } };
 
   var clamp = function (v, a, b) { return Math.min(b === undefined ? 1 : b, Math.max(a || 0, v)); };
   var lerp = function (a, b, t) { return a + (b - a) * t; };
@@ -135,7 +135,7 @@ if (document.getElementById('stage')) {
     this.sheetOv = el('div', 'ov fill');
     this.sheet = el('div', 'sheet');
     this.head = el('div', 'sheet-head');
-    this.head.appendChild(el('span', 'addr', 'tcgvault.cativo.dev/yourname'));
+    this.head.appendChild(el('span', 'addr', 'amigotcg.cativo.dev/yourname'));
     this.cnt = el('span', 'cnt', D.count + ' cards');
     this.head.appendChild(this.cnt);
     this.sheetOv.appendChild(this.sheet); this.sheetOv.appendChild(this.head);

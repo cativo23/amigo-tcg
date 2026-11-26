@@ -1,10 +1,30 @@
-# tcg-vault — Deploy to polaris2
+# AMIGO TCG — Deploy to polaris2
 
-Single-origin Docker deploy at **https://tcgvault.cativo.dev**. Automated
+Single-origin Docker deploy at **https://amigotcg.cativo.dev**. Automated
 via GitHub Actions: CI on every push/PR, then a `release/vX.Y.Z` branch
 merge to `master` builds/pushes the image and deploys. Manual steps below
 still apply for the one-time server setup and for anything the workflows
 deliberately don't automate (migrations, first-time secrets).
+
+## Names that stay, and why
+
+The product is AMIGO TCG, but some operational names keep their old value on purpose:
+
+- **The host directory `~/deploy/tcg-vault` and the compose project name (`name: tcg-vault`
+  in `compose.prod.yml`).** Volumes are prefixed with the project name
+  (`tcg-vault_pgdata`, ...). Renaming either would start Postgres on an empty volume.
+  Never rename them.
+- **Four pins in the server `.env`**: `SESSION_COOKIE`, `CACHE_PREFIX`, `REDIS_PREFIX` and
+  `HORIZON_PREFIX`. Laravel derives all four from `APP_NAME`; pinned at their old values,
+  changing `APP_NAME` neither logs people out nor strands queued jobs. They are in
+  `docker/prod/.env.production.example`. Add them to the server `.env` **before** changing
+  `APP_NAME`.
+- **The `TCGVAULT_*` environment variable names**, the database and its user (`tcg_vault`),
+  and `demo@tcg-vault.invalid` (existing rows are matched against it).
+- **`tcgvault.cativo.dev` is a permanent redirect** (a Traefik `redirectregex` router in
+  `compose.prod.yml`) to the same path and query on `amigotcg.cativo.dev`, so every link
+  already shared keeps working. Both names resolve through the wildcard record under
+  `cativo.dev`; each gets its own Let's Encrypt certificate from Traefik.
 
 ## Cutting a release
 Each PR adds its own `[Unreleased]` entry to `CHANGELOG.md`, so a release
@@ -18,7 +38,7 @@ git push -u origin release/vX.Y.Z
 gh pr create --base master --title "release: vX.Y.Z" --body "See CHANGELOG.md"
 # merging that PR:
 #   1. auto-release.yml creates GitHub Release vX.Y.Z from the CHANGELOG section
-#   2. deploy.yml builds and pushes cativo23/tcg-vault:vX.Y.Z (and :latest),
+#   2. deploy.yml builds and pushes cativo23/amigo-tcg:vX.Y.Z (and :latest),
 #      then deploys that tag on polaris2 — see "Deploying a release" below
 ```
 
@@ -60,7 +80,7 @@ php artisan key:generate --show            # copy the base64:... value into .env
 chmod 600 ~/deploy/tcg-vault/.env
 ```
 Required `.env` values to fill: `APP_KEY`, `DB_PASSWORD`, `REDIS_PASSWORD`, `RESEND_KEY`,
-and the key in `SENTRY_LARAVEL_DSN` (from the `tcg-vault` project's settings in the
+and the key in `SENTRY_LARAVEL_DSN` (from the app's Sentry project settings in the
 Bugsink dashboard at `errors.cativo.dev` — VPN required)
 (the rest are pre-filled in the template).
 `compose.prod.yml` sets `REDIS_CLIENT=phpredis` on app, horizon and scheduler, overriding any `REDIS_CLIENT` in `.env`.
@@ -117,7 +137,7 @@ its CHANGELOG "Deploy notes" or the situation calls for it:
 | `php artisan prices:refresh-week-baselines` | After the migration that creates `card_price_week_baselines`, a restore, or any write outside the app to past price rows. It also runs nightly at 04:15 UTC. |
 | `php artisan prices:bump-version` | After any write to a `card_price_snapshots` row dated before today made outside the app's own price writes (psql, tinker, a data migration, a hand-added price): the gallery and the Activity chart would keep serving the cached prices. Exits non-zero if the cache didn't take it; run it again once the cache is back. |
 | `php artisan gallery:warm-value-series --sync` | After a release that changes the Activity chart's cache key (the key prefix starts cold); the hourly schedule would get there on its own. |
-| `php artisan demo:seed-gallery` | When the demo collection's card list (`config/tcgvault.php`, `demo`) changes. Calls tcgdex for any card not yet in the catalog. |
+| `php artisan demo:seed-gallery` | When the demo collection's card list (`config/amigotcg.php`, `demo`) changes. Calls tcgdex for any card not yet in the catalog. |
 | `php artisan catalog:backfill-images` | After new cards of sets tcgdex has no images for (MEP, MEE, 30th Classic Collection) are synced and linked: takes the image of the card's TCGplayer product. `--dry-run` lists first. |
 | `php artisan photos:strip-metadata` | Only for photos stored before uploads were stripped on the way in (already run in production). |
 
@@ -133,8 +153,8 @@ Only if GitHub Actions is unavailable (repo root, then deploy with
 `IMAGE_TAG` set as above):
 ```bash
 docker login                                # Docker Hub, user cativo23
-docker build -f docker/prod/Dockerfile -t cativo23/tcg-vault:vX.Y.Z .
-docker push cativo23/tcg-vault:vX.Y.Z
+docker build -f docker/prod/Dockerfile -t cativo23/amigo-tcg:vX.Y.Z .
+docker push cativo23/amigo-tcg:vX.Y.Z
 ```
 
 ## Manual price refresh
@@ -336,8 +356,8 @@ copy is valued at the plain print's price or at Cardmarket's EUR.
    Pack prints are in group 22880, Pokéween 2026 in 2374. tcgcsv refuses
    Python's default User-Agent, so use curl with your own:
    ```bash
-   curl -s -A "tcg-vault-admin" https://tcgcsv.com/tcgplayer/3/22880/products > products.json
-   curl -s -A "tcg-vault-admin" https://tcgcsv.com/tcgplayer/3/22880/prices > prices.json
+   curl -s -A "amigo-tcg-admin" https://tcgcsv.com/tcgplayer/3/22880/products > products.json
+   curl -s -A "amigo-tcg-admin" https://tcgcsv.com/tcgplayer/3/22880/prices > prices.json
    ```
 2. Store an `admin` link for the print's variant key (the copy's `variant`),
    with that product, subtype and group:
@@ -377,10 +397,10 @@ IMAGE_TAG=vX.Y.Z docker compose -f compose.prod.yml up -d --force-recreate horiz
 - [ ] `.env` on the server has `APP_DEBUG=false`, `SESSION_SECURE_COOKIE=true` and `LOG_CHANNEL=daily` (with `stderr`, `storage/logs` stays empty and the logs are lost when a container is recreated, i.e. at every deploy)
       — both are correct in `docker/prod/.env.production.example`, but that's a
       template, not what's actually loaded; confirm the real `.env`.
-- [ ] `https://tcgvault.cativo.dev` loads over HTTPS with a valid Let's Encrypt cert.
+- [ ] `https://amigotcg.cativo.dev` loads over HTTPS with a valid Let's Encrypt cert.
 - [ ] `/up` → 200.
 - [ ] Login works as the seeded admin (`TCGVAULT_ADMIN_USERNAME`); session cookie is
-      scoped to `tcgvault.cativo.dev`.
+      scoped to `amigotcg.cativo.dev`.
 - [ ] `/{username}` (public gallery) loads for the admin's username.
 - [ ] `/horizon` loads while authenticated, 403s for a guest.
 - [ ] Upload a collection photo via `/admin/add`, then `docker compose down && up -d`
@@ -612,12 +632,12 @@ newer schema, restore the pre-release dump instead (see Backups).
   `postgres:17.12-alpine`) and `redis` (`redis:7.4.12-alpine`), each pinned by version
   and digest (see "Updating postgres and redis"). `backup` must always match `postgres`:
   a `pg_dump` from another build than the server is a restore surprise.
-- **`horizon` needs its own internet egress, on `tcgvault-egress`, not just
-  `tcgvault-internal`.** Queued jobs (`SyncCardPricingJob`, `ImportSetJob`, the daily
-  price refresh) call tcgdex's API from inside that container — `tcgvault-internal` is
+- **`horizon` needs its own internet egress, on `amigotcg-egress`, not just
+  `amigotcg-internal`.** Queued jobs (`SyncCardPricingJob`, `ImportSetJob`, the daily
+  price refresh) call tcgdex's API from inside that container — `amigotcg-internal` is
   `internal: true` and blocks all outbound routing. Missing this silently breaks every
   queued tcgdex call (DNS resolution fails) with no user-facing error — it only shows up
-  as `failed_jobs` growing and sets never finishing their card backfill. `tcgvault-egress`
+  as `failed_jobs` growing and sets never finishing their card backfill. `amigotcg-egress`
   is a private bridge used by nothing else on the host — not `space-server_web` — since
   `horizon` exposes no port/service and gains nothing from sitting on the same
   ~25-container shared network `app` needs for Traefik ingress.
@@ -645,5 +665,5 @@ newer schema, restore the pre-release dump instead (see Backups).
   the queue still share this Redis (see `ROADMAP.md`, Phase B).
 - **Caches** are warmed at container boot via serversideup `AUTORUN_*` flags;
   **migrations are never auto-run** (see "A release with a migration").
-- **DNS** (`tcgvault.cativo.dev`) already resolves via Cloudflare (DNS-only, unproxied);
+- **DNS** (`amigotcg.cativo.dev`) already resolves via Cloudflare (DNS-only, unproxied);
   Traefik obtains the Let's Encrypt cert on first request. No manual DNS step.

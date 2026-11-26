@@ -881,7 +881,7 @@ test('the card page sits on the revamp shell with its own stylesheet, and keeps 
         ->and($html)->not->toContain($manifest['resources/css/app.css']['file'])
         ->and($html)->not->toContain('wire:navigate')
         ->and($html)->not->toContain('noindex')
-        ->and($html)->toContain('<title>Mega Darkrai ex #116 · Pitch Black · tcg-vault</title>')
+        ->and($html)->toContain('<title>Mega Darkrai ex #116 · Pitch Black · AMIGO TCG</title>')
         ->and($html)->toContain('<meta name="description" content="Mega Darkrai ex #116 from Pitch Black, Special illustration rare — in Carlos&#039;s collection.">')
         ->and($html)->toContain('<link rel="canonical" href="'.url('/carlos/me05/116').'">')
         ->and($html)->toContain('<meta property="og:image" content="https://official.example/116/high.webp">');
@@ -1253,7 +1253,7 @@ test('the card script bundle carries the plate tools', function () {
     $manifest = json_decode((string) file_get_contents(public_path('build/manifest.json')), true);
     $bundle = (string) file_get_contents(public_path('build/'.$manifest['resources/js/card.js']['file']));
 
-    expect($bundle)->toContain('tcg-vault-cal')->toContain('crd:view');
+    expect($bundle)->toContain('amigo-tcg-cal')->toContain('crd:view');
 });
 
 test('the card page shows a placeholder card\'s inferred variants and files the whole-card read under the home one', function () {

@@ -18,9 +18,9 @@ use Spatie\LaravelData\DataCollection;
 
 beforeEach(function () {
     config([
-        'tcgvault.demo.username' => 'demo',
-        'tcgvault.demo.email' => 'demo@tcg-vault.invalid',
-        'tcgvault.demo.cards' => ['me05-116', 'me05-120'],
+        'amigotcg.demo.username' => 'demo',
+        'amigotcg.demo.email' => 'demo@tcg-vault.invalid',
+        'amigotcg.demo.cards' => ['me05-116', 'me05-120'],
     ]);
 
     $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
@@ -62,7 +62,7 @@ test('it creates a public demo collection with one near-mint copy of each config
 });
 
 test('it pulls a card into the catalog when it is not there yet', function () {
-    config(['tcgvault.demo.cards' => ['me05-116', 'sv08-238']]);
+    config(['amigotcg.demo.cards' => ['me05-116', 'sv08-238']]);
 
     $provider = fakeProvider();
     $provider->shouldReceive('findCard')->once()->with('sv08-238')->andReturn(new CardDetailData(
@@ -91,7 +91,7 @@ test('running it again changes nothing', function () {
 });
 
 test('a card tcgdex cannot find is reported and skipped, and the rest are still seeded', function () {
-    config(['tcgvault.demo.cards' => ['me05-116', 'xx-999']]);
+    config(['amigotcg.demo.cards' => ['me05-116', 'xx-999']]);
     fakeProvider()->shouldReceive('findCard')->with('xx-999')->andThrow(CardNotFoundException::forTcgdexId('xx-999'));
 
     $this->artisan('demo:seed-gallery')
@@ -111,7 +111,7 @@ test('it refuses to take over a real account that already has the demo username'
 });
 
 test('it rejects a configured username the profile form would reject', function (string $username) {
-    config(['tcgvault.demo.username' => $username]);
+    config(['amigotcg.demo.username' => $username]);
     fakeProvider()->shouldNotReceive('findCard');
 
     $this->artisan('demo:seed-gallery')->assertFailed();
@@ -123,7 +123,7 @@ test('changing the configured username renames the existing demo account', funct
     fakeProvider()->shouldNotReceive('findCard');
     $this->artisan('demo:seed-gallery')->assertSuccessful();
 
-    config(['tcgvault.demo.username' => 'showcase']);
+    config(['amigotcg.demo.username' => 'showcase']);
     $this->artisan('demo:seed-gallery')->assertSuccessful();
 
     expect(User::where('email', 'demo@tcg-vault.invalid')->value('username'))->toBe('showcase')

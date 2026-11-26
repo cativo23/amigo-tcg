@@ -1,0 +1,2 @@
+{{-- The wordmark: the first word of the name at full weight, the rest lighter, then the signal dot. Text only, so it needs no asset. --}}
+<span {{ $attributes->class('wordmark') }}><span class="wm-strong">{{ config('brand.wordmark.strong') }}</span>@if (config('brand.wordmark.light') !== '') <span class="wm-light">{{ config('brand.wordmark.light') }}</span>@endif<span class="wm-dot" aria-hidden="true"></span></span>

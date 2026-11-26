@@ -44,7 +44,7 @@ final class FeedbackSubmitted extends Mailable implements ShouldQueue
     {
         return new Envelope(
             replyTo: [new Address($this->userEmail)],
-            subject: '[tcg-vault] '.self::TYPES[$this->type].' from '.($this->username ?? $this->userEmail),
+            subject: '['.config('brand.name').'] '.self::TYPES[$this->type].' from '.($this->username ?? $this->userEmail),
         );
     }
 

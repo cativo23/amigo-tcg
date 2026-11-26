@@ -1,6 +1,6 @@
 @php
     $username = request()->route('username');
-    $siteName = 'tcg-vault'; // the brand, not APP_NAME — the spec names the product
+    $siteName = config('brand.name'); // the brand, not APP_NAME: the cookie and cache prefixes derive from that
     $pageTitle = isset($title) && $title !== '' ? "{$title} · {$siteName}" : $siteName;
     $pageDescription = $description ?? 'A Pokémon TCG collection, catalogued card by card with live market value.';
     $isActive = fn (string ...$routes) => request()->routeIs(...$routes) ? 'page' : null;
@@ -26,7 +26,7 @@
              means the prefers-color-scheme block in app.css decides. --}}
         <script>
             (function () {
-                var t = localStorage.getItem('tcg-vault-theme');
+                var t = localStorage.getItem('amigo-tcg-theme');
                 if (t) document.documentElement.setAttribute('data-theme', t);
             })();
         </script>
@@ -66,7 +66,7 @@
                         <polyline points="4,22 16,27 28,15 40,19 52,7" fill="none" stroke="#f2efe6" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
                         <circle cx="52" cy="7" r="4.5" fill="#37d17f"/>
                     </svg>
-                    tcg-vault
+                    {{ config('brand.name') }}
                 </a>
 
                 @if ($username)
@@ -168,7 +168,7 @@
             <footer class="nw-footer">
                 <div class="nw-wrap flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <div class="fbrand">tcg-vault</div>
+                        <div class="fbrand">{{ config('brand.name') }}</div>
                         Card data, artwork and prices via <a href="https://tcgdex.dev" rel="noopener">tcgdex.dev</a>, refreshed daily.
                         Prices are market references, not appraisals.
                     </div>

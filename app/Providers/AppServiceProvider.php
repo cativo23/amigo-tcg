@@ -69,7 +69,7 @@ class AppServiceProvider extends ServiceProvider
             ];
 
             return (new MailMessage)
-                ->subject('Reset your tcg-vault password')
+                ->subject('Reset your '.config('brand.name').' password')
                 ->view(['mail.reset-password', 'mail.reset-password-text'], $data);
         });
 

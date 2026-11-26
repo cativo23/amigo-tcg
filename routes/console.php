@@ -20,7 +20,7 @@ Artisan::command('inspire', function () {
 Schedule::command('catalog:refresh-prices')
     ->daily()
     ->onFailure(fn () => app(DiscordAlerter::class)->send(
-        '⚠️ tcg-vault: catalog:refresh-prices itself errored — the daily pricing sync did not even dispatch.'
+        '⚠️ '.config('brand.name').': catalog:refresh-prices itself errored — the daily pricing sync did not even dispatch.'
     ));
 
 // Runs 4 hours after the dispatch above, well past how long a normal
@@ -35,7 +35,7 @@ Schedule::command('prices:refresh-week-baselines')
     ->dailyAt('04:15')
     ->withoutOverlapping(30)
     ->onFailure(fn () => app(DiscordAlerter::class)->send(
-        '⚠️ tcg-vault: prices:refresh-week-baselines errored — 7-day moves are not being healed.'
+        '⚠️ '.config('brand.name').': prices:refresh-week-baselines errored — 7-day moves are not being healed.'
     ));
 
 // tcgcsv rebuilds around 20:00 UTC; its TCGplayer prices are compared with
@@ -59,7 +59,7 @@ Schedule::command('gallery:warm-value-series')
     ->hourly()
     ->withoutOverlapping(50)
     ->onFailure(fn () => app(DiscordAlerter::class)->send(
-        '⚠️ tcg-vault: gallery:warm-value-series itself errored — the Activity charts are not being warmed.'
+        '⚠️ '.config('brand.name').': gallery:warm-value-series itself errored — the Activity charts are not being warmed.'
     ));
 
 // The `backup` container writes its nightly dump at 03:00 UTC (see

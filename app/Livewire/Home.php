@@ -50,8 +50,8 @@ final class Home extends Component
         // Matched on the demo email too: the username alone is claimable by
         // any member, and this link must never advertise someone's own
         // collection as the example.
-        $demo = User::where('username', config('tcgvault.demo.username'))
-            ->where('email', config('tcgvault.demo.email'))
+        $demo = User::where('username', config('amigotcg.demo.username'))
+            ->where('email', config('amigotcg.demo.email'))
             ->first();
         if ($demo !== null && PublicCollection::for($demo)->itemsQuery()->exists()) {
             $this->exampleUsername = $demo->username;

@@ -17,7 +17,7 @@ test('the public layout renders the anti-FOUC theme script before any other head
     $html = $response->getContent();
 
     $headStart = strpos($html, '<head>');
-    $scriptStart = strpos($html, 'tcg-vault-theme');
+    $scriptStart = strpos($html, 'amigo-tcg-theme');
     expect($scriptStart)->not->toBeFalse();
     expect($scriptStart)->toBeGreaterThan($headStart);
     // Must run before Vite's asset tags so there's no flash of the wrong theme.
@@ -37,7 +37,7 @@ test('the guest layout renders the anti-FOUC theme script', function () {
     $response = $this->get('/login');
 
     $response->assertOk();
-    $response->assertSee('tcg-vault-theme', false);
+    $response->assertSee('amigo-tcg-theme', false);
 });
 
 test('the authenticated app layout exposes a theme toggle button', function () {

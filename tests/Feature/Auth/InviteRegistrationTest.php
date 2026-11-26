@@ -64,7 +64,7 @@ test('a tampered signature is rejected', function () {
 
 test('completing an invite creates the user with the user role, marks the invite used, and works even with public registration closed', function () {
     Role::create(['name' => 'user']);
-    config(['tcgvault.allow_registration' => false]);
+    config(['amigotcg.allow_registration' => false]);
 
     $invite = Invite::factory()->create(['email' => 'invitee@example.com']);
 

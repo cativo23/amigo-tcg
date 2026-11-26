@@ -278,7 +278,7 @@ test('the sets page sits on the revamp shell: its own stylesheet only, Sets curr
         ->and($html)->not->toContain('wire:navigate')
         ->and($html)->not->toContain('noindex')
         ->and($html)->not->toContain('class="nw-')
-        ->and($html)->toContain('<title>Sets · Demo&#039;s collection · tcg-vault</title>')
+        ->and($html)->toContain('<title>Sets · Demo&#039;s collection · AMIGO TCG</title>')
         ->and($html)->toContain('<meta name="description" content="The 2 Pokémon TCG sets in Demo&#039;s collection, with completion and owned value per set.">');
 });
 

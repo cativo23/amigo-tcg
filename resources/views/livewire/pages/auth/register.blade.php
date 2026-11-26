@@ -140,7 +140,7 @@ new #[Layout('layouts.guest')] class extends Component
              — invites are handed out privately by the admin, not requested
              through this page. --}}
         <div class="text-center">
-            <p style="color: var(--ink)">{{ __('tcg-vault is by invitation only right now.') }}</p>
+            <p style="color: var(--ink)">{{ __(':app is by invitation only right now.', ['app' => config('brand.name')]) }}</p>
             <p class="mt-2 text-sm" style="color: var(--muted)">{{ __("If you already have an invite link, use it directly — this page isn't the way in.") }}</p>
 
             <a class="nw-link underline text-sm mt-6 inline-block" href="{{ route('login') }}" wire:navigate>

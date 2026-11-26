@@ -33,7 +33,7 @@ test('seeded admin can log in and reach the dashboard', function () {
 });
 
 test('database seeder creates exactly one admin user matching config', function () {
-    config(['tcgvault.admin_email' => 'seed-test@tcg-vault.test', 'tcgvault.admin_password' => 'seed-password']);
+    config(['amigotcg.admin_email' => 'seed-test@tcg-vault.test', 'amigotcg.admin_password' => 'seed-password']);
 
     $this->seed();
 

@@ -19,7 +19,7 @@ export function figureSource(capturedOn, todayIso) {
 
 /**
  * The size act's card: 63 × 88 mm in CSS pixels, times the calibration a card page stored on this device
- * (`localStorage['tcg-vault-cal']`, read only). A missing or out-of-range value means the size is approximate.
+ * (`localStorage['amigo-tcg-cal']`, read only). A missing or out-of-range value means the size is approximate.
  */
 export function matCard(raw) {
     const cal = parseCalibration(raw);

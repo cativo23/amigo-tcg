@@ -12,7 +12,7 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
-    config(['tcgvault.feedback_email' => 'owner@example.test']);
+    config(['amigotcg.feedback_email' => 'owner@example.test']);
     Mail::fake();
 });
 
@@ -126,7 +126,7 @@ test('the email shows the message as text, never as HTML', function () {
 });
 
 test('with no feedback address configured it says so instead of pretending to send', function (?string $address) {
-    config(['tcgvault.feedback_email' => $address]);
+    config(['amigotcg.feedback_email' => $address]);
     $this->actingAs(User::factory()->create());
 
     Livewire::test(FeedbackForm::class)

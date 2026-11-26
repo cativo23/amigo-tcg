@@ -22,7 +22,7 @@ final class CollectionServiceProvider extends ServiceProvider
 
         $this->app->bind(
             PhotoMetadataStripper::class,
-            fn () => new ExiftoolPhotoMetadataStripper((string) config('tcgvault.exiftool_path')),
+            fn () => new ExiftoolPhotoMetadataStripper((string) config('amigotcg.exiftool_path')),
         );
     }
 

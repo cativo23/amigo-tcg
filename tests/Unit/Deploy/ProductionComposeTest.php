@@ -16,7 +16,7 @@ function appImageServices(): array
     $services = [];
 
     foreach ($compose['services'] as $name => $service) {
-        if (str_contains($service['image'] ?? '', '/tcg-vault:')) {
+        if (str_contains($service['image'] ?? '', '/amigo-tcg:')) {
             $services[$name] = [$name];
         }
     }
@@ -132,8 +132,8 @@ test('horizon keeps its own internet egress', function () {
     // user-facing error.
     $compose = Yaml::parseFile(dirname(__DIR__, 3).'/docker/prod/compose.prod.yml');
 
-    expect($compose['services']['horizon']['networks'])->toContain('tcgvault-egress')
-        ->and($compose['networks']['tcgvault-egress']['internal'] ?? false)->toBeFalse();
+    expect($compose['services']['horizon']['networks'])->toContain('amigotcg-egress')
+        ->and($compose['networks']['amigotcg-egress']['internal'] ?? false)->toBeFalse();
 });
 
 test('postgres preloads pg_stat_statements, times I/O and logs temp files', function () {

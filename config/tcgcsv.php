@@ -7,7 +7,7 @@ return [
 
     // tcgcsv asks scrapers to identify themselves with a custom
     // User-Agent (https://tcgcsv.com, usage guidelines).
-    'user_agent' => env('TCGCSV_USER_AGENT', 'tcg-vault/1 (+https://tcgvault.cativo.dev)'),
+    'user_agent' => env('TCGCSV_USER_AGENT', 'amigo-tcg/1 (+https://amigotcg.cativo.dev)'),
 
     // 'fill' writes tcgcsv's TCGplayer price for linked prints tcgdex
     // doesn't price, and keeps each checked price so the tcgdex sync leaves

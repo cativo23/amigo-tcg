@@ -60,7 +60,7 @@ test('the export downloads as a dated CSV attachment', function () {
 
     $response->assertOk();
     expect($response->headers->get('Content-Type'))->toStartWith('text/csv')
-        ->and($response->headers->get('Content-Disposition'))->toContain('tcg-vault-ash-2026-09-25.csv');
+        ->and($response->headers->get('Content-Disposition'))->toContain('amigo-tcg-ash-2026-09-25.csv');
 });
 
 test('the export starts with a UTF-8 BOM so spreadsheet apps read accented names correctly', function () {

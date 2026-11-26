@@ -56,7 +56,7 @@ final class CheckPricingFreshness extends Command
         $newest = Card::query()->max('synced_at');
 
         if ($newest === null) {
-            $alerter->send('⚠️ tcg-vault: no card has been synced yet — the daily pricing sync may have never run.');
+            $alerter->send('⚠️ '.config('brand.name').': no card has been synced yet — the daily pricing sync may have never run.');
             $this->warn('No card has been synced.');
 
             return self::SUCCESS;
@@ -72,7 +72,7 @@ final class CheckPricingFreshness extends Command
         $recent = Card::query()->where('synced_at', '>=', now()->subHours(self::STALE_AFTER_HOURS))->count();
 
         if ($hoursSinceNewest >= self::STALE_AFTER_HOURS || $recent < $total * self::MIN_SYNCED_SHARE) {
-            $alerter->send("⚠️ tcg-vault: {$recent} of {$total} cards were synced in the last ".self::STALE_AFTER_HOURS."h (newest {$hoursSinceNewest}h ago) — the daily pricing sync looks stuck.");
+            $alerter->send('⚠️ '.config('brand.name').": {$recent} of {$total} cards were synced in the last ".self::STALE_AFTER_HOURS."h (newest {$hoursSinceNewest}h ago) — the daily pricing sync looks stuck.");
             $this->warn("{$recent} of {$total} cards synced in the last ".self::STALE_AFTER_HOURS.'h.');
 
             return self::SUCCESS;
@@ -103,7 +103,7 @@ final class CheckPricingFreshness extends Command
             ?? Cache::get(SyncTcgcsvPricesJob::BUILD_CACHE_KEY)
             ?? CardPriceSnapshot::query()->where('origin', 'tcgcsv')->max('created_at');
         if (! is_string($seen) || $seen === '') {
-            $alerter->send('⚠️ tcg-vault: no complete tcgcsv sync is on record — the tcgcsv sync looks stuck.');
+            $alerter->send('⚠️ '.config('brand.name').': no complete tcgcsv sync is on record — the tcgcsv sync looks stuck.');
             $this->warn('No complete tcgcsv sync on record.');
 
             return;
@@ -112,7 +112,7 @@ final class CheckPricingFreshness extends Command
 
         $hours = (int) floor(now()->diffInHours($lastRun, absolute: true));
         if ($hours >= self::TCGCSV_STALE_AFTER_HOURS) {
-            $alerter->send("⚠️ tcg-vault: the last complete tcgcsv sync was {$hours}h ago — the tcgcsv sync looks stuck.");
+            $alerter->send('⚠️ '.config('brand.name').": the last complete tcgcsv sync was {$hours}h ago — the tcgcsv sync looks stuck.");
             $this->warn("Last complete tcgcsv sync was {$hours}h ago.");
         }
     }
