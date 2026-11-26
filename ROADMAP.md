@@ -57,6 +57,36 @@ fails its deploy on purpose until the migration is run by hand
 
 ---
 
+## Phase J — Public pages redesign and AMIGO TCG
+
+`L · med` · specs: `08-design-spec.md` and `09-phase-3-implementation-plan.md`
+in the `pokemon-platform` workspace (outside this repo). It runs ahead of the
+phases below (the redesign comes first, decision D8); it is lettered J because
+the letters were taken. The rename to AMIGO TCG shipped as v1.12.0 and the
+`design.md` amendment and the tokens (drop colour, glyphs, figure and masthead
+sizes) are merged and wait under `[Unreleased]`: do not release them alone,
+because until the cover lands the pages carry a small name and no headline
+value.
+
+1. **Cover, Top cards and movers.** `L` — one 600-card cap for every public
+   page (`PublicCollection::MAX_CARDS`); the movers ranking with price and
+   move floors and no extra queries (timing harness); the cover data with a
+   coverage guard for the value line; the cover, the Top cards shelf and the
+   Biggest drops and rises blocks, with phone layouts at 390 and 360 px. ✋
+   The read-only diagnostic for the 31 Oct step in the value line, and timing
+   `/{u}` and `/{u}/activity` on production before and after. 🚀 **Minor**
+   (release R1: Slice 1 and this part together; no migration, not
+   host-changing).
+2. **Activity, card page, Sets, set page and navigation.** `L` — Activity
+   leads with value and groups bulk additions per day; the card page's market
+   value block with moves and collection share; Sets ranked by value with a
+   compact table for the tail; the set page header; wordmark-led navigation
+   (Decks only when its first page exists); visual QA of all six pages at
+   1440, 1024, 390 and 360 px in both themes. 🚀 **Minor** (release R2; no
+   migration, not host-changing).
+
+---
+
 ## Phase B — Host tuning
 
 `M · med` · spec: `phase-11-host-redis-postgres-backups.md`. One part per
