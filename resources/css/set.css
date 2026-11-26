@@ -24,10 +24,10 @@
 /* ---------- head: the set's name and logo, one summary line, the printed strip ---------- */
 .set-head { padding: clamp(16px, 3vw, 40px) var(--gutter) clamp(20px, 3vw, 36px); }
 .set-name-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm) clamp(16px, 3vw, 40px); }
-/* the same page-scoped, off-scale size as the collector's name on the collection page (--col-who, defined on .col-page) */
+/* the same masthead size as the collector's name on the collection page */
 .set-name {
   margin: 0 0 -.04em; min-width: 0; overflow-wrap: anywhere;
-  font: 820 var(--col-who)/.8 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em;
+  font: 820 var(--text-masthead)/.95 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em;
 }
 .set-logo { height: clamp(48px, 3rem + 3vw, 104px); width: auto; max-width: min(46vw, 280px); object-fit: contain; }
 .js:not(.still) .set-name { animation: set-lift var(--dur-slow) var(--ease-settle) both; }

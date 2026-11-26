@@ -1,17 +1,15 @@
 /* public activity (/{username}/activity). Loaded only by livewire/gallery/activity.blade.php, after revamp.css.
    Every selector is prefixed .act- so nothing collides with revamp.css (.sheet, .chart, .copy, .btn ...) or collection.css.
-   The bar and footer come from revamp.css. Font sizes come from the --text-* scale only, apart from the heading's --act-who. */
+   The bar and footer come from revamp.css. Font sizes come from the --text-* scale only. */
 
 .act-page {
-  /* the page heading matches the collector's name on the collection page (--col-who in collection.css), as the sets heading does (--sts-who in sets.css) */
-  --act-who: clamp(4.2rem, 1.6rem + 11vw, 11rem);
   --act-radius-card: 4.762% / 3.409%;
 }
 .act-mono { font-family: var(--font-mono); font-variation-settings: "wdth" 87.5; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 
 /* ---------- head ---------- */
 .act-head { padding: clamp(28px, 6vw, 72px) var(--gutter) clamp(28px, 4vw, 52px); }
-.act-who { margin: 0; font: 820 var(--act-who)/.8 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em; }
+.act-who { margin: 0; font: 820 var(--text-masthead)/.95 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em; }
 .act-summary { margin: var(--space-md) 0 0; font-size: var(--text-lg); color: var(--color-ink-2); }
 .act-summary .act-mono { font-size: var(--text-md); font-weight: 600; color: var(--color-ink); }
 .act-note { margin: var(--space-2xs) 0 0; max-width: 60ch; font-size: var(--text-sm); color: var(--color-muted); }

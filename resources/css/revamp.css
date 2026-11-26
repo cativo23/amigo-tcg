@@ -101,6 +101,11 @@
   --text-h2: min(clamp(2rem, 1.1rem + 3vw, 4.2rem), calc(0.6rem + 8.5svh));
   --text-display: min(clamp(2.9rem, 0.5rem + 7.2vw, 8rem), 15svh);
   --text-close: min(clamp(1.7rem, 1rem + 2.2vw, 3rem), calc(0.5rem + 6svh));
+  /* The page's one headline figure (collection total, set value, card price, Activity value), in the display face.
+     72px at the smallest so "$1,234,567.89" (4.5em at wdth 62) fits a 360px phone; capped by viewport height like --text-display. */
+  --text-figure: min(clamp(4.5rem, 2rem + 8vw, 7.5rem), 15svh);
+  /* A page's name as a label: the collector, the set, the Sets and Activity headings. About 44-48px at desktop. */
+  --text-masthead: clamp(2rem, 1.4rem + 1.6vw, 2.75rem);
 
   --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px;
   --space-xl: 40px; --space-2xl: 64px;
