@@ -23,6 +23,10 @@ All notable changes to this project are documented here. Format follows
   4.2 to 11 rem display size. The page-scoped `--col-who`, `--sts-who` and
   `--act-who` sizes are gone; a new `--text-figure` size (72 to 120 px) is ready
   for the headline value the collection cover brings next.
+- Every public page now reads the same 600 cards: the collection page, the Sets
+  list, and the Activity chart and totals. The Activity chart used to stop at
+  500, so a collection of 501 to 600 different cards showed a smaller total
+  there than on its collection page. Its cached values are rebuilt once.
 
 ### Security
 

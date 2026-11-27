@@ -203,8 +203,9 @@ and often another print's. Needs Phase C done.
    `ValueChart` goes; shared slider and copy-link modules; arrow keys step
    from the value the slider announced.
 3. **Chart and page limits.** `S–M` — a manual price's line held out to
-   today (amend `design.md`); one shared 600-card cap in a stable order,
-   with a visible "covers the first 600 of N" note; `srcset` images.
+   today (amend `design.md`); a visible "covers the first 600 of N" note
+   (the one 600-card cap and its stable order are in Phase J); `srcset`
+   images.
 4. **Slimmer CI.** `S` — skip `test` and `image` on same-repo `release/*`
    PRs (a job-level skip, not a trigger filter), retry the image build,
    cancel stale runs only on PRs, a guard test for the workflow contract.

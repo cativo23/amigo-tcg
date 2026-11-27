@@ -11,7 +11,6 @@ use App\Modules\Catalog\Models\Set;
 use App\Modules\Catalog\Support\ChartRange;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
-use App\Modules\Collection\Services\CollectionValueSeries;
 use App\Modules\Collection\Services\PublicCollection;
 use App\Support\DayLabel;
 use Illuminate\Support\Facades\Cache;
@@ -465,7 +464,7 @@ test('a feed copy whose card is past the headline\'s card cap is still priced', 
     $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
     $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
     $now = now();
-    $count = CollectionValueSeries::MAX_CARDS + 1;
+    $count = PublicCollection::MAX_CARDS + 1;
 
     DB::table('cards')->insert(collect(range(1, $count))->map(fn (int $i) => [
         'tcgdex_id' => "me05-{$i}", 'set_id' => $set->id, 'local_id' => (string) $i,
@@ -483,7 +482,7 @@ test('a feed copy whose card is past the headline\'s card cap is still priced', 
 
     // The same query the page runs, so the same card is left out; its copy
     // becomes the newest, so the feed lists it.
-    $headlineCards = PublicCollection::for($user)->cardsInIdOrder()->take(CollectionValueSeries::MAX_CARDS)->get()->modelKeys();
+    $headlineCards = PublicCollection::for($user)->cardsInIdOrder()->take(PublicCollection::MAX_CARDS)->get()->modelKeys();
     $leftOut = Card::whereKeyNot($headlineCards)->sole();
     CollectionItem::where('card_id', $leftOut->id)->update(['created_at' => $now->copy()->addDay()]);
 

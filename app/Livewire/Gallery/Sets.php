@@ -10,6 +10,7 @@ use App\Modules\Catalog\Models\Set;
 use App\Modules\Catalog\Services\DecidingPriceRows;
 use App\Modules\Catalog\Support\PrintedStrip;
 use App\Modules\Collection\Models\CollectionItem;
+use App\Modules\Collection\Services\PublicCollection;
 use App\Modules\Collection\Services\Valuation;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
@@ -20,12 +21,6 @@ use Livewire\Component;
 final class Sets extends Component
 {
     use ResolvesPublicCollection;
-
-    // Same bound as Gallery\Index — a public, unauthenticated route must
-    // never fan out unbounded work regardless of how large one
-    // collector's public collection grows. It bounds the cards priced for
-    // the owned value only; the strips read ownership in the sets query.
-    private const MAX_CARDS = 600;
 
     public function mount(string $username): void
     {
@@ -56,11 +51,11 @@ final class Sets extends Component
             ->orderBy('name')
             ->get();
 
-        // One query for the owned cards (bounded by MAX_CARDS) and one for the
+        // One query for the owned cards (bounded by the cap) and one for the
         // price rows that decide their current prices, grouped per set in PHP,
         // so the per-set value never becomes a query per set.
         $ownedBySet = app(DecidingPriceRows::class)
-            ->loadOnto($public->cardsInIdOrder()->take(self::MAX_CARDS)->get())
+            ->loadOnto($public->cardsInIdOrder()->take(PublicCollection::MAX_CARDS)->get())
             ->groupBy('set_id');
 
         $setValues = $sets->mapWithKeys(fn ($set) => [

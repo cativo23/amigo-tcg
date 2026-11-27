@@ -388,7 +388,7 @@ test('a collection past the stat band\'s card cap still fills the grid with card
     $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
     $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black']);
 
-    // 601 cards: one more than Index's MAX_CARDS, all named so that the
+    // 601 cards: one more than the page's card cap, all named so that the
     // name sort's last page is exactly the cards most likely to fall
     // outside the stat band's unordered first 600.
     $now = now();

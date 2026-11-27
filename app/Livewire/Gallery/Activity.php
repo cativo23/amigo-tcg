@@ -101,7 +101,7 @@ final class Activity extends Component
 
         // An added copy's card is almost always one the headline already
         // loaded, price rows included: reuse it, so its rows are neither
-        // loaded nor resolved twice. Only a card past MAX_CARDS is loaded
+        // loaded nor resolved twice. Only a card past the cap is loaded
         // here, in one batch through the same deciding-rows query.
         $loaded = $cards->keyBy('id');
         $missing = $items->pluck('card_id')->unique()->diff($loaded->keys())->values();
