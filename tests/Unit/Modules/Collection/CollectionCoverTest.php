@@ -212,3 +212,22 @@ test('every point of the stored series carries how many cards were priced that d
     expect($series->first()['priced'])->toBe(8)
         ->and($series->last()['priced'])->toBe(19);
 });
+
+it('carries every currency total of the page, the primary one first', function () {
+    $user = coverCollection([
+        ['from' => 3, 'price' => 500],
+        ['from' => 3, 'price' => 700, 'currency' => 'EUR'],
+    ]);
+
+    $cover = coverFor($user);
+
+    expect($cover->totals)->toBe(['USD' => 500, 'EUR' => 700])
+        ->and($cover->currency)->toBe('USD');
+});
+
+it('carries the totals even when nothing is priced', function () {
+    $cover = coverFor(coverCollection([['from' => null]]));
+
+    expect($cover->totals)->toBe([])
+        ->and($cover->currency)->toBeNull();
+});
