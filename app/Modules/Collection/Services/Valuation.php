@@ -30,15 +30,29 @@ final class Valuation
      */
     public function totalsByCurrency(iterable $cards): array
     {
+        return $this->totalsAndPriced($cards)['totals'];
+    }
+
+    /**
+     * totalsByCurrency() with how many cards each total covers: a card counts
+     * once in a currency however many of its copies are priced in it.
+     *
+     * @param  iterable<int, Card>  $cards  each with `collectionItems` (owned copies) and `priceSnapshots` loaded
+     * @return array{totals: array<string, int>, priced: array<string, int>} both keyed by currency, ordered USD first
+     */
+    public function totalsAndPriced(iterable $cards): array
+    {
         $totals = [];
+        $priced = [];
 
         foreach ($cards as $card) {
             foreach ($this->itemTotals($card) as $currency => $minor) {
                 $totals[$currency] = ($totals[$currency] ?? 0) + $minor;
+                $priced[$currency] = ($priced[$currency] ?? 0) + 1;
             }
         }
 
-        return self::order($totals);
+        return ['totals' => self::order($totals), 'priced' => self::order($priced)];
     }
 
     /**
@@ -74,10 +88,28 @@ final class Valuation
      */
     public function totalsByCurrencyOver(iterable $cards, iterable $days): array
     {
+        return $this->totalsAndPricedOver($cards, $days)['totals'];
+    }
+
+    /**
+     * totalsByCurrencyOver() with, for each day and currency, how many cards
+     * were priced in it: a card counts once however many copies or variants
+     * of it are priced that day. The count says how much of the collection a
+     * day's total covers.
+     *
+     * @param  iterable<int, Card>  $cards
+     * @param  iterable<int, CarbonInterface>  $days
+     * @return array{totals: array<string, array<string, int>>, priced: array<string, array<string, int>>} both keyed by 'Y-m-d', then currency
+     */
+    public function totalsAndPricedOver(iterable $cards, iterable $days): array
+    {
         $dayKeys = Collection::make($days)->map(fn (CarbonInterface $day) => $day->toDateString())->values();
         $totals = array_fill_keys($dayKeys->all(), []);
+        $priced = array_fill_keys($dayKeys->all(), []);
 
         foreach ($cards as $card) {
+            $counted = [];
+
             foreach ($card->collectionItems as $item) {
                 $quantity = max((int) $item->quantity, 1);
 
@@ -87,11 +119,16 @@ final class Valuation
                     }
 
                     $totals[$day][$snapshot->currency] = ($totals[$day][$snapshot->currency] ?? 0) + $snapshot->market_minor * $quantity;
+
+                    if (! isset($counted[$day][$snapshot->currency])) {
+                        $counted[$day][$snapshot->currency] = true;
+                        $priced[$day][$snapshot->currency] = ($priced[$day][$snapshot->currency] ?? 0) + 1;
+                    }
                 }
             }
         }
 
-        return array_map(self::order(...), $totals);
+        return ['totals' => array_map(self::order(...), $totals), 'priced' => $priced];
     }
 
     /**
