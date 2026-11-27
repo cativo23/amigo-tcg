@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Services\CardPriceResolver;
 use App\Modules\Collection\Services\CollectionMovers;
+use App\Modules\Collection\Services\Mover;
 use App\Modules\Collection\Services\Valuation;
 use Tests\Support\MoverFixtures;
 use Tests\Support\PriceRowReads;
@@ -205,3 +207,15 @@ test('it reads no price rows beyond the ones already loaded', function () {
         ->and($reads->series)->toBe([])
         ->and($reads->stray)->toBe([]);
 });
+
+test('a mover prints its percent whole from 10 percent up and with one decimal below, with a true minus', function (float $percent, string $text) {
+    $mover = new Mover(new Card, 100, 100, $percent < 0 ? -1 : 1, $percent, 'USD');
+
+    expect($mover->percentText())->toBe($text);
+})->with([
+    [-11.25, "\u{2212}11%"],
+    [-9.96, "\u{2212}10%"],
+    [-5.5, "\u{2212}5.5%"],
+    [25.0, '+25%'],
+    [9.94, '+9.9%'],
+]);
