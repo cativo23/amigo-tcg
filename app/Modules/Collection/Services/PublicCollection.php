@@ -29,6 +29,9 @@ use Illuminate\Support\Collection as SupportCollection;
  */
 final class PublicCollection
 {
+    /** Bounded: a public route must never fan out unbounded per-card work. */
+    public const MAX_CARDS = 600;
+
     /** @param SupportCollection<int, int> $collectionIds */
     private function __construct(
         public readonly User $user,

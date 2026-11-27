@@ -62,10 +62,7 @@ use Illuminate\Support\Facades\Log;
 final class CollectionValueSeries
 {
     /** Bump when the series' calculation changes, so a deploy doesn't serve a series the old code computed. */
-    private const CACHE_VERSION = 4;
-
-    /** Bounded: a public route must never fan out unbounded per-card work. */
-    public const MAX_CARDS = 500;
+    private const CACHE_VERSION = 5;
 
     /** How many cards warm() loads price rows for at a time. */
     public const WARM_CHUNK = 40;
@@ -77,7 +74,7 @@ final class CollectionValueSeries
 
     /**
      * What an anonymous visitor to the Activity page gets for a user: the
-     * public collection's cards (capped at MAX_CARDS) with the price rows that
+     * public collection's cards (capped at PublicCollection::MAX_CARDS) with the price rows that
      * decide their current prices (see DecidingPriceRows), their totals, the
      * primary currency (see primaryCurrency()), and that currency's value
      * series and earliest priced day over the range. The page calls this;
@@ -94,7 +91,7 @@ final class CollectionValueSeries
      */
     public function forPublicCollection(PublicCollection $public, ChartRange $range): array
     {
-        $cards = app(DecidingPriceRows::class)->loadOnto($public->cardsInIdOrder()->take(self::MAX_CARDS)->get());
+        $cards = app(DecidingPriceRows::class)->loadOnto($public->cardsInIdOrder()->take(PublicCollection::MAX_CARDS)->get());
         $totals = $this->valuation->totalsByCurrency($cards);
         $currency = $this->primaryCurrency($totals);
 
@@ -163,7 +160,7 @@ final class CollectionValueSeries
      */
     public function warm(PublicCollection $public, array $ranges): array
     {
-        $cards = $public->cardsInIdOrder()->take(self::MAX_CARDS)->get();
+        $cards = $public->cardsInIdOrder()->take(PublicCollection::MAX_CARDS)->get();
         $loader = app(DecidingPriceRows::class);
         $totals = [];
 

@@ -10,6 +10,7 @@ use App\Modules\Catalog\Services\CardPriceResolver;
 use App\Modules\Catalog\Services\DecidingPriceRows;
 use App\Modules\Catalog\Support\MarketplaceSync;
 use App\Modules\Catalog\Support\Rarity;
+use App\Modules\Collection\Services\PublicCollection;
 use App\Modules\Collection\Services\Valuation;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
@@ -24,16 +25,6 @@ use Livewire\Component;
 final class Index extends Component
 {
     use ResolvesPublicCollection;
-
-    /**
-     * Bounded so a public, unauthenticated route can never fan out
-     * unbounded work — used for the collection-wide stat band (total
-     * value, rarities list, most valuable card), which reflects the
-     * WHOLE collection regardless of filters/pagination, and as the
-     * candidate ceiling for "value" sort (see render()'s $sort==='value'
-     * branch — a real personal collection is nowhere close to this).
-     */
-    private const MAX_CARDS = 600;
 
     /** How many cards load at a time; the gallery uses infinite scroll
      * (load more on scroll), not page-number pagination.
@@ -112,16 +103,16 @@ final class Index extends Component
         // Collection-wide stats (value, rarities, most valuable
         // card) reflect the WHOLE collection, never the grid's current
         // filter/scroll position — same "stats vs grid" split Show.php
-        // already uses. Bounded by MAX_CARDS, same as before.
+        // already uses. Bounded by the cap, same as before.
         //
         // Keyed by id so the grid below can reuse these already-loaded
         // cards (and their price rows) instead of loading them again. The
         // rows are the ones that decide current prices (see
         // DecidingPriceRows), which every figure on this page is.
         $prices = app(DecidingPriceRows::class);
-        $allCards = $prices->loadOnto($public->cardsInIdOrder()->take(self::MAX_CARDS)->get())->keyBy('id');
-        // Distinct cards, unfiltered. $allCards stops at MAX_CARDS, so a collection that fills it is counted.
-        $collectionTotal = $allCards->count() < self::MAX_CARDS ? $allCards->count() : $public->cardsQuery()->count();
+        $allCards = $prices->loadOnto($public->cardsInIdOrder()->take(PublicCollection::MAX_CARDS)->get())->keyBy('id');
+        // Distinct cards, unfiltered. $allCards stops at the cap, so a collection that fills it is counted.
+        $collectionTotal = $allCards->count() < PublicCollection::MAX_CARDS ? $allCards->count() : $public->cardsQuery()->count();
         $headlines = $allCards->map(fn (Card $card) => $valuation->headlineSnapshot($card));
         // The biggest sets lead the divider tabs, the newest release among equals.
         $sets = $public->setsQuery()->orderByDesc('released_on')->get()->sortByDesc('owned_card_count')->values();
@@ -176,7 +167,7 @@ final class Index extends Component
                 ->orderBy('cards.local_id'),
             // CardPriceResolver's variant-aware chain can't be expressed
             // as a SQL ORDER BY — take a bounded candidate set (a real
-            // personal collection is nowhere near MAX_CARDS) and sort it
+            // personal collection is nowhere near the cap) and sort it
             // in memory below. In id order, so the cap keeps the same
             // cards and equal values keep the same order on every render.
             'value' => $gridQuery->orderBy('cards.id'),
@@ -186,10 +177,10 @@ final class Index extends Component
         // toBase()->get(), not pluck(): pluck() swaps the select list for
         // its one column, which would drop the 'newest' sort's added_at.
         $gridIds = $gridQuery
-            ->take($this->sort === 'value' ? self::MAX_CARDS : $this->take)
+            ->take($this->sort === 'value' ? PublicCollection::MAX_CARDS : $this->take)
             ->toBase()->get()->map(fn (object $row) => $row->id);
 
-        // Only a collection past MAX_CARDS can match cards the stat band
+        // Only a collection past the cap can match cards the stat band
         // did not load.
         $missingIds = $gridIds->diff($allCards->keys());
         $pool = $missingIds->isEmpty()
