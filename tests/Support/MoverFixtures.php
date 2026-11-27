@@ -66,6 +66,27 @@ final class MoverFixtures
         return $card;
     }
 
+    /**
+     * A second owned copy of $card in another variant, added a minute after the first, with its own current and earlier price.
+     */
+    public function variant(Card $card, string $variant, int $current, int $previous): void
+    {
+        $now = now();
+
+        DB::table('collection_items')->insert([
+            'collection_id' => $this->collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => $card->tcgdex_id,
+            'variant' => $variant, 'condition' => 'NM', 'quantity' => 1, 'created_at' => $now->copy()->addMinute(), 'updated_at' => $now,
+        ]);
+
+        foreach ([0 => $current, 7 => $previous] as $daysAgo => $minor) {
+            DB::table('card_price_snapshots')->insert([
+                'card_id' => $card->id, 'source' => 'tcgplayer', 'origin' => 'tcgdex', 'variant' => $variant,
+                'captured_on' => today()->subDays($daysAgo)->toDateString(), 'currency' => 'USD', 'market_minor' => $minor,
+                'created_at' => $now, 'updated_at' => $now,
+            ]);
+        }
+    }
+
     /** @return EloquentCollection<int, Card> every owned card with its copies and deciding price rows */
     public function load(): EloquentCollection
     {

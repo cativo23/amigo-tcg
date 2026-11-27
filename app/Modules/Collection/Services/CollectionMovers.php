@@ -67,6 +67,7 @@ final class CollectionMovers
                 continue;
             }
 
+            // The earlier price comes from the same print and the same currency as the current one (the week baseline is keyed by both).
             $delta = $this->resolver->weekDeltaFor($card, $snapshot);
             $previous = (int) ($delta?->previous->market_minor ?? 0);
 

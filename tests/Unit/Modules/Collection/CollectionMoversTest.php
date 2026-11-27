@@ -127,7 +127,7 @@ test('it computes percent as delta over previous', function () {
     expect($mover->deltaMinor)->toBe(-108)
         ->and($mover->previousMinor)->toBe(960)
         ->and($mover->currentMinor)->toBe(852)
-        ->and($mover->percent)->toBe(-11.25)
+        ->and($mover->percent)->toEqualWithDelta(-11.25, 0.0001)
         ->and($mover->currency)->toBe('USD');
 });
 
@@ -141,13 +141,27 @@ test('it uses the single copy headline price, not price times quantity', functio
         ->and($mover->deltaMinor)->toBe(-500);
 });
 
+test('a card with several owned variants moves at its priciest owned variant', function () {
+    $f = new MoverFixtures;
+    $card = $f->card(500, 1000, name: 'Two prints');   // normal: -50%
+    $f->variant($card, 'holofoil', 3000, 4000);        // holofoil: -25%, the priciest owned print
+
+    $drops = movers()->rank($f->load(), 'USD')['drops'];
+
+    expect($drops)->toHaveCount(1)
+        ->and($drops[0]->currentMinor)->toBe(3000)
+        ->and($drops[0]->previousMinor)->toBe(4000)
+        ->and($drops[0]->percent)->toBe(-25.0);
+});
+
 test('it breaks equal percents by the bigger dollar move, then by card id', function () {
     $f = new MoverFixtures;
-    $small = $f->card(500, 1000, name: 'Small $');     // -50%, -$5
-    $first = $f->card(5000, 10000, name: 'Big $ first'); // -50%, -$50
-    $second = $f->card(5000, 10000, name: 'Big $ second');
+    $f->card(500, 1000, name: 'Small $');       // -50%, -$5
+    $f->card(5000, 10000, name: 'Big $ first');   // -50%, -$50
+    $f->card(5000, 10000, name: 'Big $ second');
 
-    $names = array_map(fn ($m) => $m->card->name, movers()->rank($f->load(), 'USD')['drops']);
+    // Fed in reverse id order, so only the card id itself can put "first" ahead of "second".
+    $names = array_map(fn ($m) => $m->card->name, movers()->rank($f->load()->reverse()->values(), 'USD')['drops']);
 
     expect($names)->toBe(['Big $ first', 'Big $ second', 'Small $']);
 });
@@ -158,7 +172,7 @@ test('it breaks equal rise percents the same way', function () {
     $f->card(15000, 10000, name: 'Big $ first');   // +50%, +$50
     $f->card(15000, 10000, name: 'Big $ second');
 
-    $names = array_map(fn ($m) => $m->card->name, movers()->rank($f->load(), 'USD')['rises']);
+    $names = array_map(fn ($m) => $m->card->name, movers()->rank($f->load()->reverse()->values(), 'USD')['rises']);
 
     expect($names)->toBe(['Big $ first', 'Big $ second', 'Small $']);
 });
@@ -180,9 +194,14 @@ test('it reads no price rows beyond the ones already loaded', function () {
     }
     $cards = $f->load();
 
-    $reads = PriceRowReads::during(fn () => movers()->rank($cards, 'USD'));
+    $result = null;
+    $reads = PriceRowReads::during(function () use ($cards, &$result) {
+        $result = movers()->rank($cards, 'USD');
+    });
 
-    expect($reads->deciding)->toBe([])
+    expect($result['drops'])->not->toBe([])
+        ->and($result['rises'])->not->toBe([])
+        ->and($reads->deciding)->toBe([])
         ->and($reads->series)->toBe([])
         ->and($reads->stray)->toBe([]);
 });

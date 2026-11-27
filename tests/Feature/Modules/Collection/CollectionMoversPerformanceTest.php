@@ -21,9 +21,6 @@ use Illuminate\Support\Facades\DB;
  * It says how long rank() takes and whether it adds queries; the production
  * timing of the whole page is a separate, manual step.
  */
-/** A tripwire for the dev container, not the production budget: rank() measures about 115 ms there, of which weekDeltaFor is about 55 ms (a model hydrated per card). Production is timed by hand. */
-const MOVERS_TRIPWIRE_MS = 250.0;
-
 test('it adds no queries and stays under the tripwire for 600 cards with 90 price days', function () {
     $user = User::factory()->create(['username' => 'bench']);
     $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
@@ -68,6 +65,9 @@ test('it adds no queries and stays under the tripwire for 600 cards with 90 pric
     DB::flushQueryLog();
     $before = count(DB::getQueryLog());
 
+    // A tripwire for the dev container, not a production budget: it catches a change that makes rank() several times slower. Production is timed by hand.
+    $tripwireMs = 250.0;
+
     $started = hrtime(true);
     $result = $movers->rank($loaded, 'USD');
     $milliseconds = (hrtime(true) - $started) / 1e6;
@@ -79,5 +79,5 @@ test('it adds no queries and stays under the tripwire for 600 cards with 90 pric
         ->and($result['drops'])->not->toBe([])
         ->and($result['rises'])->not->toBe([])
         ->and($after)->toBe($before)
-        ->and($milliseconds)->toBeLessThan(MOVERS_TRIPWIRE_MS);
+        ->and($milliseconds)->toBeLessThan($tripwireMs);
 })->group('benchmark');
