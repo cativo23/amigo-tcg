@@ -13,6 +13,7 @@
     'index' => 0,        // position inside the batch that just loaded (entrance stagger)
     'eager' => false,
     'priority' => false, // fetchpriority=high: the first tile only
+    'keyPrefix' => 'tile', // the wire:key prefix: a card shown twice on one page (shelf and grid) needs two
     'inSet' => false,    // on its own set's page: numbered within the set (#116); the set is the page
 ])
 
@@ -60,7 +61,7 @@
     $loading = $eager ? ($priority ? 'fetchpriority="high"' : '') : 'loading="lazy"';
 @endphp
 
-<li wire:key="tile-{{ $card->id }}" class="col-slot col-enter" style="--i: {{ $index }}">
+<li wire:key="{{ $keyPrefix }}-{{ $card->id }}" class="col-slot col-enter" style="--i: {{ $index }}">
     <a href="{{ $href }}" class="col-card col-tier-{{ $tier }}" aria-label="{{ $label }}">
         <span class="col-frame">
             @if ($tier === 'chase')
