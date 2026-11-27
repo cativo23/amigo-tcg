@@ -62,11 +62,9 @@ fails its deploy on purpose until the migration is run by hand
 `L · med` · specs: `08-design-spec.md` and `09-phase-3-implementation-plan.md`
 in the `pokemon-platform` workspace (outside this repo). It runs ahead of the
 phases below (the redesign comes first, decision D8); it is lettered J because
-the letters were taken. The rename to AMIGO TCG shipped as v1.12.0 and the
-`design.md` amendment and the tokens (drop colour, glyphs, figure and masthead
-sizes) are merged and wait under `[Unreleased]`: do not release them alone,
-because until the cover lands the pages carry a small name and no headline
-value.
+the letters were taken. The rename to AMIGO TCG shipped as v1.12.0; the
+`design.md` amendment, the tokens (drop colour, glyphs, figure and masthead
+sizes) and the cover shipped together as v1.13.0 (R1).
 
 1. **Cover, Top cards and movers.** `L` — one 600-card cap for every public
    page (`PublicCollection::MAX_CARDS`); the movers ranking with price and
@@ -84,6 +82,19 @@ value.
    (Decks only when its first page exists); visual QA of all six pages at
    1440, 1024, 390 and 360 px in both themes. 🚀 **Minor** (release R2; no
    migration, not host-changing).
+3. **Public collection page speed** (#226). `M` — release R1 made the warm
+   `GET /{u}` about 30 % slower on production (1.669 s to 2.176 s, target at
+   most +10 %; `/{u}/activity` is within it). The page was already about
+   1.6 s before R1, mostly the card and deciding-price-row load. First the
+   cheap trims, each red-test-first: the movers reuse the page's headlines,
+   the cover's `asOf` comes from the resolver's index, the grid skips its
+   count and id queries in the default view, week deltas once per card. They
+   save about 80 to 190 ms, not enough alone. ✋ Then time
+   `DecidingPriceRows::loadOnto` hit vs miss on production data before
+   choosing between plain-array rows for the resolver and a cached finished
+   cover. The `PriceRowReads` guards and the legacy parity test stay green;
+   time `/{u}` and `/{u}/activity` on production before and after. 🚀
+   **Patch** (performance only).
 
 ---
 
