@@ -299,7 +299,8 @@
   .col-copy { justify-content: center; width: 44px; padding: 0; }
   .col-copy__label { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   /* One drop and one rise in a row that scrolls sideways, each chip a 48px target. */
-  .col-strip-row { width: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  /* its padding and negative margin keep the chips' focus rings inside the clipping box */
+  .col-strip-row { width: calc(100% + 8px); margin: -4px; padding: 4px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .col-strip-row > li { flex: none; scroll-snap-align: start; }
   /* Two tiles and a 24px peek of the third, so the row reads as scrollable. */
   .col-shelf-row { grid-auto-columns: calc((100% - 2 * var(--col-gap-x) - 24px) / 2); }

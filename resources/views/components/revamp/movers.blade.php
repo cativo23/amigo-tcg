@@ -20,7 +20,7 @@
                         @php
                             $card = $mover->card;
                             $thumb = CardImage::tile($card->official_image_url);
-                            $sub = trim(($card->set?->abbreviation ? $card->set->abbreviation.' ' : '').$card->local_id);
+                            $sub = trim(($card->set->abbreviation ? $card->set->abbreviation.' ' : '').$card->local_id);
                             $abbreviation = Rarity::abbreviate($card->rarity);
                         @endphp
                         <li class="col-mv-row">

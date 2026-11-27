@@ -14,7 +14,7 @@
     $range = ChartRange::OneMonth->label();
 @endphp
 
-<div class="col-cover">
+<div class="col-cover" role="group" aria-label="Collection value">
     <div class="col-cover-main">
         <p class="col-figure">{{ Money::format($cover->totalMinor, $currency) }}</p>
         @if ($cover->asOf)

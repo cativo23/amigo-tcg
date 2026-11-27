@@ -14,7 +14,7 @@
                 :week-delta="$entry['weekDelta']"
                 :items="$entry['items']"
                 :index="$loop->index"
-                :eager="true"
+                :eager="$loop->index < 3"
                 :priority="$loop->first"
                 :href="route('gallery.card', ['username' => $username, 'setTcgdexId' => $entry['card']->set->tcgdex_id, 'localId' => $entry['card']->local_id])"
             />

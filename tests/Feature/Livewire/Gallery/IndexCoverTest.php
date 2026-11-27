@@ -86,7 +86,7 @@ test('the value line is drawn from the series', function () {
 
     $html = $this->get('/carlos')->getContent();
 
-    expect($html)->toContain('class="col-line')->and($html)->toContain('class="col-area');
+    expect($html)->toMatch('/class="col-line( chart--down)?"/')->and($html)->toMatch('/class="col-area( chart--down)?"/');
 });
 
 test('this week shows the one biggest drop and the one biggest rise with a link to activity', function () {
@@ -116,7 +116,9 @@ test('the top shelf shows the six priciest cards in the page currency as ordinar
         ->and($shelf[0])->not->toContain('Golf')->not->toContain('Hotel')
         // the EUR card is the priciest number but not in the page's currency
         ->and($shelf[0])->not->toContain('Euro')
-        ->and($shelf[0])->not->toContain('col-card--');
+        // the same tile as the grid's: one `col-card col-tier-*` link per card, no variant class
+        ->and(substr_count($shelf[0], 'class="col-card col-tier-'))->toBe(6)
+        ->and($shelf[0])->not->toMatch('/col-card--|col-shelf-big/');
 });
 
 test('the shelf tiles never share a wire key with the grid tiles', function () {
@@ -168,13 +170,15 @@ test('with no card that moved enough, the strip and the movers blocks are not re
         ->and($html)->toContain('class="col-figure"');
 });
 
-test('a collection with one priced card shows a total but no movers or value line', function () {
+test('a collection with one priced card shows its total but no strip, shelf or movers, and never $0.00', function () {
     coverPage([['Solo', 5000, 5000]]);
 
     $html = $this->get('/carlos')->getContent();
 
     expect(RevampHtml::text('col-figure', $html))->toBe('$50.00')
-        ->and($html)->not->toContain('class="col-strip"')->not->toContain('class="col-shelf"');
+        ->and($html)->not->toContain('class="col-strip"')->not->toContain('class="col-shelf"')
+        ->and($html)->not->toContain('class="col-movers"')
+        ->and($html)->not->toContain('$0.00');
 });
 
 // The phone layout contract (390 and 360 wide) is checked in a browser; these pin the rules it rests on.

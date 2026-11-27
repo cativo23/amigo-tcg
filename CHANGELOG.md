@@ -21,6 +21,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- On a phone the collector's name takes two lines at most and Copy link shows
+  only its icon (44 px target).
 - The collection page's value and date moved out of the summary line into the
   cover; the summary now reads `9 cards · 1 set`.
 
