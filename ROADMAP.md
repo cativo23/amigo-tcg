@@ -66,15 +66,6 @@ the letters were taken. The rename to AMIGO TCG shipped as v1.12.0; the
 `design.md` amendment, the tokens (drop colour, glyphs, figure and masthead
 sizes) and the cover shipped together as v1.13.0 (R1).
 
-1. **Cover, Top cards and movers.** `L` — one 600-card cap for every public
-   page (`PublicCollection::MAX_CARDS`); the movers ranking with price and
-   move floors and no extra queries (timing harness); the cover data with a
-   coverage guard for the value line; the cover, the Top cards shelf and the
-   Biggest drops and rises blocks, with phone layouts at 390 and 360 px. ✋
-   The read-only diagnostic for the 31 Oct step in the value line, and timing
-   `/{u}` and `/{u}/activity` on production before and after. 🚀 **Minor**
-   (release R1: Slice 1 and this part together; no migration, not
-   host-changing).
 2. **Activity, card page, Sets, set page and navigation.** `L` — Activity
    leads with value and groups bulk additions per day; the card page's market
    value block with moves and collection share; Sets ranked by value with a
