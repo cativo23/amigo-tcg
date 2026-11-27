@@ -92,7 +92,7 @@ final class CollectionValueSeries
     public function forPublicCollection(PublicCollection $public, ChartRange $range): array
     {
         $cards = app(DecidingPriceRows::class)->loadOnto($public->cardsInIdOrder()->take(PublicCollection::MAX_CARDS)->get());
-        $totals = $this->valuation->totalsByCurrency($cards);
+        ['totals' => $totals, 'priced' => $priced] = $this->valuation->totalsAndPriced($cards);
         $currency = $this->primaryCurrency($totals);
 
         if ($currency === null) {
@@ -118,7 +118,7 @@ final class CollectionValueSeries
             'cards' => $cards,
             'totals' => $totals,
             'currency' => $currency,
-            'series' => $this->withTodayAt($series, $totals[$currency]),
+            'series' => $this->withTodayAt($series, $totals[$currency], $priced[$currency]),
             // The series asked for it already; this reads the same answer.
             'earliest' => $this->earliestDay($cards),
             'cached' => $cached,
@@ -126,15 +126,16 @@ final class CollectionValueSeries
     }
 
     /**
-     * The stored series with today's point set to the page's headline, so a
-     * price written since the series was built shows without a rebuild.
-     * Today's point is the headline by construction (see the class docblock),
-     * and every earlier point is a past day the cache can trust.
+     * The stored series with today's point set to the page's headline total
+     * and priced-card count, so a price written since the series was built
+     * shows without a rebuild. Today's point is the headline by construction
+     * (see the class docblock), and every earlier point is a past day the
+     * cache can trust.
      *
      * @param  Collection<int, array{date: CarbonImmutable, minor: int, priced: int}>  $series
      * @return Collection<int, array{date: CarbonImmutable, minor: int, priced: int}>
      */
-    private function withTodayAt(Collection $series, int $headline): Collection
+    private function withTodayAt(Collection $series, int $headline, int $pricedToday): Collection
     {
         $last = $series->last();
 
@@ -142,7 +143,7 @@ final class CollectionValueSeries
             return $series;
         }
 
-        return $series->slice(0, -1)->push(['date' => $last['date'], 'minor' => $headline, 'priced' => $last['priced']])->values();
+        return $series->slice(0, -1)->push(['date' => $last['date'], 'minor' => $headline, 'priced' => $pricedToday])->values();
     }
 
     /**

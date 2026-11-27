@@ -30,15 +30,29 @@ final class Valuation
      */
     public function totalsByCurrency(iterable $cards): array
     {
+        return $this->totalsAndPriced($cards)['totals'];
+    }
+
+    /**
+     * totalsByCurrency() with how many cards each total covers: a card counts
+     * once in a currency however many of its copies are priced in it.
+     *
+     * @param  iterable<int, Card>  $cards  each with `collectionItems` (owned copies) and `priceSnapshots` loaded
+     * @return array{totals: array<string, int>, priced: array<string, int>} both keyed by currency, ordered USD first
+     */
+    public function totalsAndPriced(iterable $cards): array
+    {
         $totals = [];
+        $priced = [];
 
         foreach ($cards as $card) {
             foreach ($this->itemTotals($card) as $currency => $minor) {
                 $totals[$currency] = ($totals[$currency] ?? 0) + $minor;
+                $priced[$currency] = ($priced[$currency] ?? 0) + 1;
             }
         }
 
-        return self::order($totals);
+        return ['totals' => self::order($totals), 'priced' => self::order($priced)];
     }
 
     /**

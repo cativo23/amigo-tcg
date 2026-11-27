@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Models\Set;
 use App\Modules\Catalog\Services\CardPriceResolver;
+use App\Modules\Catalog\Services\DecidingPriceRows;
 use App\Modules\Catalog\Support\ChartRange;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Services\CollectionCover;
@@ -13,6 +14,7 @@ use App\Modules\Collection\Services\CollectionValueSeries;
 use App\Modules\Collection\Services\CoverData;
 use App\Modules\Collection\Services\PublicCollection;
 use App\Modules\Collection\Services\Valuation;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -100,7 +102,8 @@ test('a card that was never priced does not keep the line hidden', function () {
     $cover = coverFor(coverCollection([...array_fill(0, 10, ['from' => 10]), ...array_fill(0, 6, ['from' => null])]));
 
     expect($cover->linePricedSince)->toBeNull()
-        ->and($cover->series->count())->toBeGreaterThan(1);
+        ->and($cover->series->first()['date']->toDateString())->toBe(today()->subDays(10)->toDateString())
+        ->and($cover->series->every(fn (array $p) => $p['minor'] === 1000 && $p['priced'] === 10))->toBeTrue();
 });
 
 test('a card priced only in another currency does not count against the line', function () {
@@ -161,7 +164,7 @@ test('it omits the move when the line has fewer than two points', function () {
     expect($late->series)->toHaveCount(1)
         ->and($late->linePricedSince?->toDateString())->toBe(today()->toDateString())
         ->and($late->rangeMoveMinor)->toBeNull()
-        ->and($single->series->count())->toBeLessThan(2)   // a history of one day draws no line at all
+        ->and($single->series)->toHaveCount(0)   // a history of one day draws no line at all
         ->and($single->rangeMoveMinor)->toBeNull();
 });
 
@@ -176,6 +179,29 @@ test('it hands back the cards it priced, so the page does not load them twice', 
 
     expect($cover->cards)->toHaveCount(3)
         ->and($cover->cards->first()->relationLoaded('priceSnapshots'))->toBeTrue();
+});
+
+test('today carries the live priced count when a price arrives after the series was cached', function () {
+    // Card A is priced from ten days ago; card B is owned and unpriced when the series is built and cached.
+    $user = coverCollection([['from' => 10, 'price' => 700], ['from' => null]]);
+    $before = coverFor($user);
+    $cardB = Card::where('tcgdex_id', 'like', 'cv01-%-2')->sole();
+
+    // A price for an owned print leaves the series cache key alone; only the cached deciding rows must be dropped to see it.
+    DB::table('card_price_snapshots')->insert([
+        'card_id' => $cardB->id, 'source' => 'tcgplayer', 'origin' => 'tcgdex', 'variant' => 'normal',
+        'captured_on' => today()->toDateString(), 'currency' => 'USD', 'market_minor' => 300, 'created_at' => now(), 'updated_at' => now(),
+    ]);
+    Cache::forget(DecidingPriceRows::cacheKey($before->cards->modelKeys()));
+
+    $after = coverFor($user);
+
+    expect($before->series->last()['priced'])->toBe(1)
+        ->and($after->series->last()['minor'])->toBe(1000)
+        ->and($after->series->last()['priced'])->toBe(2)
+        // The guard measures the past against the live count: 1 of 2 priced is under the floor, so only today is drawn.
+        ->and($after->series)->toHaveCount(1)
+        ->and($after->linePricedSince?->toDateString())->toBe(today()->toDateString());
 });
 
 test('every point of the stored series carries how many cards were priced that day', function () {

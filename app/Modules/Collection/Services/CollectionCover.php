@@ -18,8 +18,11 @@ use Illuminate\Support\Collection;
  * move caused. The coverage guard hides that start: the line is drawn from the
  * first day on which at least PRICED_SHARE_FLOOR of the cards priced today
  * (in the page's currency) also had a price, and the move is the move of what
- * is drawn. It reuses CollectionValueSeries, so the cards, the cap, the cache
- * and today's point are the Activity page's.
+ * is drawn. The guard only decides where the line starts: a later day that
+ * dips below the floor is drawn as it is. It reuses CollectionValueSeries, so
+ * the cards, the cap, the cache and today's point are the Activity page's; the
+ * series always ends on today, with today's priced-card count from the live
+ * cards.
  */
 final class CollectionCover
 {
@@ -44,6 +47,7 @@ final class CollectionCover
         $drawn = $this->fromFirstCoveredDay($all);
         $start = $drawn->first();
         $end = $drawn->last();
+        $firstDay = $all->first();
 
         return new CoverData(
             cards: $result['cards'],
@@ -51,7 +55,7 @@ final class CollectionCover
             totalMinor: $result['totals'][$currency],
             series: $drawn,
             rangeMoveMinor: $drawn->count() >= 2 && $start !== null && $end !== null ? $end['minor'] - $start['minor'] : null,
-            linePricedSince: $start !== null && $start['date']->gt($all->first()['date'] ?? $start['date']) ? $start['date'] : null,
+            linePricedSince: $start !== null && $firstDay !== null && $start['date']->gt($firstDay['date']) ? $start['date'] : null,
             asOf: MarketplaceSync::latestDay(MarketplaceSync::rows($result['cards']))?->toImmutable(),
         );
     }
@@ -71,7 +75,8 @@ final class CollectionCover
             return collect();
         }
 
-        $first = $series->search(fn (array $point) => $point['priced'] >= self::PRICED_SHARE_FLOOR * $today);
+        // A division, not a product: 9 of 10 is exactly the double 0.9, so a day on the floor is drawn.
+        $first = $series->search(fn (array $point) => $point['priced'] / $today >= self::PRICED_SHARE_FLOOR);
 
         return $first === false ? collect() : $series->slice($first)->values();
     }
