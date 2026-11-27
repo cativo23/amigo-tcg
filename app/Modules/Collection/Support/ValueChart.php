@@ -48,7 +48,9 @@ final readonly class ValueChart
     /**
      * Null under two points: one day is not a line.
      *
-     * @param  Collection<int, array{date: CarbonImmutable, minor: int}>  $series  oldest first
+     * @template TPoint of array{date: CarbonImmutable, minor: int}
+     *
+     * @param  Collection<int, TPoint>  $series  oldest first
      */
     public static function of(Collection $series, string $currency): ?self
     {

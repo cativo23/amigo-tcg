@@ -62,7 +62,7 @@ use Illuminate\Support\Facades\Log;
 final class CollectionValueSeries
 {
     /** Bump when the series' calculation changes, so a deploy doesn't serve a series the old code computed. */
-    private const CACHE_VERSION = 5;
+    private const CACHE_VERSION = 6;
 
     /** How many cards warm() loads price rows for at a time. */
     public const WARM_CHUNK = 40;
@@ -84,7 +84,7 @@ final class CollectionValueSeries
      *     cards: EloquentCollection<int, Card>,
      *     totals: array<string, int>,
      *     currency: ?string,
-     *     series: Collection<int, array{date: CarbonImmutable, minor: int}>,
+     *     series: Collection<int, array{date: CarbonImmutable, minor: int, priced: int}>,
      *     earliest: ?CarbonImmutable,
      *     cached: bool,
      * }
@@ -131,8 +131,8 @@ final class CollectionValueSeries
      * Today's point is the headline by construction (see the class docblock),
      * and every earlier point is a past day the cache can trust.
      *
-     * @param  Collection<int, array{date: CarbonImmutable, minor: int}>  $series
-     * @return Collection<int, array{date: CarbonImmutable, minor: int}>
+     * @param  Collection<int, array{date: CarbonImmutable, minor: int, priced: int}>  $series
+     * @return Collection<int, array{date: CarbonImmutable, minor: int, priced: int}>
      */
     private function withTodayAt(Collection $series, int $headline): Collection
     {
@@ -142,7 +142,7 @@ final class CollectionValueSeries
             return $series;
         }
 
-        return $series->slice(0, -1)->push(['date' => $last['date'], 'minor' => $headline])->values();
+        return $series->slice(0, -1)->push(['date' => $last['date'], 'minor' => $headline, 'priced' => $last['priced']])->values();
     }
 
     /**
@@ -202,7 +202,7 @@ final class CollectionValueSeries
 
     /**
      * @param  Collection<int, Card>  $cards  owned cards, collectionItems loaded
-     * @return Collection<int, array{date: CarbonImmutable, minor: int}>
+     * @return Collection<int, array{date: CarbonImmutable, minor: int, priced: int}>
      */
     public function for(Collection $cards, string $currency, ChartRange $range): Collection
     {
@@ -214,7 +214,7 @@ final class CollectionValueSeries
      * collection has nothing to compute and counts as cached).
      *
      * @param  Collection<int, Card>  $cards
-     * @return array{0: Collection<int, array{date: CarbonImmutable, minor: int}>, 1: bool}
+     * @return array{0: Collection<int, array{date: CarbonImmutable, minor: int, priced: int}>, 1: bool}
      */
     private function cachedSeries(Collection $cards, string $currency, ChartRange $range): array
     {
@@ -229,11 +229,11 @@ final class CollectionValueSeries
         if (is_array($cached)) {
             $this->earliest[$this->idArray($cards)] = $cached['earliest'];
 
-            /** @var list<array{date: string, minor: int}> $points */
+            /** @var list<array{date: string, minor: int, priced: int}> $points */
             $points = $cached['points'];
 
             return [new Collection(array_map(
-                fn (array $p): array => ['date' => CarbonImmutable::parse($p['date']), 'minor' => $p['minor']],
+                fn (array $p): array => ['date' => CarbonImmutable::parse($p['date']), 'minor' => $p['minor'], 'priced' => $p['priced']],
                 $points,
             )), true];
         }
@@ -251,7 +251,7 @@ final class CollectionValueSeries
         Cache::put($key, [
             'earliest' => $this->earliestDay($cards)->toDateString(),
             'points' => $series
-                ->map(fn (array $p): array => ['date' => $p['date']->toDateString(), 'minor' => $p['minor']])
+                ->map(fn (array $p): array => ['date' => $p['date']->toDateString(), 'minor' => $p['minor'], 'priced' => $p['priced']])
                 ->all(),
         ], CarbonImmutable::now()->endOfDay());
 
@@ -260,7 +260,7 @@ final class CollectionValueSeries
 
     /**
      * @param  Collection<int, Card>  $cards
-     * @return Collection<int, array{date: CarbonImmutable, minor: int}>
+     * @return Collection<int, array{date: CarbonImmutable, minor: int, priced: int}>
      */
     private function build(Collection $cards, string $currency, ChartRange $range): Collection
     {
@@ -287,9 +287,9 @@ final class CollectionValueSeries
                 'priceSnapshots',
                 new EloquentCollection($byCard->get($card->id, collect())->all()),
             ));
-            $totals = $this->valuation->totalsByCurrencyOver($dayCards, [$day]);
+            $over = $this->valuation->totalsAndPricedOver($dayCards, [$day]);
 
-            return ['date' => $day, 'minor' => $totals[$key][$currency] ?? 0];
+            return ['date' => $day, 'minor' => $over['totals'][$key][$currency] ?? 0, 'priced' => $over['priced'][$key][$currency] ?? 0];
         })->values();
     }
 
