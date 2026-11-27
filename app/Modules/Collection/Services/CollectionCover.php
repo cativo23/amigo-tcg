@@ -40,7 +40,7 @@ final class CollectionCover
         $currency = $result['currency'];
 
         if ($currency === null) {
-            return new CoverData($result['cards'], null, null, collect(), null, null, null);
+            return new CoverData($result['cards'], $result['totals'], null, null, collect(), null, null, null);
         }
 
         $all = $result['series'];
@@ -51,6 +51,7 @@ final class CollectionCover
 
         return new CoverData(
             cards: $result['cards'],
+            totals: $result['totals'],
             currency: $currency,
             totalMinor: $result['totals'][$currency],
             series: $drawn,

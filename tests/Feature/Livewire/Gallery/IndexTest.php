@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Models\CardPriceSnapshot;
 use App\Modules\Catalog\Models\Set;
+use App\Modules\Catalog\Services\DecidingPriceRows;
 use App\Modules\Catalog\Services\WeekBaselines;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
@@ -16,6 +17,14 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Tests\Support\PriceRowReads;
 use Tests\Support\RevampHtml;
+
+/** The binder grid's markup only: the Top cards shelf and the movers repeat cards that the grid's filters hide. */
+function gridOf(string $html): string
+{
+    preg_match('#<ol class="col-grid".*?</ol>#s', $html, $m);
+
+    return $m[0] ?? '';
+}
 
 function seedCollection(): array
 {
@@ -68,14 +77,14 @@ test('the search box shows a loading indicator while a debounced search is in fl
     $response->assertSee('wire:target="search"', escape: false);
 });
 
-test('the value and its date stay on one line of the summary, so a phone never strands the date', function () {
+test('the summary counts cards and sets, and the figure carries the value and its date', function () {
     seedCollection();
 
     $html = $this->get('/carlos')->assertOk()->getContent();
-    $markup = preg_replace('/<!--\[if (?:BLOCK|ENDBLOCK)\]><!\[endif\]-->/', '', $html);
 
-    expect($markup)->toContain('<span class="col-chunk"><span class="col-mono">$389.36</span> on <span class="col-mono">'.today()->format('j M').'</span></span>')
-        ->and(RevampHtml::summary($html))->toBe('2 cards · 2 sets · $389.36 on '.today()->format('j M'));
+    expect(RevampHtml::summary($html))->toBe('2 cards · 2 sets')
+        ->and(RevampHtml::text('col-figure', $html))->toBe('$389.36')
+        ->and(RevampHtml::text('col-asof col-mono', $html))->toBe('on '.today()->format('j M'));
 });
 
 test('the collection value never adds two currencies together', function () {
@@ -83,8 +92,8 @@ test('the collection value never adds two currencies together', function () {
 
     $html = $this->get('/carlos')->getContent();
 
-    // 2 × $194.68 in USD leads the summary; the EUR-priced copies are a note, not part of the sum.
-    expect(RevampHtml::summary($html))->toContain('$389.36')
+    // 2 × $194.68 in USD is the figure; the EUR-priced copies are a note, not part of the sum.
+    expect(RevampHtml::text('col-figure', $html))->toBe('$389.36')
         ->and(RevampHtml::summary($html))->not->toContain('€')
         ->and($html)->toContain('€333.30')
         ->and($html)->not->toContain('722.66');
@@ -110,20 +119,20 @@ test('every tile links to the card detail page', function () {
 test('search, set and rarity filters narrow the grid', function () {
     seedCollection();
 
-    Livewire::test(Index::class, ['username' => 'carlos'])
-        ->set('search', 'darkrai')
-        ->assertSee('Mega Darkrai ex')
-        ->assertDontSee('Pikachu on the Ball')
-        ->set('search', '')
-        ->set('setFilter', 'fut2020')
-        ->assertSee('Pikachu on the Ball')
-        ->assertDontSee('Mega Darkrai ex')
-        ->set('setFilter', '')
-        ->set('rarityFilter', 'Promo')
-        ->assertSee('Pikachu on the Ball')
-        ->assertDontSee('Mega Darkrai ex')
-        ->call('clearFilters')
-        ->assertSee('Mega Darkrai ex');
+    $page = Livewire::test(Index::class, ['username' => 'carlos']);
+    $grid = fn () => gridOf($page->html());
+
+    $page->set('search', 'darkrai');
+    expect($grid())->toContain('Mega Darkrai ex')->not->toContain('Pikachu on the Ball');
+
+    $page->set('search', '')->set('setFilter', 'fut2020');
+    expect($grid())->toContain('Pikachu on the Ball')->not->toContain('Mega Darkrai ex');
+
+    $page->set('setFilter', '')->set('rarityFilter', 'Promo');
+    expect($grid())->toContain('Pikachu on the Ball')->not->toContain('Mega Darkrai ex');
+
+    $page->call('clearFilters');
+    expect($grid())->toContain('Mega Darkrai ex');
 });
 
 test('tcgdex\'s literal "None" rarity never becomes a selectable filter option', function () {
@@ -361,15 +370,19 @@ test('sorting by number keeps search and rarity filters working', function () {
 
     // The number sort joins sets, which has its own name column, so an
     // unqualified "name" in the search filter is ambiguous to Postgres.
-    Livewire::withQueryParams(['sort' => 'number', 'search' => 'pika', 'rarity' => 'Promo'])
+    $page = Livewire::withQueryParams(['sort' => 'number', 'search' => 'pika', 'rarity' => 'Promo'])
         ->test(Index::class, ['username' => 'carlos'])
-        ->assertOk()
-        ->assertSee('Pikachu on the Ball')
-        ->assertDontSee('Mega Darkrai ex');
+        ->assertOk();
+
+    expect(gridOf($page->html()))->toContain('Pikachu on the Ball')->not->toContain('Mega Darkrai ex');
 });
 
 test('the grid reuses the stat band\'s cards instead of loading their price history again', function (string $sort, string $search) {
     seedCollection();
+    // A cold page also builds the one-month value series, which reads price rows by its own queries. Warm the series,
+    // then drop the deciding rows' cache entry so the page under test still loads them: the count is that one load.
+    Livewire::test(Index::class, ['username' => 'carlos']);
+    Cache::forget(DecidingPriceRows::cacheKey(CollectionItem::pluck('card_id')->all()));
 
     $snapshotQueries = 0;
     DB::listen(function (QueryExecuted $query) use (&$snapshotQueries) {
@@ -460,23 +473,22 @@ test('the summary dates the latest marketplace sync, never a manual entry, and t
 
     $html = $this->get('/carlos')->assertOk()->getContent();
 
-    expect(RevampHtml::summary($html))->toEndWith('on '.today()->subDays(2)->format('j M'))
-        ->and(RevampHtml::summary($html))->not->toContain(today()->format('j M'))
+    expect(RevampHtml::text('col-asof col-mono', $html))->toBe('on '.today()->subDays(2)->format('j M'))
+        ->and(RevampHtml::text('col-asof col-mono', $html))->not->toContain(today()->format('j M'))
         ->and(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices.')
         ->and($html)->not->toContain('Prices via')
         ->and(RevampHtml::note($html))->not->toContain('hand');
 });
 
-test('with only a manual price the summary keeps the value in its chunk and adds no date', function () {
+test('with only a manual price the figure shows the value and adds no date', function () {
     ['darkrai' => $darkrai] = seedCollection();
     CardPriceSnapshot::query()->delete();
     CardPriceSnapshot::create(['card_id' => $darkrai->id, 'source' => 'manual', 'origin' => 'hand', 'variant' => 'holofoil', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 500]);
 
     $html = $this->get('/carlos')->assertOk()->getContent();
-    $markup = preg_replace('/<!--\[if (?:BLOCK|ENDBLOCK)\]><!\[endif\]-->/', '', $html);
 
-    expect(RevampHtml::summary($html))->not->toContain(' on ')
-        ->and($markup)->toMatch('#<span class="col-chunk"><span class="col-mono">\$[0-9.,]+</span></span></p>#');
+    expect(RevampHtml::text('col-figure', $html))->toBe('$10.00')
+        ->and($html)->not->toContain('class="col-asof');
 });
 
 test('a set tab falls back to the local card count when tcgdex reports zero', function () {
@@ -579,7 +591,7 @@ test('the page is the collector\'s name, one summary line and the approved copy 
     $html = $this->get('/carlos')->assertOk()->getContent();
 
     expect($html)->toContain('<h1 id="col-who" class="col-who">carlos</h1>')
-        ->and(RevampHtml::summary($html))->toBe('2 cards · 2 sets · $389.36 on '.today()->format('j M'))
+        ->and(RevampHtml::summary($html))->toBe('2 cards · 2 sets')
         ->and($html)->toContain('Showing <b>2</b> of <b>2</b>')
         ->and($html)->not->toContain('class="nw-masthead"')
         ->and($html)->not->toContain('Pokémon TCG · Collection'); // the eyebrow is gone
@@ -619,7 +631,7 @@ test('other currencies are never added in: they move to a note beside the price 
 
     $html = $this->get('/carlos')->getContent();
 
-    expect(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices. Also €333.30 priced in EUR, not added to the total.')
+    expect(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices. Also €333.30 priced in EUR, not added to the total. 1 card priced in another currency is left out of Top cards and the movers.')
         ->and($html)->not->toContain('722.66');
 });
 
@@ -673,17 +685,17 @@ test('the tab for an unknown ?set= leaves All as the tab stop so the strip stays
 test('selecting a tab filters the listing, restarts the batch and offers that set\'s own page', function () {
     seedCollection();
 
-    Livewire::test(Index::class, ['username' => 'carlos'])
+    $page = Livewire::test(Index::class, ['username' => 'carlos'])
         ->assertDontSee('Open the Pokémon Futsal 2020 page')
         ->call('loadMore')->assertSet('take', 48)
         ->call('selectSet', 'fut2020')
         ->assertSet('setFilter', 'fut2020')->assertSet('take', 24)
-        ->assertSee('Pikachu on the Ball')->assertDontSee('Mega Darkrai ex')
         ->assertSee('Open the Pokémon Futsal 2020 page')
-        ->assertSeeHtml('href="'.route('gallery.show', ['username' => 'carlos', 'setTcgdexId' => 'fut2020']).'"')
-        ->call('selectSet', '')
-        ->assertSet('setFilter', '')
-        ->assertSee('Mega Darkrai ex')->assertSee('Pikachu on the Ball');
+        ->assertSeeHtml('href="'.route('gallery.show', ['username' => 'carlos', 'setTcgdexId' => 'fut2020']).'"');
+    expect(gridOf($page->html()))->toContain('Pikachu on the Ball')->not->toContain('Mega Darkrai ex');
+
+    $page->call('selectSet', '')->assertSet('setFilter', '');
+    expect(gridOf($page->html()))->toContain('Mega Darkrai ex')->toContain('Pikachu on the Ball');
 });
 
 test('the biggest sets lead the tabs', function () {
@@ -744,9 +756,11 @@ test('a tile shows its 7-day move and only a rise is green', function () {
 
     $html = $this->get('/carlos')->getContent();
 
-    expect($html)->toContain("<span class=\"col-delta price-move price-move--up\">\u{25B2} +\$2.40 · 7d</span>")
-        ->and($html)->toContain("<span class=\"col-delta price-move price-move--down\">\u{25BC} \u{2212}\$1.00 · 7d</span>")
-        ->and(substr_count($html, 'price-move--up'))->toBe(1);
+    $grid = gridOf($html);
+
+    expect($grid)->toContain("<span class=\"col-delta price-move price-move--up\">\u{25B2} +\$2.40 · 7d</span>")
+        ->and($grid)->toContain("<span class=\"col-delta price-move price-move--down\">\u{25BC} \u{2212}\$1.00 · 7d</span>")
+        ->and(substr_count($grid, 'price-move--up'))->toBe(1);
 });
 
 test('slab and stamp survive on the new tile, which shows the official art over the collector\'s photo', function () {

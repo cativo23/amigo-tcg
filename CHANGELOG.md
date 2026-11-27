@@ -6,7 +6,25 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- The collection page opens on a cover: the collection's total as the headline
+  figure with its one-month move (`▼ −$30.00 · collection value · 1 month`), the
+  value line beside it, and a "This week" strip with the biggest drop and the
+  biggest rise. The line starts on the first day most of today's priced cards
+  had a price, so a card that only got a price later does not draw a step.
+- A "Top cards by value" shelf of the six priciest cards, shown when the
+  collection holds more cards than that, and "Biggest drops" / "Biggest rises"
+  blocks for the last 7 days. Each row shows the percent and the dollars, with
+  the direction glyph and sign. Cards priced in another currency stay out of
+  the shelf and the movers, and one muted line says how many.
+
 ### Changed
+
+- On a phone the collector's name takes two lines at most and Copy link shows
+  only its icon (44 px target).
+- The collection page's value and date moved out of the summary line into the
+  cover; the summary now reads `9 cards · 1 set`.
 
 - A card's 7-day move on its hang tag now carries a direction glyph with the
   sign: `▲ +$2.40 · 7d`, `▼ −$1.00 · 7d`, and `±$0.00 · 7d` with no glyph when

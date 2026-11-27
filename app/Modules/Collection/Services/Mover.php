@@ -18,4 +18,13 @@ final readonly class Mover
         public float $percent,
         public string $currency,
     ) {}
+
+    /** The move as the page prints it: whole percent from 10 up, one decimal below, a true minus for a fall. */
+    public function percentText(): string
+    {
+        $abs = round(abs($this->percent), 1);
+        $number = $abs >= 10 ? (string) round($abs) : number_format($abs, 1, '.', '');
+
+        return ($this->percent < 0 ? "\u{2212}" : '+').$number.'%';
+    }
 }
