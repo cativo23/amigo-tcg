@@ -2,7 +2,7 @@
 @use('App\Support\Money')
 
 @php
-    $headCurrency = array_key_first(array_filter($totals));
+    $headCurrency = $cover->currency;
     $otherTotals = collect(array_filter($totals))->except($headCurrency);
     // The tab that takes the roving tab stop: the selected set, or All when the URL names a set the collector has none of.
     $tabStop = $sets->contains('tcgdex_id', $setFilter) ? $setFilter : '';
@@ -21,9 +21,15 @@
             <span class="sr-only" role="status" data-col-copy-status wire:ignore></span>
         </div>
         @unless ($collectionIsEmpty)
-            <p class="col-summary"><span class="col-mono">{{ $collectionTotal }}</span> {{ Str::plural('card', $collectionTotal) }} <span class="col-sep" aria-hidden="true">·</span> <span class="col-mono">{{ $sets->count() }}</span> {{ Str::plural('set', $sets->count()) }}@if ($headCurrency) <span class="col-sep" aria-hidden="true">·</span> <span class="col-chunk"><span class="col-mono">{{ Money::format($totals[$headCurrency], $headCurrency) }}</span>@if ($updatedAt) on <span class="col-mono">{{ $updatedAt->format('j M') }}</span>@endif</span>@endif</p>
+            <p class="col-summary"><span class="col-mono">{{ $collectionTotal }}</span> {{ Str::plural('card', $collectionTotal) }} <span class="col-sep" aria-hidden="true">·</span> <span class="col-mono">{{ $sets->count() }}</span> {{ Str::plural('set', $sets->count()) }}</p>
+            @if ($headCurrency)
+                <x-revamp.cover :cover="$cover" :chart="$chart" />
+            @endif
             @if ($headCurrency || $otherTotals->isNotEmpty())
-                <p class="col-note">@if ($headCurrency)Approx. TCGplayer market prices.@endif @foreach ($otherTotals as $currency => $minor)Also {{ Money::format($minor, $currency) }} priced in {{ $currency }}, not added to the total. @endforeach</p>
+                <p class="col-note">@if ($headCurrency)Approx. TCGplayer market prices.@endif @foreach ($otherTotals as $currency => $minor)Also {{ Money::format($minor, $currency) }} priced in {{ $currency }}, not added to the total. @endforeach @if ($movers['omitted'] > 0){{ $movers['omitted'] }} {{ Str::plural('card', $movers['omitted']) }} priced in another currency {{ $movers['omitted'] === 1 ? 'is' : 'are' }} left out of Top cards and the movers.@endif</p>
+            @endif
+            @if ($movers['drops'] !== [] || $movers['rises'] !== [])
+                <x-revamp.week-strip :drop="$movers['drops'][0] ?? null" :rise="$movers['rises'][0] ?? null" :username="$targetUser->username" />
             @endif
         @endunless
     </section>
@@ -41,6 +47,12 @@
             @endif
         </section>
     @else
+        @if ($shelf->isNotEmpty())
+            <x-revamp.top-shelf :entries="$shelf" :username="$targetUser->username" />
+        @endif
+        @if ($movers['drops'] !== [] || $movers['rises'] !== [])
+            <x-revamp.movers :drops="$movers['drops']" :rises="$movers['rises']" :username="$targetUser->username" />
+        @endif
         <section class="col-binder" aria-label="Cards">
             <div class="col-tabs-wrap" data-col-tabs-wrap>
                 <div class="col-tabs" role="tablist" aria-label="Sets" data-col-tabs>
@@ -117,7 +129,7 @@
                                 :items="$entry['items']"
                                 :index="$loop->index % $perPage"
                                 :eager="$loop->index < 8"
-                                :priority="$loop->index === 0"
+                                :priority="$loop->index === 0 && $shelf->isEmpty()"
                                 :href="route('gallery.card', ['username' => $targetUser->username, 'setTcgdexId' => $entry['card']->set->tcgdex_id, 'localId' => $entry['card']->local_id])"
                             />
                         @endforeach

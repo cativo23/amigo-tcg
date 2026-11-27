@@ -61,6 +61,7 @@ function tcgcsvLog(): MockInterface
     $logger = Mockery::spy(LoggerInterface::class);
     Log::shouldReceive('channel')->with('tcgcsv')->andReturn($logger);
     Log::shouldReceive('error')->andReturnNull(); // report() of a failed group
+    Log::shouldReceive('warning')->andReturnNull(); // a gallery page view that builds the value series cold
 
     return $logger;
 }

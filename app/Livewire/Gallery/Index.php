@@ -8,10 +8,14 @@ use App\Livewire\Gallery\Concerns\ResolvesPublicCollection;
 use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Services\CardPriceResolver;
 use App\Modules\Catalog\Services\DecidingPriceRows;
-use App\Modules\Catalog\Support\MarketplaceSync;
+use App\Modules\Catalog\Support\ChartRange;
 use App\Modules\Catalog\Support\Rarity;
+use App\Modules\Collection\Services\CollectionCover;
+use App\Modules\Collection\Services\CollectionMovers;
+use App\Modules\Collection\Services\CollectionValueSeries;
 use App\Modules\Collection\Services\PublicCollection;
 use App\Modules\Collection\Services\Valuation;
+use App\Modules\Collection\Support\ValueChart;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -32,6 +36,9 @@ final class Index extends Component
     private const PER_PAGE = 24;
 
     private const SORTS = ['value', 'newest', 'number', 'name'];
+
+    /** How many of the priciest cards the Top cards shelf shows. */
+    private const SHELF = 6;
 
     #[Url(except: '')]
     public string $search = '';
@@ -105,21 +112,33 @@ final class Index extends Component
         // filter/scroll position — same "stats vs grid" split Show.php
         // already uses. Bounded by the cap.
         //
-        // Keyed by id so the grid below can reuse these already-loaded
-        // cards (and their price rows) instead of loading them again. The
-        // rows are the ones that decide current prices (see
-        // DecidingPriceRows), which every figure on this page is.
+        // The cover loads the cards once, and the grid below reuses them
+        // (keyed by id) instead of loading them again. Their price rows are
+        // the ones that decide current prices (see DecidingPriceRows), which
+        // every figure on this page is.
         $prices = app(DecidingPriceRows::class);
-        $allCards = $prices->loadOnto($public->cardsInIdOrder()->take(PublicCollection::MAX_CARDS)->get())->keyBy('id');
+        $cover = (new CollectionCover(new CollectionValueSeries($valuation)))->for($public, ChartRange::OneMonth);
+        $allCards = $cover->cards->keyBy('id');
         // Distinct cards, unfiltered. $allCards stops at the cap, so a collection that fills it is counted.
         $collectionTotal = $allCards->count() < PublicCollection::MAX_CARDS ? $allCards->count() : $public->cardsQuery()->count();
         $headlines = $allCards->map(fn (Card $card) => $valuation->headlineSnapshot($card));
         // The biggest sets lead the divider tabs, the newest release among equals.
         $sets = $public->setsQuery()->orderByDesc('released_on')->get()->sortByDesc('owned_card_count')->values();
 
-        $totals = $valuation->totalsByCurrency($allCards);
-        // The latest marketplace sync dates the summary.
-        $updatedAt = MarketplaceSync::latestDay(MarketplaceSync::rows($allCards));
+        $totals = $cover->totals;
+        $movers = (new CollectionMovers($valuation, $resolver))->rank($cover->cards, $cover->currency);
+        $chart = $cover->currency === null ? null : ValueChart::of($cover->series, $cover->currency);
+
+        // The priciest cards in the page's currency, at their single-copy price: the price each tile shows. A card
+        // priced in another currency stays out, as it does of the movers (amounts in two currencies are never ranked).
+        $shelf = $cover->currency === null ? collect() : $allCards
+            ->map(fn (Card $card) => ['card' => $card, 'snapshot' => $headlines->get($card->id)])
+            ->filter(fn (array $e) => $e['snapshot']?->market_minor !== null && $e['snapshot']->currency === $cover->currency)
+            ->sort(fn (array $a, array $b) => [$b['snapshot']->market_minor, $a['card']->id] <=> [$a['snapshot']->market_minor, $b['card']->id])
+            ->take(self::SHELF)->values()
+            ->map(fn (array $e) => $e + ['weekDelta' => $resolver->weekDeltaFor($e['card'], $e['snapshot']), 'items' => $e['card']->collectionItems]);
+        // A shelf that holds the whole collection says nothing the grid does not.
+        $shelf = $shelf->count() < $collectionTotal ? $shelf : collect();
         $topEntry = $allCards
             ->map(fn (Card $card) => ['card' => $card, 'valueMinor' => $headlines->get($card->id)?->market_minor])
             ->sortByDesc(fn ($e) => $e['valueMinor'] ?? -1)
@@ -213,7 +232,11 @@ final class Index extends Component
             'hasMore' => $entries->count() < $totalEntries,
             'sets' => $sets,
             'totals' => $totals,
-            'updatedAt' => $updatedAt,
+            'cover' => $cover,
+            'updatedAt' => $cover->asOf,
+            'chart' => $chart,
+            'movers' => $movers,
+            'shelf' => $shelf,
             'topEntry' => $topEntry,
             'rarities' => $rarities,
             'isFiltered' => $this->search !== '' || $this->setFilter !== '' || $this->rarityFilter !== '',
