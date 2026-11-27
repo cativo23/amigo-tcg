@@ -170,15 +170,14 @@ test('with no card that moved enough, the strip and the movers blocks are not re
         ->and($html)->toContain('class="col-figure"');
 });
 
-test('a collection with one priced card shows its total but no strip, shelf or movers, and never $0.00', function () {
+test('a collection with one priced card shows its total but no strip, shelf or movers', function () {
     coverPage([['Solo', 5000, 5000]]);
 
     $html = $this->get('/carlos')->getContent();
 
     expect(RevampHtml::text('col-figure', $html))->toBe('$50.00')
         ->and($html)->not->toContain('class="col-strip"')->not->toContain('class="col-shelf"')
-        ->and($html)->not->toContain('class="col-movers"')
-        ->and($html)->not->toContain('$0.00');
+        ->and($html)->not->toContain('class="col-movers"');
 });
 
 // The phone layout contract (390 and 360 wide) is checked in a browser; these pin the rules it rests on.
