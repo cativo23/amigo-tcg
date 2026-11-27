@@ -29,7 +29,13 @@ use Illuminate\Support\Collection as SupportCollection;
  */
 final class PublicCollection
 {
-    /** Bounded: a public route must never fan out unbounded per-card work. */
+    /**
+     * Bounded so a public, unauthenticated route never fans out unbounded
+     * per-card work. The collection page's figures and Value sort, the Sets
+     * list's owned values, and the value series (Activity's chart and totals,
+     * and the warm job) all read the first MAX_CARDS cards in id order, so
+     * their numbers describe the same cards.
+     */
     public const MAX_CARDS = 600;
 
     /** @param SupportCollection<int, int> $collectionIds */

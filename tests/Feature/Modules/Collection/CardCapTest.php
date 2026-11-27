@@ -87,10 +87,11 @@ test('the activity page headline uses the same capped cards as the collection pa
 
     $reads = PriceRowReads::during(fn () => Livewire::test(Activity::class, ['username' => 'carlos'])->viewData('feed'));
 
-    expect($reads->decidingIds(0))->toEqualCanonicalizing(cappedIds($user));
+    expect($reads->decidingIds(0))->toHaveCount(PublicCollection::MAX_CARDS)
+        ->and($reads->decidingIds(0))->toEqualCanonicalizing(cappedIds($user));
 });
 
-test('the warm job covers the capped cards, not a smaller population', function () {
+test('the warm job fills the cache keys the page reads, so both use one population', function () {
     $user = collectionOverTheCap();
     $service = new CollectionValueSeries(new Valuation(new CardPriceResolver));
 

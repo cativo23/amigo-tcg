@@ -74,9 +74,9 @@ final class CollectionValueSeries
 
     /**
      * What an anonymous visitor to the Activity page gets for a user: the
-     * public collection's cards (capped at PublicCollection::MAX_CARDS) with the price rows that
-     * decide their current prices (see DecidingPriceRows), their totals, the
-     * primary currency (see primaryCurrency()), and that currency's value
+     * public collection's cards (capped at PublicCollection::MAX_CARDS) with
+     * the price rows that decide their current prices (see DecidingPriceRows),
+     * their totals, the primary currency (see primaryCurrency()), and that currency's value
      * series and earliest priced day over the range. The page calls this;
      * warm() fills the same cache keys.
      *

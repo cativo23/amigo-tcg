@@ -103,7 +103,7 @@ final class Index extends Component
         // Collection-wide stats (value, rarities, most valuable
         // card) reflect the WHOLE collection, never the grid's current
         // filter/scroll position — same "stats vs grid" split Show.php
-        // already uses. Bounded by the cap, same as before.
+        // already uses. Bounded by the cap.
         //
         // Keyed by id so the grid below can reuse these already-loaded
         // cards (and their price rows) instead of loading them again. The
