@@ -6,6 +6,8 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-11-27
+
 ### Added
 
 - The collection page opens on a cover: the collection's total as the headline
@@ -52,6 +54,15 @@ All notable changes to this project are documented here. Format follows
   against `symfony/routing` (CVE-2026-133746, CVE-2026-133754),
   `symfony/mailer` (CVE-2026-133751, CVE-2026-133755) and
   `symfony/http-kernel` (CVE-2026-133743).
+
+### Deploy notes
+
+- No migration and not host-changing: no change to `compose.prod.yml`, `.env`
+  or the stock services.
+- The Activity chart's cached values are rebuilt once, so the first load after
+  the deploy is cold. To warm them first, once the release is up:
+  `docker compose -f compose.prod.yml exec app php artisan gallery:warm-value-series --sync`
+  (optional; the hourly schedule gets there on its own).
 
 ## [1.12.0] - 2026-11-26
 
