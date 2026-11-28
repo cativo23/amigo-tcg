@@ -11,12 +11,15 @@ use App\Modules\Catalog\Services\DecidingPriceRows;
 use App\Modules\Catalog\Support\ChartRange;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
+use App\Modules\Collection\Services\CollectionTotal;
 use App\Modules\Collection\Services\CollectionValueSeries;
 use App\Modules\Collection\Services\PublicCollection;
 use App\Modules\Collection\Services\Valuation;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Tests\Support\PriceRowReads;
 
 beforeEach(function () {
     // Fixtures, cache keys and the series all read "today": a run that crosses midnight must not split them.
@@ -673,4 +676,19 @@ test('a capped read takes the lowest ids', function () {
     DB::table('cards')->whereIn('id', $lowest)->update(['updated_at' => now()->addSecond()]);
 
     expect(PublicCollection::for($this->user)->cardsInIdOrder()->take(3)->get()->modelKeys())->toBe($lowest);
+});
+
+test('warming also stores the collection total, so a set or card page reads it without price rows', function () {
+    $price = $this->price;
+    $card = ($this->own)('001');
+    $price($card, 0, 5000);
+    $service = new CollectionValueSeries(new Valuation(new CardPriceResolver));
+    Cache::flush();
+
+    $service->warm(PublicCollection::for($this->user), ChartRange::cases());
+    // The price rows' own cache would answer a rebuild without a query; only the stored total can.
+    Cache::forget(DecidingPriceRows::cacheKey([$card->id]));
+    $reads = PriceRowReads::during(fn () => expect(app(CollectionTotal::class)->for(PublicCollection::for($this->user)))->toBe(['USD' => 5000]));
+
+    expect($reads->deciding)->toBe([])->and($reads->stray)->toBe([]);
 });

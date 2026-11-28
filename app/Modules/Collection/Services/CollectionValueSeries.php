@@ -65,7 +65,7 @@ final class CollectionValueSeries
     private const CACHE_VERSION = 6;
 
     /** How many cards warm() loads price rows for at a time. */
-    public const WARM_CHUNK = 40;
+    public const WARM_CHUNK = CollectionTotal::CHUNK;
 
     public function __construct(private readonly Valuation $valuation) {}
 
@@ -151,7 +151,7 @@ final class CollectionValueSeries
      * page reads for this user, and says how many were computed and how many
      * were already there. The cards are loaded once for every range, without
      * their price rows: the page's totals are summed over batches of
-     * WARM_CHUNK cards whose deciding price rows (see DecidingPriceRows) are
+     * CollectionTotal::CHUNK cards whose deciding price rows (see DecidingPriceRows) are
      * loaded and dropped in turn, the same rows the page prices from, and the
      * series itself prices each sampled day from its own rows. So the heap
      * holds a batch of price rows, not the collection's whole recent history.
@@ -162,20 +162,10 @@ final class CollectionValueSeries
     public function warm(PublicCollection $public, array $ranges): array
     {
         $cards = $public->cardsInIdOrder()->take(PublicCollection::MAX_CARDS)->get();
-        $loader = app(DecidingPriceRows::class);
-        $totals = [];
+        // The total is stored for the pages that do not load the whole collection (see CollectionTotal).
+        $totals = (new CollectionTotal($this->valuation))->refresh($public, $cards);
 
-        foreach ($cards->chunk(self::WARM_CHUNK) as $chunk) {
-            $batch = $loader->loadOnto(new EloquentCollection($chunk->all()));
-
-            foreach ($this->valuation->totalsByCurrency($batch) as $currency => $minor) {
-                $totals[$currency] = ($totals[$currency] ?? 0) + $minor;
-            }
-
-            $batch->each(fn (Card $card) => $card->unsetRelation('priceSnapshots'));
-        }
-
-        $currency = $this->primaryCurrency(Valuation::order($totals));
+        $currency = $this->primaryCurrency($totals);
         $counts = ['computed' => 0, 'warm' => 0];
 
         if ($currency === null) {
