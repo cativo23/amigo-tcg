@@ -6,6 +6,25 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- On the Activity page, small additions collapse into one row per day (for
+  example `28 small additions · Pitch Black · each $0.30 or less`), so a bulk
+  import no longer buries the cards worth a line. "Show all" opens the copies
+  under it. Additions under $1.00 are small; a lone one keeps its row, and so
+  do additions with no price of their own and every price move.
+
+### Changed
+
+- The Activity page leads with the collection's value as the headline figure and
+  its move over the chosen range, labelled `collection value`, above the chart.
+  The chart's line and that move start on the first day most of today's priced
+  cards had a price, as on the collection page, and a note says where the line
+  starts.
+- The Activity feed looks at the newest 600 copies instead of the newest 40, so
+  a bulk import is counted whole; the feed lists at most 40 rows, and a group
+  is one row. Copies added together are listed newest first.
+
 ## [1.13.0] - 2026-11-27
 
 ### Added

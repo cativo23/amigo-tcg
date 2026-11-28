@@ -8,8 +8,12 @@
 .act-mono { font-family: var(--font-mono); font-variation-settings: "wdth" 87.5; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 
 /* ---------- head ---------- */
-.act-head { padding: clamp(28px, 6vw, 72px) var(--gutter) clamp(28px, 4vw, 52px); }
+/* A size container, so the figure shrinks to the room the head has whatever the browser's default font size is: "$1,234,567.89" is 4.5em wide. */
+.act-head { container-type: inline-size; padding: clamp(28px, 6vw, 72px) var(--gutter) clamp(28px, 4vw, 52px); }
 .act-who { margin: 0; font: 820 var(--text-masthead)/.95 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em; }
+.act-head .act-figure { margin: var(--space-md) 0 0; white-space: nowrap; font: 820 min(var(--text-figure), 21cqi)/.9 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+/* The move under the figure reads as a line of its own, in the mono the page's other moves use. */
+.act-head .act-figure .act-move { display: block; margin: var(--space-2xs) 0 0; font: 600 var(--text-sm)/1.4 var(--font-mono); font-variation-settings: "wdth" 87.5; letter-spacing: -.02em; white-space: normal; }
 .act-summary { margin: var(--space-md) 0 0; font-size: var(--text-lg); color: var(--color-ink-2); }
 .act-summary .act-mono { font-size: var(--text-md); font-weight: 600; color: var(--color-ink); }
 .act-note { margin: var(--space-2xs) 0 0; max-width: 60ch; font-size: var(--text-sm); color: var(--color-muted); }
@@ -93,6 +97,20 @@
 .act-amt--up { color: var(--color-accent-deep); }
 .act-amt--down { color: var(--color-drop); }
 .act-amt small { display: block; margin-top: 3px; font-size: var(--text-2xs); font-weight: 400; letter-spacing: -.02em; color: var(--color-muted); }
+
+/* A day's small additions as one row; its toggle opens the copies under it. */
+.act-grp-mark { display: grid; place-items: center; box-shadow: none; }
+.act-grp-mark .act-plus { position: static; border-radius: 3px; }
+.act-grp-toggle {
+  min-height: 44px; padding: 0 16px; border: 1px solid var(--color-rule-2); border-radius: var(--radius-pill); background: transparent; color: var(--color-ink); cursor: pointer;
+  font: 600 var(--text-xs)/1 var(--font-body); white-space: nowrap; transition: border-color var(--dur-base) var(--ease-out);
+}
+.act-grp-toggle:hover { border-color: var(--color-ink); }
+.act-grp-toggle:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.act-grp-members { list-style: none; margin: 0; padding: 0; border-bottom: 1px solid var(--color-rule); }
+.act-grp-members:last-child { border-bottom: 0; }
+.act-grp-list { list-style: none; margin: 0; padding: 0 0 0 clamp(12px, 3vw, 32px); border-left: 2px solid var(--color-rule); }
+.act-grp-list .act-row:last-child { border-bottom: 0; }
 
 /* ---------- empty ---------- */
 .act-empty { margin-top: var(--space-lg); padding: clamp(24px, 5vw, 56px) var(--space-md) clamp(32px, 6vw, 72px); text-align: center; background: var(--color-binder-page); border-radius: 3px; box-shadow: var(--shadow-sheet); }
