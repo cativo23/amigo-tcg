@@ -147,3 +147,4 @@
 /* Value head: the owned value as the headline figure, one fact beneath it. */
 .set-figure { margin: var(--space-sm) 0 0; white-space: nowrap; font: 820 min(var(--text-figure), 18vw)/.9 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .set-callout { margin: var(--space-2xs) 0 var(--space-sm); font-size: var(--text-md); color: var(--color-ink); }
+.set-share { margin: var(--space-2xs) 0 0; font: 600 var(--text-sm)/1.4 var(--font-mono); font-variation-settings: "wdth" 87.5; color: var(--color-muted); }

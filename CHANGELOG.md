@@ -18,7 +18,8 @@ All notable changes to this project are documented here. Format follows
 
 - A set page leads with the value you own in that set as its headline figure,
   with one line when a single card is over half of it (`Mega Darkrai ex is 83%
-  of the set value.`), and a shelf of the set's priciest cards once the set holds
+  of the set value.`), its share of the collection (`60% of the collection`, in
+  the collection's main currency only), and a shelf of the set's priciest cards once the set holds
   more than the shelf shows. No extra price reads.
 - The Sets page ranks sets by value by default, with Newest and Completion one
   link away (`?sort=`). Each set shows its share of the collection's value in

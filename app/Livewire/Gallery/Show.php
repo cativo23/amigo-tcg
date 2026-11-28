@@ -13,6 +13,7 @@ use App\Modules\Catalog\Support\Completion;
 use App\Modules\Catalog\Support\PrintedStrip;
 use App\Modules\Catalog\Support\Rarity;
 use App\Modules\Catalog\Support\StripScale;
+use App\Modules\Collection\Services\CollectionTotal;
 use App\Modules\Collection\Services\Valuation;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -170,6 +171,13 @@ final class Show extends Component
         $callout = $ranked->count() >= 2 && $ownedTotals[$headCurrency] < $topCard['minor'] * 2
             ? sprintf('%s is %d%% of the set value.', $topCard['card']->name, round($topCard['minor'] / $ownedTotals[$headCurrency] * 100))
             : null;
+        // The set's share of the collection, from the cached collection total (no price row of the rest of the
+        // collection is read here). Only in the collection's own primary currency, only when the set is part of a
+        // larger whole: a set that is all of it, or a figure past it (cards beyond the total's cap), says nothing.
+        $collectionTotals = $headCurrency === null ? [] : app(CollectionTotal::class)->for($public);
+        $share = $headCurrency !== null && $headCurrency === array_key_first($collectionTotals) && $collectionTotals[$headCurrency] > $ownedTotals[$headCurrency]
+            ? max(1, (int) round($ownedTotals[$headCurrency] / $collectionTotals[$headCurrency] * 100))
+            : null;
         $shelf = $ranked->count() > self::SHELF_SIZE
             ? $ranked->take(self::SHELF_SIZE)->map(function (array $p) use ($valuation, $resolver) {
                 $snapshot = $valuation->headlineSnapshot($p['card']);
@@ -208,6 +216,7 @@ final class Show extends Component
             'totalCount' => $totalCount,
             'ownedTotals' => $ownedTotals,
             'callout' => $callout,
+            'share' => $share,
             'shelf' => $shelf,
             'mostValuable' => $mostValuable,
             'rarities' => $rarities,

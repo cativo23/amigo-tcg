@@ -38,6 +38,9 @@
         {{-- The owned value as the page's headline figure (first currency only); one fact beneath it. --}}
         @if ($headCurrency)
             <p class="set-figure">{{ Money::format($ownedTotals[$headCurrency], $headCurrency) }}</p>
+            @if ($share !== null)
+                <p class="set-share">{{ $share }}% of the collection</p>
+            @endif
             @if ($callout !== null)
                 <p class="set-callout">{{ $callout }}</p>
             @endif
