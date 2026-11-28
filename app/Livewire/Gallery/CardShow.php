@@ -16,6 +16,8 @@ use App\Modules\Catalog\Support\CardVariants;
 use App\Modules\Catalog\Support\ChartRange;
 use App\Modules\Catalog\Support\PriceChart;
 use App\Modules\Collection\Models\CollectionItem;
+use App\Modules\Collection\Services\CollectionTotal;
+use App\Modules\Collection\Services\PublicCollection;
 use App\Modules\Collection\Services\Valuation;
 use App\Modules\Collection\Support\VariantChips;
 use Carbon\CarbonImmutable;
@@ -154,6 +156,7 @@ final class CardShow extends Component
         $historyStartsAfterRange = $span['since'] !== null && $span['since'] > $chartRange->start(today())->toDateString();
         $ownedTotal = $items->isNotEmpty() ? $valuation->cardTotal($priced) : null;
         $quantity = (int) $items->sum('quantity');
+        $share = $this->shareOfCollection($public, $ownedTotal);
 
         // Latest reading per source+variant — the full market picture the
         // grid tile only summarises. Sorted so the resolved one leads.
@@ -250,6 +253,7 @@ final class CardShow extends Component
             'canChart' => $span['priced'] >= 2,
             'historySince' => $historyStartsAfterRange ? $history->first()?->captured_on : null,
             'ownedTotal' => $ownedTotal,
+            'share' => $share,
             'marketReads' => $marketReads,
             'images' => $images,
             'related' => $related,
@@ -275,6 +279,31 @@ final class CardShow extends Component
             'ogImage' => $images[0]['url'] ?? null,
             'isOwner' => $this->isOwnerViewing(),
         ]);
+    }
+
+    /**
+     * The card's share of the collection's value, from the cached collection total (no price row of the
+     * rest of the collection is read here). Only in the collection's own primary currency and only when
+     * the card is part of a larger whole: a card that is all of it, or a figure past it (copies beyond
+     * the total's cap), says nothing.
+     *
+     * @param  array<string, int>|null  $ownedTotal  the card's copies by currency
+     */
+    private function shareOfCollection(PublicCollection $public, ?array $ownedTotal): ?int
+    {
+        $currency = $ownedTotal === null ? null : array_key_first(array_filter($ownedTotal));
+
+        if ($currency === null) {
+            return null;
+        }
+
+        $collectionTotals = app(CollectionTotal::class)->for($public);
+
+        if ($currency !== array_key_first($collectionTotals) || $collectionTotals[$currency] <= $ownedTotal[$currency]) {
+            return null;
+        }
+
+        return max(1, (int) round($ownedTotal[$currency] / $collectionTotals[$currency] * 100));
     }
 
     /** Days back the 1-month move looks for its comparison price, and the least history that still counts as a month. */
