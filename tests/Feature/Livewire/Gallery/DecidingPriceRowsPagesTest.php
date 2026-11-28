@@ -275,12 +275,14 @@ test('a gallery page reads price rows only through the deciding query, and not a
     'index' => [Index::class, [], [], 1],
     'index, searched' => [Index::class, [], ['search' => 'Card 1'], 1],
     'sets' => [Sets::class, [], [], 1],
-    'set page' => [Show::class, ['setTcgdexId' => 'me05'], [], 1],
+    // The set page's second deciding query on a miss is the collection total behind its share (CollectionTotal),
+    // which is cached after that and read without a price row on a hit.
+    'set page' => [Show::class, ['setTcgdexId' => 'me05'], [], 2],
     // A search only narrows the grid: the set loads once either way.
-    'set page, searched' => [Show::class, ['setTcgdexId' => 'me05'], ['search' => 'Card'], 1],
+    'set page, searched' => [Show::class, ['setTcgdexId' => 'me05'], ['search' => 'Card'], 2],
     // The missing cards' total prices them from the rows already loaded, pockets shown or not.
-    'set page with missing cards' => [Show::class, ['setTcgdexId' => 'sv08'], [], 1],
-    'set page with missing cards shown' => [Show::class, ['setTcgdexId' => 'sv08'], ['missing' => true], 1],
+    'set page with missing cards' => [Show::class, ['setTcgdexId' => 'sv08'], [], 2],
+    'set page with missing cards shown' => [Show::class, ['setTcgdexId' => 'sv08'], ['missing' => true], 2],
     'activity' => [Activity::class, [], [], 1],
 ]);
 

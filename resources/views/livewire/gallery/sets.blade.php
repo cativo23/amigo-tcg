@@ -6,9 +6,17 @@
     <section class="sts-head" aria-labelledby="sts-title">
         <h1 id="sts-title" class="sts-title">Sets</h1>
         @if ($sets->isNotEmpty())
-            <p class="sts-summary"><span class="sts-mono">{{ $sets->count() }}</span> {{ Str::plural('set', $sets->count()) }} <span class="sts-sep" aria-hidden="true">·</span> newest first</p>
+            <p class="sts-summary"><span class="sts-mono">{{ $sets->count() }}</span> {{ Str::plural('set', $sets->count()) }} <span class="sts-sep" aria-hidden="true">·</span> {{ \App\Livewire\Gallery\Sets::SORTS[$activeSort] }}</p>
+            <nav class="sts-sorts" aria-label="Sort sets">
+                @foreach (['value' => 'Value', 'newest' => 'Newest', 'completion' => 'Completion'] as $key => $label)
+                    <a class="sts-sort" href="{{ route('gallery.sets', ['username' => $targetUser->username] + ($key === 'value' ? [] : ['sort' => $key])) }}" @if ($activeSort === $key) aria-current="true" @endif>{{ $label }}</a>
+                @endforeach
+            </nav>
             @if (collect($setValues)->contains(fn (array $totals) => array_filter($totals) !== []))
                 <p class="sts-note">Approx. TCGplayer market prices.</p>
+            @endif
+            @if ($callout !== null)
+                <p class="sts-callout">{{ $callout }}</p>
             @endif
         @endif
     </section>
@@ -22,7 +30,7 @@
     @else
         {{-- role="list": list-style: none makes WebKit/VoiceOver drop the list semantics otherwise --}}
         <ol class="sts-shelf" role="list">
-            @foreach ($sets as $set)
+            @foreach ($cardSets as $set)
                 @php
                     $owned = (int) $set->owned_card_count;
                     $total = $totals[$set->id];
@@ -57,7 +65,7 @@
                                 <span class="sts-strip">{!! $runs !!}</span>
                                 <span class="sts-row">
                                     <span>Completed <b>{{ $owned }} / {{ $total }} <small>{{ $pct }}%</small></b></span>
-                                    <span class="sts-r">Owned value <b><x-value-totals :totals="$setValues[$set->id]" /></b></span>
+                                    <span class="sts-r">Owned value <b><x-value-totals :totals="$setValues[$set->id]" /></b>@if ($shares->get($set->id) !== null)<span class="sts-share">{{ $shares->get($set->id) }}% of value</span>@endif</span>
                                 </span>
                             </span>
                         </span>
@@ -65,6 +73,13 @@
                 </li>
             @endforeach
         </ol>
+        @if ($tailSets->isNotEmpty())
+            <ol class="sts-table" role="list" aria-label="Sets holding the rest of the value">
+                @foreach ($tailSets as $set)
+                    <x-revamp.set-row :set="$set" :username="$targetUser->username" :totals="$setValues[$set->id]" :share="$shares->get($set->id)" :total="$totals[$set->id]" />
+                @endforeach
+            </ol>
+        @endif
     @endif
 </div>
 

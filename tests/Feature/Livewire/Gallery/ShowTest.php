@@ -7,14 +7,18 @@ use App\Models\User;
 use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Models\CardPriceSnapshot;
 use App\Modules\Catalog\Models\Set;
+use App\Modules\Catalog\Services\DecidingPriceRows;
 use App\Modules\Catalog\Services\WeekBaselines;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
+use App\Modules\Collection\Services\CollectionTotal;
+use App\Modules\Collection\Services\PublicCollection;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use Tests\Support\PriceRowReads;
 use Tests\Support\RevampHtml;
 
 test('shows only owned cards by default, computes stats from the whole set', function () {
@@ -392,7 +396,7 @@ test('the rarity filter lists the set\'s rarities from commonest to rarest', fun
         ->and(strpos($html, '<option value="Uncommon">'))->toBeLessThan(strpos($html, '<option value="Double rare">'));
 });
 
-test('the set page costs the same number of queries for three cards as for thirty, searched or not, with or without pockets', function (array $query, int $fewShown, int $manyShown) {
+test('the set page costs the same number of queries for five cards as for thirty, searched or not, with or without pockets', function (array $query, int $fewShown, int $manyShown) {
     $user = User::factory()->create(['username' => 'demo']);
     $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
     $set = Set::create(['tcgdex_id' => 'sv03.5', 'name' => '151', 'card_count' => 30]);
@@ -422,10 +426,12 @@ test('the set page costs the same number of queries for three cards as for thirt
         return [$count, $entries];
     };
 
-    $add(1, 3);
+    // Card 5 is unowned in the small set too: were every card owned, the collection total would share the
+    // set's own price-row cache entry and save a query only there, which is not a per-card read.
+    $add(1, 5);
     app(WeekBaselines::class)->refreshAll();
     [$few, $fewEntries] = $queriesFor();
-    $add(4, 30);
+    $add(6, 30);
     app(WeekBaselines::class)->refreshAll();
     [$many, $manyEntries] = $queriesFor();
 
@@ -434,9 +440,9 @@ test('the set page costs the same number of queries for three cards as for thirt
         ->and($manyEntries->filter(fn (array $e) => $e['owned'])->every(fn (array $e) => $e['weekDelta']?->deltaMinor === 7))->toBeTrue()
         ->and($many)->toBe($few);
 })->with([
-    'unfiltered' => [[], 3, 24],
-    'searched' => [['search' => 'Card'], 3, 24],
-    'missing shown' => [['missing' => true], 3, 30],
+    'unfiltered' => [[], 4, 24],
+    'searched' => [['search' => 'Card'], 4, 24],
+    'missing shown' => [['missing' => true], 5, 30],
 ]);
 
 test('the set page sits on the revamp shell: Sets is current, its own stylesheets only, indexable', function () {
@@ -808,4 +814,128 @@ test('a missing card priced in another currency is a separate footnote, never ad
     // The dollar figure is #002 alone: #004 is priced only in EUR, so it is not one of the cards the figure covers.
     expect(restOfSet($html))->toBe('The rest of the set: $0.75 for one of each missing card. 1 of 2 missing cards priced.')
         ->and(RevampHtml::note($html))->toBe('Approx. TCGplayer market prices. Also €4.00 priced in EUR, not added to the total. Also €10.00 for missing cards priced in EUR, not added to the total.');
+});
+
+/**
+ * One set, one owned USD-priced card per entry of $dollars, plus a missing card priced at $900 so the owned value
+ * is never confused with the set's whole price.
+ *
+ * @param  list<int>  $dollars
+ */
+function seedOwnedSetWorth(array $dollars): void
+{
+    $user = User::factory()->create(['username' => 'carlos']);
+    $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black', 'card_count' => 50]);
+
+    foreach ($dollars as $i => $dollar) {
+        $card = Card::create(['tcgdex_id' => "me05-{$i}", 'set_id' => $set->id, 'local_id' => (string) ($i + 1), 'name' => "Owned {$i}"]);
+        CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => "me05-{$i}", 'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1]);
+        CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => $dollar * 100]);
+    }
+
+    $missing = Card::create(['tcgdex_id' => 'me05-x', 'set_id' => $set->id, 'local_id' => '49', 'name' => 'Missing Chase']);
+    CardPriceSnapshot::create(['card_id' => $missing->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 90000]);
+}
+
+test('shows the owned value of the set as the headline figure, never the missing cards', function () {
+    seedOwnedSetWorth([50, 10]);
+
+    expect(RevampHtml::text('set-figure', $this->get('/carlos/me05')->getContent()))->toBe('$60.00');
+});
+
+test('shows no headline figure when nothing in the set is priced', function () {
+    $user = User::factory()->create(['username' => 'carlos']);
+    $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
+    $set = Set::create(['tcgdex_id' => 'me05', 'name' => 'Pitch Black', 'card_count' => 5]);
+    $card = Card::create(['tcgdex_id' => 'me05-1', 'set_id' => $set->id, 'local_id' => '1', 'name' => 'Unpriced']);
+    CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-1', 'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1]);
+
+    expect($this->get('/carlos/me05')->getContent())->not->toContain('set-figure');
+});
+
+test('states one fact when a single card is over half of the set value', function () {
+    seedOwnedSetWorth([50, 10]);
+
+    expect(RevampHtml::text('set-callout', $this->get('/carlos/me05')->getContent()))->toBe('Owned 0 is 83% of the set value.');
+});
+
+test('states no fact when no card is over half, or when only one card is priced', function () {
+    seedOwnedSetWorth([10, 10, 10]);
+    expect($this->get('/carlos/me05')->getContent())->not->toContain('set-callout');
+});
+
+test('states no fact for a set with a single priced card', function () {
+    seedOwnedSetWorth([10]);
+    expect($this->get('/carlos/me05')->getContent())->not->toContain('set-callout');
+});
+
+test('shows a shelf of the priciest owned cards when the set holds more than the shelf', function () {
+    seedOwnedSetWorth([1, 2, 3, 4, 5, 6, 7]);
+
+    $html = $this->get('/carlos/me05')->getContent();
+
+    expect(RevampHtml::text('col-sec-t', $html))->toBe('Top cards by value')
+        ->and($html)->toContain('col-shelf-row');
+    preg_match('#col-shelf-row.*?</ol>#s', $html, $m);
+    preg_match_all('/Owned \d/', strip_tags($m[0]), $names);
+    expect(array_values(array_unique($names[0])))->toBe(['Owned 6', 'Owned 5', 'Owned 4', 'Owned 3']);
+});
+
+test('shows no shelf when the grid already shows every owned card the shelf would', function () {
+    seedOwnedSetWorth([1, 2, 3, 4]);
+
+    expect($this->get('/carlos/me05')->getContent())->not->toContain('col-shelf-row');
+});
+
+test('the set page reads the set\'s price rows once, and the collection total from its cache', function () {
+    seedOwnedSetWorth([1, 2, 3, 4, 5, 6, 7]);
+    $public = PublicCollection::for(User::where('username', 'carlos')->first());
+    app(CollectionTotal::class)->refresh($public);
+    // The price rows' own cache would hide a rebuild of the total; only the stored total can answer without a query.
+    Cache::forget(DecidingPriceRows::cacheKey(Card::pluck('id')->all()));
+
+    $reads = PriceRowReads::during(fn () => $this->get('/carlos/me05')->assertOk());
+
+    expect($reads->deciding)->toHaveCount(1)->and($reads->stray)->toBe([]);
+});
+
+test('a cold collection total costs the set page one more deciding read, once', function () {
+    seedOwnedSetWorth([1, 2, 3, 4, 5, 6, 7]);
+    Cache::flush();
+
+    $cold = PriceRowReads::during(fn () => $this->get('/carlos/me05')->assertOk());
+
+    expect($cold->deciding)->toHaveCount(2)->and($cold->stray)->toBe([]);
+});
+
+/** A second set in the same collection, one owned card at $dollars, in $currency. */
+function ownInAnotherSet(int $dollars, string $currency = 'USD'): void
+{
+    $set = Set::create(['tcgdex_id' => 'other', 'name' => 'Other Set', 'card_count' => 10]);
+    $card = Card::create(['tcgdex_id' => 'other-1', 'set_id' => $set->id, 'local_id' => '1', 'name' => 'Elsewhere']);
+    CollectionItem::create(['collection_id' => CollectionItem::query()->value('collection_id'), 'card_id' => $card->id, 'card_tcgdex_id' => 'other-1', 'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1]);
+    CardPriceSnapshot::create(['card_id' => $card->id, 'source' => $currency === 'USD' ? 'tcgplayer' : 'cardmarket', 'variant' => 'normal', 'captured_on' => today(), 'currency' => $currency, 'market_minor' => $dollars * 100]);
+}
+
+test('states the set share of the collection value, in the same currency only', function () {
+    seedOwnedSetWorth([50, 10]);
+    ownInAnotherSet(40);
+
+    expect(RevampHtml::text('set-share', $this->get('/carlos/me05')->getContent()))->toBe('60% of the collection');
+});
+
+test('states no share when the set is the whole collection', function () {
+    seedOwnedSetWorth([50, 10]);
+
+    expect($this->get('/carlos/me05')->getContent())->not->toContain('set-share');
+});
+
+test('states no share when the set is priced in a currency other than the collection\'s', function () {
+    seedOwnedSetWorth([50, 10]);
+    // The set's value is USD here, so move the collection's primary currency by making the set EUR-only instead.
+    CardPriceSnapshot::query()->where('market_minor', '<', 90000)->update(['currency' => 'EUR', 'source' => 'cardmarket']);
+    ownInAnotherSet(40);
+
+    expect($this->get('/carlos/me05')->getContent())->not->toContain('set-share');
 });
