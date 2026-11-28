@@ -8,12 +8,14 @@ use App\Livewire\Gallery\Concerns\ResolvesPublicCollection;
 use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Models\Set;
 use App\Modules\Catalog\Services\DecidingPriceRows;
+use App\Modules\Catalog\Support\Completion;
 use App\Modules\Catalog\Support\PrintedStrip;
 use App\Modules\Collection\Models\CollectionItem;
 use App\Modules\Collection\Services\PublicCollection;
 use App\Modules\Collection\Services\Valuation;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 /** Sets are collections within the collection: completion, a mini printed strip and owned value per set. */
@@ -21,6 +23,11 @@ use Livewire\Component;
 final class Sets extends Component
 {
     use ResolvesPublicCollection;
+
+    public const SORTS = ['value' => 'by value', 'newest' => 'newest first', 'completion' => 'most complete'];
+
+    #[Url(except: 'value')]
+    public string $sort = 'value';
 
     public function mount(string $username): void
     {
@@ -62,11 +69,33 @@ final class Sets extends Component
             $set->id => $valuation->totalsByCurrency($ownedBySet->get($set->id, collect())),
         ]);
 
+        $sort = array_key_exists($this->sort, self::SORTS) ? $this->sort : 'value';
+        $primary = array_key_first(Valuation::order(array_reduce(
+            $setValues->all(),
+            function (array $sum, array $totals): array {
+                foreach ($totals as $currency => $minor) {
+                    $sum[$currency] = ($sum[$currency] ?? 0) + $minor;
+                }
+
+                return $sum;
+            },
+            [],
+        )));
+
         // What tcgdex reports for the set, else what the catalogue holds. The
         // strip and the printed "x / y" both read this one figure.
         $totals = $sets->mapWithKeys(fn (Set $set) => [
             $set->id => (int) ($set->card_count ?: $set->getAttribute('real_card_count')),
         ]);
+
+        // The query's order is newest first (name among equals); the other sorts keep it as the tie-break
+        // because sortBy is stable.
+        $sets = match ($sort) {
+            'value' => $sets->sortByDesc(fn (Set $set) => $primary === null ? 0 : ($setValues[$set->id][$primary] ?? 0)),
+            'completion' => $sets->sortByDesc(fn (Set $set) => Completion::percent((int) $set->owned_card_count, $totals->get($set->id, 0))),
+            default => $sets,
+        };
+        $sets = $sets->values();
 
         // The same slot rule as the set page's strip, compressed into runs.
         $strips = $sets->mapWithKeys(fn (Set $set) => [
@@ -80,6 +109,7 @@ final class Sets extends Component
             'setValues' => $setValues,
             'totals' => $totals,
             'strips' => $strips,
+            'activeSort' => $sort,
         ])->layoutData([
             'title' => "Sets · {$name}'s collection",
             'description' => "The {$sets->count()} Pokémon TCG sets in {$name}'s collection, with completion and owned value per set.",

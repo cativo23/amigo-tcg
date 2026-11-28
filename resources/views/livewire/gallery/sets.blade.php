@@ -6,7 +6,12 @@
     <section class="sts-head" aria-labelledby="sts-title">
         <h1 id="sts-title" class="sts-title">Sets</h1>
         @if ($sets->isNotEmpty())
-            <p class="sts-summary"><span class="sts-mono">{{ $sets->count() }}</span> {{ Str::plural('set', $sets->count()) }} <span class="sts-sep" aria-hidden="true">·</span> newest first</p>
+            <p class="sts-summary"><span class="sts-mono">{{ $sets->count() }}</span> {{ Str::plural('set', $sets->count()) }} <span class="sts-sep" aria-hidden="true">·</span> {{ \App\Livewire\Gallery\Sets::SORTS[$activeSort] }}</p>
+            <nav class="sts-sorts" aria-label="Sort sets">
+                @foreach (['value' => 'Value', 'newest' => 'Newest', 'completion' => 'Completion'] as $key => $label)
+                    <a class="sts-sort" href="{{ route('gallery.sets', ['username' => $targetUser->username] + ($key === 'value' ? [] : ['sort' => $key])) }}" @if ($activeSort === $key) aria-current="true" @endif>{{ $label }}</a>
+                @endforeach
+            </nav>
             @if (collect($setValues)->contains(fn (array $totals) => array_filter($totals) !== []))
                 <p class="sts-note">Approx. TCGplayer market prices.</p>
             @endif
