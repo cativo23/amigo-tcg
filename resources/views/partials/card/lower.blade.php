@@ -20,6 +20,10 @@
             @endif
         </div>
 
+        @if ($share !== null)
+            <p class="crd-vshare">about {{ $share }}% of the collection</p>
+        @endif
+
         @if (! $owned)
             <p class="crd-note-text">This card is in <a href="{{ $setUrl }}">{{ $card->set->name }}</a>, but not in {{ $targetUser->username }}'s collection yet.</p>
         @elseif ($switcher && $items->isEmpty())

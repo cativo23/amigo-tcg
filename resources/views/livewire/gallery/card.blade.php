@@ -68,6 +68,12 @@
             @endif
 
             @include('partials.card.market')
+            @if ($quote !== null)
+                <figure class="crd-quote">
+                    <blockquote><p class="crd-quote-text">{{ $quote }}</p></blockquote>
+                    <figcaption>{{ $collectorName }}'s note</figcaption>
+                </figure>
+            @endif
             @include('partials.card.history')
         </section>
     </div>

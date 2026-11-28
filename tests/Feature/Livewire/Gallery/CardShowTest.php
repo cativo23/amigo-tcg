@@ -9,18 +9,23 @@ use App\Models\User;
 use App\Modules\Catalog\Models\Card;
 use App\Modules\Catalog\Models\CardPriceSnapshot;
 use App\Modules\Catalog\Models\Set;
+use App\Modules\Catalog\Services\DecidingPriceRows;
 use App\Modules\Catalog\Services\WeekBaselines;
 use App\Modules\Catalog\Support\ChartRange;
 use App\Modules\Catalog\Support\PriceChart;
 use App\Modules\Catalog\Support\Rarity;
 use App\Modules\Collection\Models\Collection;
 use App\Modules\Collection\Models\CollectionItem;
+use App\Modules\Collection\Services\CollectionTotal;
+use App\Modules\Collection\Services\PublicCollection;
 use App\Modules\Collection\Services\Valuation;
 use App\Support\DayLabel;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
+use Tests\Support\PriceRowReads;
 use Tests\Support\RevampHtml;
 
 function seedCardPage(bool $public = true): array
@@ -709,6 +714,155 @@ test('the headline price carries both its 1-day and its 7-day move', function ()
         ->and($page->viewData('weekDelta')?->previous->capturedOnKey())->toBe(today()->subDays(7)->toDateString());
 });
 
+/** A priced tcgplayer holofoil row for the seeded card, $ago days back. */
+function seedHeadlineRowDaysAgo(int $ago, int $minor): void
+{
+    CardPriceSnapshot::create(['card_id' => Card::where('tcgdex_id', 'me05-116')->value('id'), 'source' => 'tcgplayer', 'variant' => 'holofoil', 'captured_on' => today()->subDays($ago), 'currency' => 'USD', 'market_minor' => $minor]);
+}
+
+test('the headline tag shows a 1-month move against the price a month back, in the drop colour for a fall', function () {
+    seedMovedHeadline(); // $40.00 today
+    seedHeadlineRowDaysAgo(30, 5555);
+    $month = DayLabel::of(today()->subDays(30));
+
+    $page = cardPageOf();
+
+    expect($page->viewData('monthDelta')?->deltaMinor)->toBe(-1555)
+        ->and($page->html())->toContain("<span class=\"crd-seg price-move price-move--down\" title=\"Since {$month}\">▼ \u{2212}\$15.55 · 1M</span>");
+});
+
+test('a flat month reads as no change, with no glyph and no colour', function () {
+    seedMovedHeadline();
+    seedHeadlineRowDaysAgo(30, 4000);
+
+    expect(cardPageOf()->html())->toContain('· 1M</span>')->toContain("\u{00B1}\$0.00 · 1M")
+        ->and(cardPageOf()->html())->not->toContain('price-move--down">▼ ±');
+});
+
+test('a card with under four weeks of history has no 1-month move', function () {
+    seedMovedHeadline(); // history starts 7 days back
+    seedHeadlineRowDaysAgo(20, 3900);
+
+    $page = cardPageOf();
+
+    expect($page->viewData('monthDelta'))->toBeNull()
+        ->and($page->html())->not->toContain('· 1M');
+});
+
+test('the 1-month move does not follow the chart range tab', function () {
+    seedMovedHeadline();
+    seedHeadlineRowDaysAgo(30, 5555);
+
+    expect(cardPageOf()->call('selectRange', '7d')->viewData('monthDelta')?->deltaMinor)->toBe(-1555);
+});
+
+/** A second set in the collection with one owned card worth $dollars, in $currency, so the seeded card is not the whole of it. */
+function ownElsewhereInTheCollection(int $dollars, string $currency = 'USD'): void
+{
+    $set = Set::create(['tcgdex_id' => 'elsewhere', 'name' => 'Elsewhere Set', 'card_count' => 10]);
+    $card = Card::create(['tcgdex_id' => 'elsewhere-1', 'set_id' => $set->id, 'local_id' => '1', 'name' => 'Faraway']);
+    CollectionItem::create(['collection_id' => DB::table('collections')->value('id'), 'card_id' => $card->id, 'card_tcgdex_id' => 'elsewhere-1', 'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1]);
+    CardPriceSnapshot::create(['card_id' => $card->id, 'source' => $currency === 'USD' ? 'tcgplayer' : 'cardmarket', 'variant' => $currency === 'USD' ? 'normal' : 'default', 'captured_on' => today(), 'currency' => $currency, 'market_minor' => $dollars * 100]);
+}
+
+test('the card states its share of the collection value, rounded and hedged', function () {
+    seedMovedHeadline(); // the card is worth $40.00
+    ownElsewhereInTheCollection(60);
+
+    expect(RevampHtml::text('crd-vshare', $this->get('/carlos/me05/116')->getContent()))->toBe('about 40% of the collection');
+});
+
+test('the share counts every copy of the card, not the selected print', function () {
+    seedMovedHeadline(); // one holofoil copy, $40.00
+    CollectionItem::create(['collection_id' => DB::table('collections')->value('id'), 'card_id' => Card::where('tcgdex_id', 'me05-116')->value('id'), 'card_tcgdex_id' => 'me05-116', 'variant' => 'holofoil', 'condition' => 'LP', 'quantity' => 1]);
+    ownElsewhereInTheCollection(80); // $80.00 in this card's two copies against $80.00 elsewhere
+
+    expect(RevampHtml::text('crd-vshare', $this->get('/carlos/me05/116?variant=holofoil')->getContent()))->toBe('about 50% of the collection');
+});
+
+test('the share is omitted for a card priced in another currency than the collection total', function () {
+    $seed = seedCardPage();
+    CollectionItem::create(['collection_id' => $seed['collection']->id, 'card_id' => $seed['card']->id, 'card_tcgdex_id' => 'me05-116', 'condition' => 'NM', 'quantity' => 1]);
+    CardPriceSnapshot::create(['card_id' => $seed['card']->id, 'source' => 'cardmarket', 'variant' => 'default', 'captured_on' => today(), 'currency' => 'EUR', 'market_minor' => 2000]);
+    ownElsewhereInTheCollection(60);
+
+    expect($this->get('/carlos/me05/116')->getContent())->not->toContain('crd-vshare');
+});
+
+test('the share is omitted when the card is the whole collection', function () {
+    seedMovedHeadline();
+
+    expect($this->get('/carlos/me05/116')->getContent())->not->toContain('crd-vshare');
+});
+
+test('the share is omitted for a card the collector does not own', function () {
+    seedCardPage();
+    ownElsewhereInTheCollection(60);
+    CardPriceSnapshot::create(['card_id' => Card::where('tcgdex_id', 'me05-116')->value('id'), 'source' => 'tcgplayer', 'variant' => 'holofoil', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 4000]);
+
+    expect($this->get('/carlos/me05/116')->getContent())->not->toContain('crd-vshare');
+});
+
+test('a warm collection total adds no deciding price read to the card page, a cold one adds one', function () {
+    seedMovedHeadline();
+    ownElsewhereInTheCollection(60);
+    $public = PublicCollection::for(User::where('username', 'carlos')->first());
+    app(CollectionTotal::class)->refresh($public);
+    // The price rows' own cache would hide a rebuild of the total; only the stored total can answer without a query.
+    Cache::forget(DecidingPriceRows::cacheKey(Card::pluck('id')->all()));
+
+    $warm = PriceRowReads::during(fn () => $this->get('/carlos/me05/116')->assertOk());
+
+    Cache::flush();
+    $cold = PriceRowReads::during(fn () => $this->get('/carlos/me05/116')->assertOk());
+
+    expect($warm->deciding)->toHaveCount(0)->and($cold->deciding)->toHaveCount(1);
+});
+
+/** Writes a note on the seeded card's one copy. */
+function noteTheCopy(string $note): void
+{
+    CollectionItem::query()->update(['notes' => $note]);
+}
+
+test('the collector\'s note is set as a quote before the price chart', function () {
+    seedMovedHeadline(); // priced on three days, so the chart renders
+    noteTheCopy('My first pull on my first pack ever!');
+
+    $html = $this->get('/carlos/me05/116')->getContent();
+
+    expect(RevampHtml::text('crd-quote-text', $html))->toBe('My first pull on my first pack ever!')
+        ->and(strpos($html, 'crd-quote'))->toBeLessThan(strpos($html, 'class="crd-history"'));
+});
+
+test('the quote shows a note written as text, never as markup', function () {
+    seedMovedHeadline();
+    noteTheCopy('<script>alert(1)</script> traded at a league');
+
+    $html = $this->get('/carlos/me05/116')->getContent();
+
+    expect(html_entity_decode(RevampHtml::text('crd-quote-text', $html)))->toBe('<script>alert(1)</script> traded at a league')
+        ->and($html)->not->toContain('<script>alert(1)</script>')
+        ->and($html)->toContain('&lt;script&gt;alert(1)&lt;/script&gt; traded at a league');
+});
+
+test('a card with no note has no quote', function () {
+    seedMovedHeadline();
+
+    expect($this->get('/carlos/me05/116')->getContent())->not->toContain('crd-quote');
+});
+
+test('the quote takes the note of the selected print, and falls back to another copy\'s', function () {
+    seedMovedHeadline(); // one holofoil copy
+    $card = Card::where('tcgdex_id', 'me05-116')->first();
+    CollectionItem::query()->update(['notes' => 'The holo one']);
+    CollectionItem::create(['collection_id' => DB::table('collections')->value('id'), 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'variant' => 'reverse-holofoil', 'condition' => 'NM', 'quantity' => 1, 'notes' => 'The reverse one']);
+    CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'tcgplayer', 'variant' => 'reverse-holofoil', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 900]);
+
+    expect(RevampHtml::text('crd-quote-text', $this->get('/carlos/me05/116?variant=reverse-holofoil')->getContent()))->toBe('The reverse one')
+        ->and(RevampHtml::text('crd-quote-text', $this->get('/carlos/me05/116?variant=holofoil')->getContent()))->toBe('The holo one');
+});
+
 test('without a stored week baseline the headline has no 7-day move', function () {
     seedMovedHeadline();
     DB::table('card_price_week_baselines')->delete();
@@ -729,6 +883,8 @@ test('a manual headline price never has a 7-day move', function () {
 
 test('the 7-day move costs the page one read of the week-baseline table, and no more', function () {
     seedMovedHeadline();
+    // A cold collection total reads the table through the deciding rows; this test is about the move's own read.
+    app(CollectionTotal::class)->refresh(PublicCollection::for(User::where('username', 'carlos')->first()));
 
     $reads = [];
     DB::listen(function ($query) use (&$reads) {

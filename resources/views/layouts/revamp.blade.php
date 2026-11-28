@@ -65,6 +65,9 @@
                     <a href="{{ route('gallery.index', ['username' => $username]) }}" @if ($isActive('gallery.index', 'gallery.card')) aria-current="page" @endif>Collection</a>
                     <a href="{{ route('gallery.sets', ['username' => $username]) }}" @if ($isActive('gallery.sets', 'gallery.show')) aria-current="page" @endif>Sets</a>
                     <a href="{{ route('gallery.activity', ['username' => $username]) }}" @if ($isActive('gallery.activity')) aria-current="page" @endif>Activity</a>
+                    @if (config('features.decks') && Route::has('gallery.decks'))
+                        <a href="{{ route('gallery.decks', ['username' => $username]) }}" @if ($isActive('gallery.decks')) aria-current="page" @endif>Decks</a>
+                    @endif
                 </nav>
             @endif
             <div class="bar-end">

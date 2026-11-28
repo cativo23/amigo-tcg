@@ -42,6 +42,42 @@ test('the bar names the three collector pages and marks the one you are on', fun
     'activity' => ['/carlos/activity', 'Activity'],
 ]);
 
+test('the wordmark leads the bar, before Collection, Sets and Activity in that order', function () {
+    $html = revampPage('/carlos');
+    $positions = array_map(
+        fn (string $needle) => strpos($html, $needle),
+        ['class="mark"', 'class="bar-nav"', '>Collection</a>', '>Sets</a>', '>Activity</a>'],
+    );
+
+    expect($positions)->each->not->toBeFalse()
+        ->and($positions)->toBe(collect($positions)->sort()->values()->all());
+});
+
+test('the decks flag is off by default', function () {
+    expect(config('features.decks'))->toBeFalse();
+});
+
+test('the nav does not link Decks until the feature exists', function () {
+    expect(revampPage('/carlos'))->not->toContain('Decks');
+});
+
+test('the nav links Decks, after Activity, when the flag is on and the decks page exists', function () {
+    config(['features.decks' => true]);
+    Route::get('/{username}/decks', fn () => '')->name('gallery.decks');
+    Route::getRoutes()->refreshNameLookups();
+
+    $html = revampPage('/carlos');
+
+    expect($html)->toContain('href="'.route('gallery.decks', ['username' => 'carlos']).'"')
+        ->and(strpos($html, '>Decks</a>'))->toBeGreaterThan(strpos($html, '>Activity</a>'));
+});
+
+test('the flag alone never renders a link to a page that does not exist', function () {
+    config(['features.decks' => true]);
+
+    expect(revampPage('/carlos'))->not->toContain('Decks');
+});
+
 test('the brand links to the collector\'s collection when there is a username, to the landing otherwise', function () {
     $page = revampPage('/carlos');
     expect($page)->toContain('<a class="mark" href="'.route('gallery.index', ['username' => 'carlos']).'">');

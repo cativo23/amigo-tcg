@@ -46,7 +46,7 @@
                         $lines[] = [['entered '.DayLabel::of($read->captured_on), null, 'Price entered by hand']];
                     } elseif ($newestMarketDay && $read->capturedOnKey() < $frozenBefore) {
                         $lines[] = [['as of '.DayLabel::of($read->captured_on), null, 'This source has not updated since']];
-                    } elseif ($isResolved && ($delta || $weekDelta)) {
+                    } elseif ($isResolved && ($delta || $weekDelta || $monthDelta)) {
                         $moves = [];
                         if ($delta) {
                             $gap = (int) abs($delta->latest->captured_on->diffInDays($delta->previous->captured_on));
@@ -54,6 +54,9 @@
                         }
                         if ($weekDelta) {
                             $moves[] = [trim(Money::glyph($weekDelta->deltaMinor).' '.Money::move($weekDelta->deltaMinor, $read->currency)).' · 7d', $weekDelta->isUp() ? 'up' : ($weekDelta->isDown() ? 'down' : 'flat'), 'Since '.DayLabel::of($weekDelta->previous->captured_on)];
+                        }
+                        if ($monthDelta) {
+                            $moves[] = [trim(Money::glyph($monthDelta->deltaMinor).' '.Money::move($monthDelta->deltaMinor, $read->currency)).' · 1M', $monthDelta->isUp() ? 'up' : ($monthDelta->isDown() ? 'down' : 'flat'), 'Since '.DayLabel::of($monthDelta->previous->captured_on)];
                         }
                         $lines[] = $moves;
                         if ($read->low_minor !== null) {
