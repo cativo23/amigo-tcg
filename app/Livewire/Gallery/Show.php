@@ -33,6 +33,9 @@ final class Show extends Component
 
     private const SORTS = ['number', 'value', 'name', 'rarity'];
 
+    /** The shelf of priciest cards only appears once the set holds more priced cards than it shows. */
+    private const SHELF_SIZE = 4;
+
     public Set $set;
 
     #[Url(except: '')]
@@ -155,6 +158,31 @@ final class Show extends Component
             ->sortByDesc(fn ($p) => $p['snapshot']->market_minor)
             ->first();
 
+        // The set's value head: the owned value's first currency leads; a card priced in another currency is
+        // never ranked against it. One card holding over half of it is the page's one fact.
+        $headCurrency = array_key_first(array_filter($ownedTotals));
+        $ranked = $headCurrency === null ? collect() : $ownedCards
+            ->map(fn (Card $card) => ['card' => $card, 'minor' => $valuation->cardTotal($card)[$headCurrency] ?? 0])
+            ->filter(fn (array $p) => $p['minor'] > 0)
+            ->sortByDesc('minor')
+            ->values();
+        $topCard = $ranked->first();
+        $callout = $ranked->count() >= 2 && $ownedTotals[$headCurrency] < $topCard['minor'] * 2
+            ? sprintf('%s is %d%% of the set value.', $topCard['card']->name, round($topCard['minor'] / $ownedTotals[$headCurrency] * 100))
+            : null;
+        $shelf = $ranked->count() > self::SHELF_SIZE
+            ? $ranked->take(self::SHELF_SIZE)->map(function (array $p) use ($valuation, $resolver) {
+                $snapshot = $valuation->headlineSnapshot($p['card']);
+
+                return [
+                    'card' => $p['card'],
+                    'snapshot' => $snapshot,
+                    'weekDelta' => $resolver->weekDeltaFor($p['card'], $snapshot),
+                    'items' => $p['card']->collectionItems,
+                ];
+            })
+            : collect();
+
         $totalCount = $this->set->card_count ?: $cards->count();
         // The completion figure is the sets list's too: it never rounds a real, nonzero owned count down to 0%.
         $percent = Completion::percent($ownedCount, $totalCount);
@@ -179,6 +207,8 @@ final class Show extends Component
             'ownedCount' => $ownedCount,
             'totalCount' => $totalCount,
             'ownedTotals' => $ownedTotals,
+            'callout' => $callout,
+            'shelf' => $shelf,
             'mostValuable' => $mostValuable,
             'rarities' => $rarities,
             // The pockets the toggle can reveal: imported cards the collector does not own. Cards the

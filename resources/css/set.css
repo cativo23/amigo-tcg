@@ -143,3 +143,7 @@
   .set-pocket:hover, .set-pocket:focus-visible { transform: none; }
   .set-pocket:hover .set-pocket-face, .set-pocket:focus-visible .set-pocket-face { box-shadow: inset 0 0 0 1px var(--color-rule-2), 0 0 0 2px var(--color-ink); }
 }
+
+/* Value head: the owned value as the headline figure, one fact beneath it. */
+.set-figure { margin: var(--space-sm) 0 0; white-space: nowrap; font: 820 min(var(--text-figure), 18vw)/.9 var(--font-display); font-variation-settings: "wdth" 62; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.set-callout { margin: var(--space-2xs) 0 var(--space-sm); font-size: var(--text-md); color: var(--color-ink); }

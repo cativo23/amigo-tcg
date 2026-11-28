@@ -35,6 +35,14 @@
             @endif
         </div>
 
+        {{-- The owned value as the page's headline figure (first currency only); one fact beneath it. --}}
+        @if ($headCurrency)
+            <p class="set-figure">{{ Money::format($ownedTotals[$headCurrency], $headCurrency) }}</p>
+            @if ($callout !== null)
+                <p class="set-callout">{{ $callout }}</p>
+            @endif
+        @endif
+
         {{-- The collection's summary line, led by the set's code (abbreviation, else the tcgdex id) in small mono. --}}
         <p class="col-summary"><span class="set-code">{{ $setCode }}</span> <span class="col-sep" aria-hidden="true">·</span> <span class="set-chunk"><span class="col-mono">{{ $ownedCount }}</span> of <span class="col-mono">{{ $totalCount }}</span> {{ Str::plural('card', $totalCount) }}</span>@if ($headCurrency) <span class="col-sep" aria-hidden="true">·</span> <span class="set-chunk"><span class="col-mono">{{ Money::format($ownedTotals[$headCurrency], $headCurrency) }}</span></span>@endif @if ($set->released_on) <span class="col-sep" aria-hidden="true">·</span> <span class="set-chunk">released <span class="col-mono">{{ $set->released_on->format('M Y') }}</span></span>@endif</p>
         {{-- What the rest of the set costs: one of each card not owned, never the filtered grid; a fact, not a quote. --}}
@@ -66,6 +74,10 @@
             <span class="set-strip-pct" aria-hidden="true">{{ $percent }}%</span>
         </div>
     </section>
+
+    @if ($shelf->isNotEmpty())
+        <x-revamp.top-shelf :entries="$shelf" :username="$targetUser->username" />
+    @endif
 
     <section class="set-binder" aria-label="Cards">
         <div class="set-sheet">
