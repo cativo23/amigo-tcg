@@ -10,6 +10,7 @@ use App\Modules\Catalog\Models\CardPriceSnapshot;
 use App\Modules\Catalog\Models\Set;
 use App\Modules\Catalog\Services\CardPriceResolver;
 use App\Modules\Catalog\Services\DecidingPriceRows;
+use App\Modules\Catalog\Services\PriceDelta;
 use App\Modules\Catalog\Services\WeekBaselines;
 use App\Modules\Catalog\Support\CardVariants;
 use App\Modules\Catalog\Support\ChartRange;
@@ -17,6 +18,7 @@ use App\Modules\Catalog\Support\PriceChart;
 use App\Modules\Collection\Models\CollectionItem;
 use App\Modules\Collection\Services\Valuation;
 use App\Modules\Collection\Support\VariantChips;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -145,6 +147,7 @@ final class CardShow extends Component
         $weekDelta = $snapshot !== null
             ? $resolver->weekDeltaFor($priced, app(WeekBaselines::class)->attach($snapshot))
             : null;
+        $monthDelta = $this->monthDeltaFor($resolver, $snapshot);
         $chartRange = ChartRange::fromInput($this->range);
         $history = $resolver->historyIn($snapshot, $chartRange->start(today()));
         $span = $resolver->historySpan($snapshot);
@@ -241,6 +244,7 @@ final class CardShow extends Component
                 ->map(fn (CardPriceSnapshot $s): array => ['day' => $s->capturedOnKey(), 'minor' => (int) $s->market_minor])
                 ->all(), step: $snapshot?->source === 'manual'),
             'weekDelta' => $weekDelta,
+            'monthDelta' => $monthDelta,
             'hasMarket' => $marketEmpty === null,
             'marketEmpty' => $marketEmpty,
             'canChart' => $span['priced'] >= 2,
@@ -271,6 +275,33 @@ final class CardShow extends Component
             'ogImage' => $images[0]['url'] ?? null,
             'isOwner' => $this->isOwnerViewing(),
         ]);
+    }
+
+    /** Days back the 1-month move looks for its comparison price, and the least history that still counts as a month. */
+    private const MONTH_DAYS = 30;
+
+    private const MONTH_MIN_DAYS = 28;
+
+    /**
+     * The headline's move against the earliest priced day of the last month, independent of the chart's
+     * range. One bounded read of this card's own series; null for a hand-entered price or when the series
+     * does not reach back about four weeks, so a young card never calls a week a month.
+     */
+    private function monthDeltaFor(CardPriceResolver $resolver, ?CardPriceSnapshot $latest): ?PriceDelta
+    {
+        if ($latest === null || $latest->market_minor === null || $latest->source === 'manual') {
+            return null;
+        }
+
+        $latestDay = CarbonImmutable::parse($latest->capturedOnKey());
+        $earliest = $resolver->historyIn($latest, $latestDay->subDays(self::MONTH_DAYS))->first();
+
+        if ($earliest === null || $earliest->market_minor === null
+            || CarbonImmutable::parse($earliest->capturedOnKey())->gt($latestDay->subDays(self::MONTH_MIN_DAYS))) {
+            return null;
+        }
+
+        return new PriceDelta($latest, $earliest, $latest->market_minor - $earliest->market_minor);
     }
 
     /**

@@ -709,6 +709,48 @@ test('the headline price carries both its 1-day and its 7-day move', function ()
         ->and($page->viewData('weekDelta')?->previous->capturedOnKey())->toBe(today()->subDays(7)->toDateString());
 });
 
+/** A priced tcgplayer holofoil row for the seeded card, $ago days back. */
+function seedHeadlineRowDaysAgo(int $ago, int $minor): void
+{
+    CardPriceSnapshot::create(['card_id' => Card::where('tcgdex_id', 'me05-116')->value('id'), 'source' => 'tcgplayer', 'variant' => 'holofoil', 'captured_on' => today()->subDays($ago), 'currency' => 'USD', 'market_minor' => $minor]);
+}
+
+test('the headline tag shows a 1-month move against the price a month back, in the drop colour for a fall', function () {
+    seedMovedHeadline(); // $40.00 today
+    seedHeadlineRowDaysAgo(30, 5555);
+    $month = DayLabel::of(today()->subDays(30));
+
+    $page = cardPageOf();
+
+    expect($page->viewData('monthDelta')?->deltaMinor)->toBe(-1555)
+        ->and($page->html())->toContain("<span class=\"crd-seg price-move price-move--down\" title=\"Since {$month}\">▼ \u{2212}\$15.55 · 1M</span>");
+});
+
+test('a flat month reads as no change, with no glyph and no colour', function () {
+    seedMovedHeadline();
+    seedHeadlineRowDaysAgo(30, 4000);
+
+    expect(cardPageOf()->html())->toContain('· 1M</span>')->toContain("\u{00B1}\$0.00 · 1M")
+        ->and(cardPageOf()->html())->not->toContain('price-move--down">▼ ±');
+});
+
+test('a card with under four weeks of history has no 1-month move', function () {
+    seedMovedHeadline(); // history starts 7 days back
+    seedHeadlineRowDaysAgo(20, 3900);
+
+    $page = cardPageOf();
+
+    expect($page->viewData('monthDelta'))->toBeNull()
+        ->and($page->html())->not->toContain('· 1M');
+});
+
+test('the 1-month move does not follow the chart range tab', function () {
+    seedMovedHeadline();
+    seedHeadlineRowDaysAgo(30, 5555);
+
+    expect(cardPageOf()->call('selectRange', '7d')->viewData('monthDelta')?->deltaMinor)->toBe(-1555);
+});
+
 test('without a stored week baseline the headline has no 7-day move', function () {
     seedMovedHeadline();
     DB::table('card_price_week_baselines')->delete();
