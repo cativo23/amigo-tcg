@@ -16,6 +16,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The Sets page ranks sets by value by default, with Newest and Completion one
+  link away (`?sort=`). Each set shows its share of the collection's value in
+  the primary currency, a line names where the value sits (`Pitch Black holds
+  42% of the value.`), and the sets that hold most of it are cards while the
+  rest become a compact table with the value on the right. No extra price reads.
 - The Activity page leads with the collection's value as the headline figure and
   its move over the chosen range, labelled `collection value`, above the chart.
   The chart's line and that move start on the first day most of today's priced

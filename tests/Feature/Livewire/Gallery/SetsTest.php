@@ -13,6 +13,7 @@ use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
+use Tests\Support\PriceRowReads;
 use Tests\Support\RevampHtml;
 
 /**
@@ -478,4 +479,88 @@ test('the head offers the three sorts as plain links and marks the current one',
         ->and($html)->toContain('/demo/sets?sort=completion"')
         ->and($html)->toMatch('#href="[^"]*/demo/sets"#')
         ->and($html)->toMatch('/aria-current="true"[^>]*>\s*Newest/');
+});
+
+/**
+ * One owned, USD-priced card per set, one set per entry of $dollars (whole dollars), newest last.
+ *
+ * @param  list<int>  $dollars
+ */
+function seedSetsWorth(array $dollars): void
+{
+    $user = User::factory()->create(['username' => 'demo', 'name' => 'Demo']);
+    $collection = Collection::factory()->for($user)->create(['is_public' => true, 'slug' => 'main']);
+
+    foreach ($dollars as $i => $dollar) {
+        $set = Set::create(['tcgdex_id' => "s{$i}", 'name' => "Set {$i}", 'card_count' => 10, 'released_on' => now()->subDays(100 - $i)]);
+        $card = Card::create(['tcgdex_id' => "s{$i}-1", 'set_id' => $set->id, 'local_id' => '1', 'name' => "Card {$i}"]);
+        CollectionItem::create(['collection_id' => $collection->id, 'card_id' => $card->id, 'card_tcgdex_id' => "s{$i}-1", 'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1]);
+        CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'tcgplayer', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => $dollar * 100]);
+    }
+}
+
+test('shows each set share of the collection value, in the primary currency only', function () {
+    seedSetsInThreeOrders();
+    // A set priced only in EUR has no share: amounts in two currencies are never compared.
+    $eur = Set::create(['tcgdex_id' => 'eur', 'name' => 'Euro Only', 'card_count' => 10, 'released_on' => '2024-01-01']);
+    $card = Card::create(['tcgdex_id' => 'eur-1', 'set_id' => $eur->id, 'local_id' => '1', 'name' => 'Euro Card']);
+    CollectionItem::create(['collection_id' => CollectionItem::query()->value('collection_id'), 'card_id' => $card->id, 'card_tcgdex_id' => 'eur-1', 'variant' => 'normal', 'condition' => 'NM', 'quantity' => 1]);
+    CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'cardmarket', 'variant' => 'normal', 'captured_on' => today(), 'currency' => 'EUR', 'market_minor' => 9000]);
+
+    $html = $this->get('/demo/sets')->getContent();
+
+    expect(stsTexts($html, 'sts-share'))->toBe(['67% of value', '27% of value', '7% of value']);
+});
+
+test('lists the sets holding most of the value as cards and the rest as a compact table', function () {
+    // 100 of 193 is 52%; two sets reach 78%, past 75%, but three cards is the floor.
+    seedSetsWorth([1, 1, 1, 2, 3, 5, 10, 20, 50, 100]);
+
+    $html = $this->get('/demo/sets')->getContent();
+
+    expect(stsTexts($html, 'sts-name'))->toBe(['Set 9', 'Set 8', 'Set 7'])
+        ->and(stsTexts($html, 'sts-trow-name'))->toBe(['Set 6', 'Set 5', 'Set 4', 'Set 3', 'Set 2', 'Set 1', 'Set 0']);
+});
+
+test('caps the value cards at six however evenly the value is spread', function () {
+    seedSetsWorth([10, 10, 10, 10, 10, 10, 10, 10]);
+
+    $html = $this->get('/demo/sets')->getContent();
+
+    expect(stsTexts($html, 'sts-name'))->toHaveCount(6)
+        ->and(stsTexts($html, 'sts-trow-name'))->toHaveCount(2);
+});
+
+test('the newest and completion sorts list every set as a card, with no table', function () {
+    seedSetsWorth([1, 1, 1, 2, 3, 5, 10, 20, 50, 100]);
+
+    $html = $this->get('/demo/sets?sort=newest')->getContent();
+
+    expect(stsTexts($html, 'sts-name'))->toHaveCount(10)
+        ->and(stsTexts($html, 'sts-trow-name'))->toBe([]);
+});
+
+test('states one fact about where the value sits', function () {
+    seedSetsInThreeOrders();
+
+    expect(stsTexts($this->get('/demo/sets')->getContent(), 'sts-callout'))->toBe(['Old Gold holds 67% of the value.']);
+});
+
+test('states no fact when only one set carries a price', function () {
+    seedSetsWorth([40]);
+
+    expect(stsTexts($this->get('/demo/sets')->getContent(), 'sts-callout'))->toBe([]);
+});
+
+test('ranking by value adds no price read: one deciding query, nothing stray, in every sort', function () {
+    seedSetsWorth([1, 1, 1, 2, 3, 5, 10, 20, 50, 100]);
+
+    foreach (['value', 'newest', 'completion'] as $sort) {
+        // Cold: a warm price cache would read nothing and hide a regression.
+        Cache::flush();
+        $reads = PriceRowReads::during(fn () => $this->get("/demo/sets?sort={$sort}")->assertOk());
+
+        expect($reads->deciding)->toHaveCount(1, "sort={$sort}")
+            ->and($reads->stray)->toBe([], "sort={$sort}");
+    }
 });
