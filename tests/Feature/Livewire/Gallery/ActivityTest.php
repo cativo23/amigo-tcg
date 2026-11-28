@@ -773,7 +773,7 @@ test('the page sits on the revamp shell: Activity marked in the nav, its own sty
         ->and($html)->toContain('<meta name="description" content="Price movements and recent additions in Carlos&#039;s Pokémon TCG collection.">');
 });
 
-test('the head is the word Activity and one summary line; other currencies go to a note', function () {
+test('the head is the word Activity, the headline figure and one dating line; other currencies go to a note', function () {
     activitySeedFeed();
     $card = Card::create(['tcgdex_id' => 'me05-050', 'set_id' => Set::where('tcgdex_id', 'me05')->sole()->id, 'local_id' => '050', 'name' => 'Card me05-050']);
     CollectionItem::create(['collection_id' => Collection::withoutGlobalScopes()->where('slug', 'main')->sole()->id, 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-050', 'condition' => 'NM', 'quantity' => 1]);
@@ -782,7 +782,8 @@ test('the head is the word Activity and one summary line; other currencies go to
     $html = $this->get('/carlos/activity')->getContent();
 
     expect($html)->toContain('<h1 id="act-h" class="act-who">Activity</h1>')
-        ->and(RevampHtml::text('act-summary', $html))->toBe('$20.50 on '.DayLabel::of(today()))
+        ->and(RevampHtml::text('act-v act-figure', $html))->toStartWith('$20.50')
+        ->and(RevampHtml::text('act-summary', $html))->toBe('Prices as of '.DayLabel::of(today()))
         ->and(RevampHtml::text('act-note', $html))->toBe('Approx. TCGplayer market prices. Also €3.30 priced in EUR, not added to the total.')
         ->and($html)->not->toContain('collection history');
 });
@@ -924,7 +925,7 @@ test('the chart is drawn on the server, and a rise over the range is green', fun
     $points = json_decode($m[1] ?? '[]', true);
     preg_match('#<div class="act-chart"[^>]*>#', $html, $slider);
 
-    expect($html)->toContain('<small class="act-move price-move price-move--up">▲ +$1.00 · 1 month</small>')
+    expect($html)->toContain('<small class="act-move price-move price-move--up">▲ +$1.00 · collection value · 1 month</small>')
         ->and($html)->toContain('class="act-end act-end--up"')
         ->and($html)->not->toContain('chart--down')
         ->and($html)->toContain('preserveAspectRatio="none" aria-hidden="true">')
@@ -946,7 +947,7 @@ test('a range that ended lower draws the line, area, end dot and move in the dro
 
     $html = $this->get('/carlos/activity')->getContent();
 
-    expect($html)->toContain("<small class=\"act-move price-move price-move--down\">▼ \u{2212}\$1.00 · 1 month</small>")
+    expect($html)->toContain("<small class=\"act-move price-move price-move--down\">▼ \u{2212}\$1.00 · collection value · 1 month</small>")
         ->and($html)->toContain('<path class="act-area chart--down"')
         ->and($html)->toContain('<path class="act-line chart--down"')
         ->and($html)->toContain('class="act-end chart--down"')
@@ -959,7 +960,7 @@ test('a range that ended flat stays neutral with no glyph and no drop class', fu
 
     $html = $this->get('/carlos/activity')->getContent();
 
-    expect($html)->toContain("<small class=\"act-move price-move price-move--flat\">\u{00B1}\$0.00 · 1 month</small>")
+    expect($html)->toContain("<small class=\"act-move price-move price-move--flat\">\u{00B1}\$0.00 · collection value · 1 month</small>")
         ->and($html)->not->toContain('chart--down')
         ->and($html)->not->toContain('price-move--down');
 });
@@ -1001,4 +1002,87 @@ test('the feed draws no green dot and colours a fall in the drop token, not the 
         ->and($css)->toMatch('/\.act-line\.chart--down\s*\{[^}]*stroke:\s*var\(--color-drop\)/')
         ->and($css)->toMatch('/\.act-area\.chart--down\s*\{[^}]*fill:\s*var\(--color-drop\)/')
         ->and($css)->toMatch('/\.act-end\.chart--down\s*\{[^}]*background:\s*var\(--color-drop\)/');
+});
+
+test('the headline figure and the range move come before the chart, once', function () {
+    ownedCardPricedDaysAgo([5 => 1000, 0 => 1300]);
+
+    $html = $this->get('/carlos/activity')->assertOk()->getContent();
+    $move = '<small class="act-move price-move price-move--up">▲ +$3.00 · collection value · 1 month</small>';
+
+    expect(RevampHtml::text('act-v act-figure', $html))->toBe('$13.00 ▲ +$3.00 · collection value · 1 month')
+        ->and(substr_count($html, $move))->toBe(1)
+        ->and(strpos($html, $move))->toBeLessThan(strpos($html, 'id="act-chart-panel"'))
+        ->and(strpos($html, 'class="act-v act-figure"'))->toBeLessThan(strpos($html, 'class="act-tabs"'));
+});
+
+/** $count owned copies, each of a card priced $minor today, all added now. */
+function activitySmallAdditions(int $count, int $minor = 30): void
+{
+    foreach (range(1, $count) as $i) {
+        ownedCardPricedDaysAgo([0 => $minor], "me05-s{$i}");
+    }
+}
+
+test('small additions of a day collapse into one row that says how many, where, and how small', function () {
+    activitySmallAdditions(4, 30);
+    ownedCardPricedDaysAgo([0 => 533], 'me05-901');
+    CollectionItem::query()->where('card_tcgdex_id', 'me05-901')->update(['created_at' => now()->subMinutes(5)]);
+
+    $html = $this->get('/carlos/activity')->assertOk()->getContent();
+
+    expect(RevampHtml::text('act-rt act-grp-t', $html))->toBe('4 small additions')
+        ->and(RevampHtml::text('act-rs act-grp-s', $html))->toBe('Pitch Black · each $0.30 or less')
+        ->and(RevampHtml::text('act-sec-t', $html))->toBe('Latest · 5 updates')
+        ->and($html)->toContain('Card me05-901')
+        // Collapsed: the four are not listed until asked for.
+        ->and($html)->not->toContain('Card me05-s1');
+});
+
+test('a group opens with show all and closes again, and lists every member', function () {
+    activitySmallAdditions(4, 30);
+    $key = today()->toDateString().'|USD';
+
+    $page = Livewire::test(Activity::class, ['username' => 'carlos'])
+        ->assertSee('Show all')
+        ->assertDontSee('Card me05-s3');
+
+    $page->call('toggleGroup', $key)
+        ->assertSee('Hide')
+        ->assertSee('Card me05-s1')->assertSee('Card me05-s2')->assertSee('Card me05-s3')->assertSee('Card me05-s4');
+
+    $page->call('toggleGroup', $key)->assertDontSee('Card me05-s3')->assertSee('Show all');
+});
+
+test('toggleGroup ignores anything that is not a group key', function () {
+    activitySmallAdditions(3, 30);
+
+    $page = Livewire::test(Activity::class, ['username' => 'carlos'])
+        ->call('toggleGroup', ['2026-01-01|USD'])
+        ->call('toggleGroup', 'not a key')
+        ->call('toggleGroup', 7);
+
+    expect($page->get('openGroups'))->toBe([]);
+});
+
+test('a bulk import cannot push a notable addition out of the feed or shrink its own count', function () {
+    activitySmallAdditions(60, 30);
+    ownedCardPricedDaysAgo([0 => 533], 'me05-901');
+    CollectionItem::query()->where('card_tcgdex_id', 'me05-901')->update(['created_at' => now()->subMinutes(5)]);
+
+    $page = Livewire::test(Activity::class, ['username' => 'carlos']);
+    $rows = $page->viewData('feed');
+
+    expect($rows->where('type', 'group')->sole()['count'])->toBe(60)
+        ->and($rows->where('kind', 'added')->map(fn (array $e) => $e['card']->tcgdex_id)->values()->all())->toBe(['me05-901'])
+        ->and($page->viewData('feedCount'))->toBe(61);
+});
+
+test('a lone small addition keeps its row instead of becoming a group of one', function () {
+    activitySmallAdditions(1, 30);
+
+    $page = Livewire::test(Activity::class, ['username' => 'carlos']);
+
+    expect($page->viewData('feed')->pluck('type')->all())->toBe(['entry'])
+        ->and($page->html())->not->toContain('small additions');
 });

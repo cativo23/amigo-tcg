@@ -1,7 +1,5 @@
-@use('App\Modules\Catalog\Support\CardImage')
-@use('App\Modules\Catalog\Support\CardVariants')
 @use('App\Modules\Catalog\Support\ChartRange')
-@use('App\Modules\Catalog\Support\Rarity')
+@use('App\Modules\Collection\Services\CollectionCover')
 @use('App\Modules\Collection\Support\ValueChart')
 @use('App\Support\DayLabel')
 @use('App\Support\Money')
@@ -9,6 +7,9 @@
 @php
     $headCurrency = array_key_first(array_filter($totals));
     $otherTotals = collect(array_filter($totals))->except($headCurrency);
+    // The line's two ends, as drawn: after the coverage guard, so the move is the move of what the chart shows.
+    $first = $chart ? $series->first()['minor'] : null;
+    $last = $chart ? $series->last()['minor'] : null;
     // A move's sign comes from Money::move (true minus for a fall, ± for none). Colour is the view's job:
     // a rise is the accent, a fall is --color-flat, nothing else is coloured.
 @endphp
@@ -17,7 +18,12 @@
     <section class="act-head" aria-labelledby="act-h">
         <h1 id="act-h" class="act-who">Activity</h1>
         @if ($headCurrency)
-            <p class="act-summary"><span class="act-mono">{{ Money::format($totals[$headCurrency], $headCurrency) }}</span>@if ($updatedAt) on <span class="act-mono">{{ DayLabel::of($updatedAt) }}</span>@endif</p>
+            <p class="act-v act-figure">{{ Money::format($totals[$headCurrency], $headCurrency) }} @if ($chart)<small class="act-move price-move price-move--{{ $chart->up ? 'up' : ($chart->down ? 'down' : 'flat') }}">{{ trim(Money::glyph($last - $first).' '.Money::move($last - $first, $primaryCurrency)) }} · {{ CollectionCover::MOVE_LABEL }} · {{ $chartRange->label() }}</small>@endif</p>
+            @if ($updatedAt)
+                <p class="act-summary">Prices as of <span class="act-mono">{{ DayLabel::of($updatedAt) }}</span></p>
+            @endif
+        @else
+            <p class="act-v act-figure">No prices yet</p>
         @endif
         @if ($headCurrency || $otherTotals->isNotEmpty())
             <p class="act-note">@if ($headCurrency)Approx. TCGplayer market prices.@endif @foreach ($otherTotals as $currency => $minor)Also {{ Money::format($minor, $currency) }} priced in {{ $currency }}, not added to the total. @endforeach</p>
@@ -36,11 +42,7 @@
                 <div>
                     <h2 class="act-k" id="act-cv-h">Collection value · {{ $chartRange->label() }}</h2>
                     @if ($chart)
-                        @php $first = $series->first()['minor']; $last = $series->last()['minor']; @endphp
-                        <p class="act-v">{{ Money::format($last, $primaryCurrency) }} <small class="act-move price-move price-move--{{ $chart->up ? 'up' : ($chart->down ? 'down' : 'flat') }}">{{ trim(Money::glyph($last - $first).' '.Money::move($last - $first, $primaryCurrency)) }} · {{ $chartRange->label() }}</small></p>
                         <p class="act-span act-mono">{{ DayLabel::of($series->first()['date']) }} – {{ DayLabel::of($series->last()['date']) }}</p>
-                    @else
-                        <p class="act-v">{{ $headCurrency ? Money::format($totals[$headCurrency], $headCurrency) : 'No prices yet' }}</p>
                     @endif
                 </div>
                 {{-- The slot shows pointer and keyboard readings to the eye; only a keyboard reading reaches a screen reader, through the slider's aria-valuetext, so a mouse sweep does not flood it. --}}
@@ -91,40 +93,38 @@
         </div>
 
         @forelse ($days as $day)
-            @php $dayKey = $day['date']->toDateString(); $dayCount = $day['entries']->count(); @endphp
+            @php $dayKey = $day['date']->toDateString(); $dayCount = $day['entries']->sum(fn (array $row) => $row['type'] === 'group' ? $row['count'] : 1); @endphp
             <section class="act-day" style="--i: {{ $loop->index }}" wire:key="day-{{ $dayKey }}">
                 <h3 class="act-dtab" id="act-day-{{ $dayKey }}"><b>{{ DayLabel::of($day['date']) }}</b><span class="sr-only">, </span><span>{{ $dayCount }} {{ Str::plural('update', $dayCount) }}</span></h3>
                 {{-- role="list": list-style: none makes WebKit/VoiceOver drop the list semantics otherwise --}}
                 <ul class="act-dsheet" role="list">
                     @foreach ($day['entries'] as $entry)
-                        @php
-                            $card = $entry['card'];
-                            $href = $card && $card->set ? route('gallery.card', ['username' => $targetUser->username, 'setTcgdexId' => $card->set->tcgdex_id, 'localId' => $card->local_id]) : null;
-                            $thumb = CardImage::tile($card?->official_image_url);
-                            // The key and wire:ignore keep a morph from rewriting a retried picture's src or putting back one the script removed.
-                            $rowKey = $entry['kind'] === 'move' ? 'move-'.$card->id : 'added-'.$entry['item']->id;
-                        @endphp
-                        <li class="act-row" wire:key="{{ $rowKey }}">
-                            <span class="act-thumb" wire:ignore>
-                                @if ($thumb)<img src="{{ $thumb }}" alt="" width="46" height="64" loading="lazy" decoding="async">@endif
-                                @if ($entry['kind'] === 'added')<span class="act-plus" aria-hidden="true">+</span>@endif
-                            </span>
-                            @if ($entry['kind'] === 'move')
-                                @php $delta = $entry['delta']; $up = $delta->isUp(); @endphp
+                        @if ($entry['type'] === 'group')
+                            @php
+                                // The key is the one toggleGroup() takes: day and currency name one group.
+                                $groupKey = $entry['day']->toDateString().'|'.$entry['currency'];
+                                $isOpen = in_array($groupKey, $openGroups, true);
+                            @endphp
+                            <li class="act-row act-grp" wire:key="group-{{ $groupKey }}">
+                                <span class="act-thumb act-grp-mark" aria-hidden="true"><span class="act-plus">+</span></span>
                                 <div class="act-body">
-                                    <p class="act-rt">@if ($href)<a href="{{ $href }}">{{ $card->name }} <span class="act-mono">#{{ $card->local_id }}</span></a>@else{{ $card->name }} <span class="act-mono">#{{ $card->local_id }}</span>@endif <span class="act-verb">{{ $up ? 'went up' : 'went down' }}</span></p>
-                                    <p class="act-rs">{{ Rarity::label($card->rarity) ?: 'Card' }} · {{ $card->set?->name }} · {{ $delta->latest->sourceLabel() }}</p>
+                                    <p class="act-rt act-grp-t">{{ $entry['count'] }} small additions</p>
+                                    <p class="act-rs act-grp-s">{{ $entry['setName'] }} · each {{ Money::format($entry['maxMinor'], $entry['currency']) }} or less</p>
                                 </div>
-                                <p class="act-amt {{ $up ? 'act-amt--up' : 'act-amt--down' }}">{{ trim(Money::glyph($delta->deltaMinor).' '.Money::move($delta->deltaMinor, $delta->latest->currency)) }} <small>now {{ Money::format($delta->latest->market_minor, $delta->latest->currency) }}</small></p>
-                            @else
-                                @php $item = $entry['item']; $snapshot = $entry['snapshot']; @endphp
-                                <div class="act-body">
-                                    <p class="act-rt"><span class="act-verb">Added</span> @if ($href)<a href="{{ $href }}">{{ $card->name }}</a>@else{{ $card?->name ?? 'a card' }}@endif @if ($item->quantity > 1)<span class="act-mono">×{{ $item->quantity }}</span>@endif</p>
-                                    <p class="act-rs">{{ $card?->set?->name }} · {{ $item->grade_company ? $item->grade_company.' '.$item->grade_value : $item->condition }}@if ($item->variant) · {{ CardVariants::label($item->variant) }}@endif</p>
-                                </div>
-                                @if ($snapshot && $snapshot->market_minor !== null)<p class="act-amt">{{ Money::format($snapshot->market_minor, $snapshot->currency) }}</p>@endif
+                                <button type="button" class="act-grp-toggle" wire:click="toggleGroup('{{ $groupKey }}')" aria-expanded="{{ $isOpen ? 'true' : 'false' }}">{{ $isOpen ? 'Hide' : 'Show all' }}</button>
+                            </li>
+                            @if ($isOpen)
+                                <li class="act-grp-members" wire:key="members-{{ $groupKey }}">
+                                    <ul class="act-grp-list" role="list">
+                                        @foreach ($entry['entries'] as $member)
+                                            <x-revamp.activity-row :entry="$member" :username="$targetUser->username" />
+                                        @endforeach
+                                    </ul>
+                                </li>
                             @endif
-                        </li>
+                        @else
+                            <x-revamp.activity-row :entry="$entry" :username="$targetUser->username" />
+                        @endif
                     @endforeach
                 </ul>
             </section>

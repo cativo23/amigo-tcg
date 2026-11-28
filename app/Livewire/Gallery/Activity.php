@@ -12,14 +12,17 @@ use App\Modules\Catalog\Services\PriceDelta;
 use App\Modules\Catalog\Support\ChartRange;
 use App\Modules\Catalog\Support\MarketplaceSync;
 use App\Modules\Collection\Models\CollectionItem;
+use App\Modules\Collection\Services\ActivityFeedGrouper;
 use App\Modules\Collection\Services\CollectionCover;
 use App\Modules\Collection\Services\CollectionValueSeries;
+use App\Modules\Collection\Services\PublicCollection;
 use App\Modules\Collection\Services\Valuation;
 use App\Modules\Collection\Support\ValueChart;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -32,7 +35,26 @@ final class Activity extends Component
 {
     use ResolvesPublicCollection;
 
+    /** How many rows the feed lists: a group of small additions is one row. */
     private const MAX_FEED = 40;
+
+    /**
+     * How many of the newest copies the feed looks at, so that a bulk import is
+     * counted whole and the few notable cards in it are found. Only the newest
+     * MAX_FEED may bring a card the headline did not load; the rest are read
+     * from the cards it already priced.
+     */
+    private const MAX_ITEMS = PublicCollection::MAX_CARDS;
+
+    /**
+     * The groups of small additions the visitor opened, as `{day}|{currency}`
+     * keys. Locked: only toggleGroup() changes it, and it only ever holds a
+     * key it was given in that shape.
+     *
+     * @var list<string>
+     */
+    #[Locked]
+    public array $openGroups = [];
 
     /**
      * The smallest price move the feed lists, in minor units of the move's
@@ -57,6 +79,17 @@ final class Activity extends Component
         if (is_string($key)) {
             $this->range = $key;
         }
+    }
+
+    public function toggleGroup(mixed $key): void
+    {
+        if (! is_string($key) || preg_match('/^\d{4}-\d{2}-\d{2}\|[A-Z]{3}$/', $key) !== 1) {
+            return;
+        }
+
+        $this->openGroups = in_array($key, $this->openGroups, true)
+            ? array_values(array_diff($this->openGroups, [$key]))
+            : [...$this->openGroups, $key];
     }
 
     public function mount(string $username): void
@@ -105,15 +138,17 @@ final class Activity extends Component
             })
             ->filter();
 
-        // Copies added in one bulk action share a created_at, so the id breaks the tie: the cap keeps the newest of them, not whichever the database hands back first.
-        $items = $public->itemsQuery()->orderByDesc('id')->take(self::MAX_FEED)->get();
+        // Copies added in one bulk action share a created_at, so the id breaks the tie: the window keeps the newest of them, not whichever the database hands back first.
+        $items = $public->itemsQuery()->orderByDesc('id')->take(self::MAX_ITEMS)->get();
 
         // An added copy's card is almost always one the headline already
         // loaded, price rows included: reuse it, so its rows are neither
-        // loaded nor resolved twice. Only a card past the cap is loaded
-        // here, in one batch through the same deciding-rows query.
+        // loaded nor resolved twice. Only a card past the cap, and only for
+        // the newest MAX_FEED copies, is loaded here, in one batch through
+        // the same deciding-rows query; an older copy of such a card is left
+        // out, so the window never costs more price reads than the feed did.
         $loaded = $cards->keyBy('id');
-        $missing = $items->pluck('card_id')->unique()->diff($loaded->keys())->values();
+        $missing = $items->take(self::MAX_FEED)->pluck('card_id')->unique()->diff($loaded->keys())->values();
 
         if ($missing->isNotEmpty()) {
             $loaded = $loaded->union(app(DecidingPriceRows::class)->loadOnto(
@@ -121,6 +156,7 @@ final class Activity extends Component
             )->keyBy('id'));
         }
 
+        $items = $items->filter(fn (CollectionItem $item) => $loaded->has($item->card_id))->values();
         $items->each(fn (CollectionItem $item) => $item->setRelation('card', $loaded->get($item->card_id)));
 
         $additions = $items
@@ -144,22 +180,27 @@ final class Activity extends Component
             ]);
 
         // Newest first. Every move of a day carries that day's midnight, so
-        // moves of the same day go biggest first, equal ones by card id, so
-        // the database's card order never decides what the cap keeps. Small
-        // moves were dropped above, before this cap, so they never take one
-        // of its slots.
-        $feed = $moves->concat($additions)
-            ->sort(fn (array $a, array $b) => [$b['at']->timestamp ?? 0, self::size($b), $a['card']->id] <=> [$a['at']->timestamp ?? 0, self::size($a), $b['card']->id])
-            ->take(self::MAX_FEED)
+        // moves of the same day go biggest first, then the newest copy, then
+        // the oldest card, so the database's order never decides what the cap
+        // keeps. Small moves were dropped above, before this cap, so they
+        // never take one of its slots.
+        /** @var Collection<int, array<string, mixed>> $sorted */
+        $sorted = $moves->concat($additions)
+            ->sort(fn (array $a, array $b) => [$b['at']->timestamp ?? 0, self::size($b), self::copyId($b), $a['card']->id] <=> [$a['at']->timestamp ?? 0, self::size($a), self::copyId($a), $b['card']->id])
             ->values();
 
-        // Display only: the same entries in the same order, cut into one
+        // Small additions of a day become one row, so a bulk import neither
+        // buries the notable cards in it nor takes the cap's slots; the cap
+        // counts rows. Their threshold is the one for moves: under $1.00.
+        $feed = ActivityFeedGrouper::group($sorted, self::MIN_MOVE_MINOR)->take(self::MAX_FEED)->values();
+
+        // Display only: the same rows in the same order, cut into one
         // group per calendar day (a move's day is its latest price's day,
         // an addition's the day it was added). An entry without a time is
         // only possible in the types (captured_on is NOT NULL, every copy
         // gets created_at); it groups at the epoch, last, where the sort put it.
         $days = $feed
-            ->groupBy(fn (array $entry) => ($entry['at'] ?? CarbonImmutable::createFromTimestamp(0))->toDateString())
+            ->groupBy(fn (array $entry): string => (string) ($entry['at'] ?? CarbonImmutable::createFromTimestamp(0))->toDateString())
             ->map(fn (Collection $entries, string|int $day) => ['date' => CarbonImmutable::parse((string) $day), 'entries' => $entries->values()])
             ->values();
 
@@ -181,7 +222,8 @@ final class Activity extends Component
             // moves could read "0 price moves" directly above a feed
             // showing real "Added <card>" entries. This is what's
             // actually listed below.
-            'feedCount' => $feed->count(),
+            'feedCount' => (int) $feed->sum(fn (array $row) => $row['type'] === 'group' ? $row['count'] : 1),
+            'openGroups' => $this->openGroups,
             'days' => $days,
             'updatedAt' => $updatedAt,
             'totals' => $totals,
@@ -209,5 +251,18 @@ final class Activity extends Component
         $delta = $entry['delta'] ?? null;
 
         return $delta instanceof PriceDelta ? abs($delta->deltaMinor) : 0;
+    }
+
+    /**
+     * The id of the copy a feed entry adds, to put the newest of copies added
+     * together first; a price move has none.
+     *
+     * @param  array<string, mixed>  $entry
+     */
+    private static function copyId(array $entry): int
+    {
+        $item = $entry['item'] ?? null;
+
+        return $item instanceof CollectionItem ? (int) $item->id : 0;
     }
 }

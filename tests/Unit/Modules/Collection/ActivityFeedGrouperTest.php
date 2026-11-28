@@ -8,6 +8,7 @@ use App\Modules\Catalog\Models\Set;
 use App\Modules\Collection\Models\CollectionItem;
 use App\Modules\Collection\Services\ActivityFeedGrouper;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 const GROUPER_THRESHOLD = 100;
@@ -166,4 +167,16 @@ test('a group is named after its set when one set has most of it, else it says s
 
 test('an empty feed is an empty list', function () {
     expect(grouped([]))->toHaveCount(0);
+});
+
+test('it takes the time of a copy as the model carries it', function () {
+    $entries = [addedEntry(1, 30, '2026-11-23 10:00:00'), addedEntry(2, 30, '2026-11-23 09:00:00')];
+    // A model's created_at is an Illuminate Carbon, not an immutable one.
+    $entries = array_map(fn (array $e) => [...$e, 'at' => Carbon::parse($e['at']->toDateTimeString(), 'UTC')], $entries);
+
+    $row = grouped($entries)->sole();
+
+    expect($row['type'])->toBe('group')
+        ->and($row['day']->toDateString())->toBe('2026-11-23')
+        ->and($row['day'])->toBeInstanceOf(CarbonImmutable::class);
 });

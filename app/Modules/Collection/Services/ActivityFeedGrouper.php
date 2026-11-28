@@ -86,7 +86,8 @@ final class ActivityFeedGrouper
     /** @param  array<string, mixed>  $entry */
     private static function dayOf(array $entry): CarbonImmutable
     {
-        return ($entry['at'] ?? CarbonImmutable::createFromTimestamp(0))->startOfDay();
+        // The entry's time is whatever Carbon the model carries; the day is its calendar date.
+        return CarbonImmutable::parse(($entry['at'] ?? CarbonImmutable::createFromTimestamp(0))->toDateString());
     }
 
     /**
