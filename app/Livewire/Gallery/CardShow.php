@@ -191,6 +191,9 @@ final class CardShow extends Component
             ? $items
             : $items->filter(fn ($item) => (string) $item->variant === (string) $selected['variant'])->values();
 
+        // The collector's own words about this card: the selected print's first note, else any copy's.
+        $quote = ($shownItems->first(fn ($item) => filled($item->notes)) ?? $items->first(fn ($item) => filled($item->notes)))?->notes;
+
         $photos = $items
             ->filter(fn ($item) => $item->photo_path !== null)
             ->map(fn ($item) => [
@@ -254,6 +257,8 @@ final class CardShow extends Component
             'historySince' => $historyStartsAfterRange ? $history->first()?->captured_on : null,
             'ownedTotal' => $ownedTotal,
             'share' => $share,
+            'quote' => $quote,
+            'collectorName' => $name,
             'marketReads' => $marketReads,
             'images' => $images,
             'related' => $related,

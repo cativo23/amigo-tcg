@@ -16,6 +16,14 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- The card page's market value tag adds a 1-month move (`▼ −$15.55 · 1M`) next
+  to the 1-day and 7-day ones, shown once the card has about four weeks of
+  price history. It does not follow the chart's range tabs.
+- The card page says what share of the collection's value the card is (`about
+  40% of the collection`, in the collection's main currency only, and not when
+  the card is the whole collection). It reads the cached collection total, so a
+  warm page loads no extra price rows.
+- The card page sets the collector's note as a quote above the price chart.
 - A set page leads with the value you own in that set as its headline figure,
   with one line when a single card is over half of it (`Mega Darkrai ex is 83%
   of the set value.`), its share of the collection (`60% of the collection`, in

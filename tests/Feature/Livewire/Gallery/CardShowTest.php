@@ -819,6 +819,50 @@ test('a warm collection total adds no deciding price read to the card page, a co
     expect($warm->deciding)->toHaveCount(0)->and($cold->deciding)->toHaveCount(1);
 });
 
+/** Writes a note on the seeded card's one copy. */
+function noteTheCopy(string $note): void
+{
+    CollectionItem::query()->update(['notes' => $note]);
+}
+
+test('the collector\'s note is set as a quote before the price chart', function () {
+    seedMovedHeadline(); // priced on three days, so the chart renders
+    noteTheCopy('My first pull on my first pack ever!');
+
+    $html = $this->get('/carlos/me05/116')->getContent();
+
+    expect(RevampHtml::text('crd-quote-text', $html))->toBe('My first pull on my first pack ever!')
+        ->and(strpos($html, 'crd-quote'))->toBeLessThan(strpos($html, 'class="crd-history"'));
+});
+
+test('the quote shows a note written as text, never as markup', function () {
+    seedMovedHeadline();
+    noteTheCopy('<script>alert(1)</script> traded at a league');
+
+    $html = $this->get('/carlos/me05/116')->getContent();
+
+    expect(html_entity_decode(RevampHtml::text('crd-quote-text', $html)))->toBe('<script>alert(1)</script> traded at a league')
+        ->and($html)->not->toContain('<script>alert(1)</script>')
+        ->and($html)->toContain('&lt;script&gt;alert(1)&lt;/script&gt; traded at a league');
+});
+
+test('a card with no note has no quote', function () {
+    seedMovedHeadline();
+
+    expect($this->get('/carlos/me05/116')->getContent())->not->toContain('crd-quote');
+});
+
+test('the quote takes the note of the selected print, and falls back to another copy\'s', function () {
+    seedMovedHeadline(); // one holofoil copy
+    $card = Card::where('tcgdex_id', 'me05-116')->first();
+    CollectionItem::query()->update(['notes' => 'The holo one']);
+    CollectionItem::create(['collection_id' => DB::table('collections')->value('id'), 'card_id' => $card->id, 'card_tcgdex_id' => 'me05-116', 'variant' => 'reverse-holofoil', 'condition' => 'NM', 'quantity' => 1, 'notes' => 'The reverse one']);
+    CardPriceSnapshot::create(['card_id' => $card->id, 'source' => 'tcgplayer', 'variant' => 'reverse-holofoil', 'captured_on' => today(), 'currency' => 'USD', 'market_minor' => 900]);
+
+    expect(RevampHtml::text('crd-quote-text', $this->get('/carlos/me05/116?variant=reverse-holofoil')->getContent()))->toBe('The reverse one')
+        ->and(RevampHtml::text('crd-quote-text', $this->get('/carlos/me05/116?variant=holofoil')->getContent()))->toBe('The holo one');
+});
+
 test('without a stored week baseline the headline has no 7-day move', function () {
     seedMovedHeadline();
     DB::table('card_price_week_baselines')->delete();
