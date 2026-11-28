@@ -76,7 +76,9 @@
                     <p class="act-no-hist">A value chart appears once two daily price snapshots exist.</p>
                 @endif
             </div>
-            @if ($chart && $historySince)
+            @if ($chart && $linePricedSince)
+                <p class="act-since">The line starts on {{ $linePricedSince->format('j M') }}, the first day most of these cards had a price.</p>
+            @elseif ($chart && $historySince)
                 <p class="act-since">History since <span class="act-mono">{{ DayLabel::of($historySince) }}</span></p>
             @endif
         </div>

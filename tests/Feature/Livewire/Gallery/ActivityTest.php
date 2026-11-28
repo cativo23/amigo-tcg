@@ -411,6 +411,40 @@ test('history older than the range does not claim a start', function () {
     $this->get('/carlos/activity?range=6m')->assertDontSee('History since');
 });
 
+/** 10 owned cards: 4 priced from ten days ago (40 %), the other 6 from five days ago (100 %). */
+function activityLateCoverage(): void
+{
+    foreach (range(1, 10) as $i) {
+        ownedCardPricedDaysAgo([($i <= 4 ? 10 : 5) => 1000], sprintf('me05-4%02d', $i));
+    }
+}
+
+test('the value line starts on the first day with 90 percent of the priced cards priced, like the collection cover', function () {
+    activityLateCoverage();
+
+    $series = Livewire::test(Activity::class, ['username' => 'carlos'])->viewData('series');
+
+    expect($series->first()['date']->toDateString())->toBe(today()->subDays(5)->toDateString())
+        ->and($series->every(fn (array $p) => $p['minor'] === 10000))->toBeTrue();
+});
+
+test('the head says where the line starts when the coverage guard cut it, and the move is of what is drawn', function () {
+    activityLateCoverage();
+
+    $html = $this->get('/carlos/activity')->assertOk()->getContent();
+
+    expect(RevampHtml::text('act-since', $html))->toBe('The line starts on '.today()->subDays(5)->format('j M').', the first day most of these cards had a price.')
+        // Drawn from the first covered day the value never moved: the move is flat, not the +$60.00 the raw series would claim.
+        ->and($html)->toContain('±$0.00')
+        ->and($html)->not->toContain('+$60.00');
+});
+
+test('the line-starts note replaces the history-since note, never both', function () {
+    activityLateCoverage();
+
+    $this->get('/carlos/activity')->assertDontSee('History since');
+});
+
 test('two days of history chart on every range', function (string $range) {
     ownedCardPricedDaysAgo([0 => 300, 2 => 200]);
 

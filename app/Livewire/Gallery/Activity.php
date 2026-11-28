@@ -12,6 +12,7 @@ use App\Modules\Catalog\Services\PriceDelta;
 use App\Modules\Catalog\Support\ChartRange;
 use App\Modules\Catalog\Support\MarketplaceSync;
 use App\Modules\Collection\Models\CollectionItem;
+use App\Modules\Collection\Services\CollectionCover;
 use App\Modules\Collection\Services\CollectionValueSeries;
 use App\Modules\Collection\Services\Valuation;
 use App\Modules\Collection\Support\ValueChart;
@@ -71,7 +72,15 @@ final class Activity extends Component
 
         $seriesService = new CollectionValueSeries($valuation);
         $chartRange = ChartRange::fromInput($this->range);
-        ['cards' => $cards, 'totals' => $totals, 'currency' => $primaryCurrency, 'series' => $series, 'earliest' => $earliest] = $seriesService->forPublicCollection($public, $chartRange);
+
+        // The collection page's cover draws its line through the same guard, so both pages start
+        // the line, and measure its move, on the first day most of the cards had a price.
+        $cover = (new CollectionCover($seriesService))->for($public, $chartRange);
+        $cards = $cover->cards;
+        $totals = $cover->totals;
+        $primaryCurrency = $cover->currency;
+        $series = $cover->series;
+        $earliest = $primaryCurrency === null ? null : $seriesService->earliestDay($cards);
 
         $moves = $cards
             ->map(function (Card $card) use ($resolver, $valuation) {
@@ -158,8 +167,9 @@ final class Activity extends Component
         // collection page dates its own.
         $updatedAt = MarketplaceSync::latestDay(MarketplaceSync::rows($cards));
 
+        // At most one start note: where the guard cut the line, else where the history itself begins.
         $startsAfterRange = $earliest !== null && $earliest->toDateString() > $chartRange->start(today())->toDateString();
-        $historySince = $series->isNotEmpty() && $startsAfterRange ? $series->first()['date'] : null;
+        $historySince = $cover->linePricedSince === null && $series->isNotEmpty() && $startsAfterRange ? $series->first()['date'] : null;
 
         $name = $this->collectorName();
 
@@ -179,6 +189,7 @@ final class Activity extends Component
             'primaryCurrency' => $primaryCurrency,
             'chartRange' => $chartRange,
             'historySince' => $historySince,
+            'linePricedSince' => $cover->linePricedSince,
             'chart' => $primaryCurrency === null ? null : ValueChart::of($series, $primaryCurrency),
         ])->layoutData([
             'title' => "Activity · {$name}'s collection",
